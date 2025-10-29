@@ -1,0 +1,994 @@
+#+title: House of Bao
+
+* Blurb
+The House of Bao is a puzzle game where you play with boundaries: numbers look like what they mean!
+
+Experience the history of mathematics with an innovative and intuitive system with only three simple rules, designed for human understanding.
+
+Using three simple rules, players learn and understand mathematics at its finest. Building the experience to seamlessly tackle any math problem in day to day life.
+
+** Special Thanks
+Based on the work of George Spencer Brown, William Bricken, and Jeffrey James. 
+
+links:
+- [[https://lof50.com][George Spencer Brown Society]]
+- [[https://iconicmath.com/][Iconic Math]]
+- [[https://wbricken.com/][William Bricken's personal site]]
+
+* Technical Stack
+** Core Technologies
+*** Rendering Engine: PixiJS v8
+*** Frontend Framework: React in TypeScript with PixiJS rendering engine
+- PixiJS runs in React-managed canvas container
+*** State Management: Zustand
+- Lightweight, modern alternative to Redux
+- Perfect for game state (current form, move history, level progress)
+- Simple API, minimal boilerplate
+- Works seamlessly with React and vanilla JS
+
+*** Build System: Vite
+** Supporting Libraries
+*** Geometry & Math
+- Custom tree utilities for form manipulation with the three axioms
+- PixiJS built-in math utilities (Point, Rectangle, Matrix)
+- Simple collision detection for tap/click targeting
+
+*** Animation
+- GSAP for smooth transitions
+- Custom interpolation for form morphing (node splitting/merging)
+- Spring physics for tactile feedback
+
+*** Data Storage
+- LocalStorage for progress persistence
+- JSON serialization for level data and save states
+- No backend required for MVP
+
+* Project Roadmap 
+** MVP Features:
+Screens:
+- Loading screen
+- Win Screen (temporary UI?)
+- 30 levels
+
+Overall Features:  
+- Core Game Loop
+- The player is presented with a shape and needs to manipulate it to to match the goal state.
+- The player can use the 3 Axioms with tap / drag.
+- Assets feature cute Bauhaus style Dumplings
+- 30 Levels ramping up from tutorial to somewhat complex math.
+- The levels are rendered in a Network Dialect
+
+** MVP System Design
+*** Core Game Loop
+- Network Dialect and respective assets
+*** Tutorial
+*** User Accounts
+- Progress saving
+*** Core logic engine
+*** Rendering Engine
+*** Backend
+A simple User /
+
+** Future Features
+*** Youtube Playables requirements compliance
+https://developers.google.com/youtube/gaming/playables/certification/
+- Accessibility with the WCAG
+- Responsive Design: Playable in all aspect ratios
+- Input
+  - mouse and keyboard support
+- Internationalization
+  
+*** More Visual Dialects
+- Path Dialect
+- Room Dialect
+- Block Dialect
+- Bucket Dialect
+*** More Level Types
+*** Art and Content
+*** Automated Solver, Tutor
+
+* James Algebra: Theory & Game Mechanics
+** Core Concepts
+*** Void
+- The void has no properties; it is the absence of form
+- Represented as empty space or empty array: ~[]~
+- Void-equivalent forms may vary in structure but are semantically identical
+
+*** Containers (Boundaries)
+- *Containers represent distinctions*
+- Everything in James Algebra is a container
+- There is only one relation: *contains*
+- Empty containers are units
+- Containers are both object and process
+
+*** Structure
+- Forms are patterns of containment
+- Valid forms can be constructed physically
+- The contents of any container are mutually independent (no ordering)
+- Forms are represented as trees where edges mean "contains"
+
+** The Three Axioms
+These are the ONLY operations players can perform. All mathematics emerges from these rules.
+
+*** Axiom 1: Inversion (Enfold/Clarify)
+*Rule*: ~([A]) = [(A)] = A~
+
+A form wrapped in both types of boundaries cancels those boundaries.
+
+*Visual*: Round containing Square (or vice versa) containing something = just that something
+
+*Game Action*: "Simplify" or "Unwrap" - removes matching paired boundaries
+
+*Examples*:
+#+begin_example
+([]) = void        (round-square-nothing = nothing)
+[()] = void        (square-round-nothing = nothing)
+([()]) = ()        (round-square-round = round)
+([AB]) = AB        (remove the paired boundaries)
+#+end_example
+
+*** Axiom 2: Arrangement (Collect/Disperse)
+*Rule*: ~(A [B C]) = (A [B])(A [C])~
+
+Content outside a square frame can be distributed into (collected from) each item inside the square.
+
+*Visual*: A round container with siblings A and a square [B C] can split into separate rounds
+
+*Game Action*: "Distribute" or "Collect" - spread context across square's children or merge them back
+
+*Examples*:
+#+begin_example
+(X [A B C]) = (X [A])(X [B])(X [C])    (distribute X to each)
+(X [A])(X [B]) = (X [A B])    (collect common context)
+#+end_example
+
+*** Axiom 3: Reflection (Create/Cancel)
+*Rule*: ~A <A> = void~
+
+A form and its angled reflection annihilate each other.
+
+*Visual*: Any form next to its angled copy disappears
+
+*Game Action*: "Create pair" (from nothing) or "Cancel" (annihilate matching pairs)
+
+*Examples*:
+#+begin_example
+() <()> = void           (unit and reflected unit cancel)
+[A] <[A]> = void         (any form and its reflection cancel)
+(A) <(A)> = void
+A <A> = void
+() = <()> ()        (can create pairs from nothing)
+#+end_example
+
+** Data Model: Tree Representation
+Forms are represented as trees where nodes are containers and edges represent containment.
+
+#+begin_src typescript
+type BoundaryType = 'round' | 'square' | 'angle';
+
+type Form = {
+  id: string;           // Unique identifier for rendering/selection
+  boundary: BoundaryType;
+  children: Form[];     // Contents (unordered)
+};
+
+// Examples:
+// void = []
+// () = [{ boundary: 'round', children: [] }]
+// [()] = [{ boundary: 'square', children: [{ boundary: 'round', children: [] }] }]
+// () () = [
+//   { boundary: 'round', children: [] },
+//   { boundary: 'round', children: [] }
+// ]
+#+end_src
+
+** Win Condition
+A level is solved when the current form is *structurally equivalent* to the goal form:
+- Same tree structure (ignoring node IDs)
+- Same boundary types
+- Same nesting relationships
+- Order of siblings doesn't matter (sets, not sequences)
+
+** Important Theorems (For Context)
+While players only use the 3 axioms, these derived theorems help level designers:
+
+*** Dominion: ~(A []) = void~
+An empty square frame inside a round makes everything void.
+
+*** Involution: ~<<A>> = A~
+Double reflection returns to original.
+
+*** Separation: ~<A><B> = <A B>~
+Adjacent reflections can be combined.
+
+* Interaction Design
+** Core Interaction Flow
+1. *Hover*: Mouse over any node → highlight with glow/outline
+2. *Click*: Click a node → select it (different highlight color)
+3. *Action Menu*: Contextual menu appears with legal moves for that selection
+4. *Execute*: Click action → animate transformation → check win condition
+5. *Deselect*: Click elsewhere or ESC to deselect
+
+** Selection System
+*** What Can Be Selected?
+- Individual nodes (containers)
+- Multiple nodes for reflection (when selecting second node for cancel/create)
+- Entire subtrees (for arrangement operations)
+
+*** Visual Feedback
+- *Hover*: Subtle glow (~#FFC837~ yellow) around boundary
+- *Selected*: Thicker outline (~#E63946~ red) with pulsing animation
+- *Legal target*: Green glow when hovering valid second selection (for reflection)
+- *Illegal*: Shake animation + red flash when invalid action attempted
+
+** Action Menu
+*** Menu Appearance
+- Radial menu centered on selected node
+- 3-5 buttons depending on context
+- Bauhaus-inspired icons for each axiom
+- Appears with spring animation
+
+*** Available Actions (Context-Dependent)
+**** When Round-Square pair selected (Inversion):
+- "Unwrap" (clarify): Remove the paired boundaries
+- "Wrap" (enfold): Add paired boundaries around selection
+
+**** When Round with Square child selected (Arrangement):
+- "Distribute": Split into multiple sibling rounds
+- "Collect": (shown when multiple matching frames exist) Merge back
+
+**** When Any node selected (Reflection):
+- "Create Pair": Generate angled reflection of selection
+- "Cancel": (enabled when hovering another matching node) Annihilate pair
+
+**** Always Available:
+- "Undo": Revert last move
+- "Redo": Replay undone move (if available)
+
+** Input Modes
+*** Mouse/Trackpad (Primary for MVP)
+- Left click: Select/execute
+- Hover: Preview/highlight
+- ESC key: Deselect/close menu
+
+*** Touch (Secondary - Simple Support)
+- Tap: Select/execute
+- Long press: Alternative to hover (show preview)
+- Tap outside: Deselect
+
+** Move Validation
+*** Legal Move Detection
+Before showing an action in the menu, engine checks:
+1. *Inversion*: Is the selected node a round-square or square-round pair?
+2. *Arrangement*: Is there a round node with a square child that has multiple siblings?
+3. *Reflection*: Can we find a matching form to cancel? Or can we insert a pair here?
+
+*** Feedback for Illegal Moves
+- Grey out disabled actions in menu
+- Show tooltip explaining why action is unavailable
+- Never let player make illegal move (unlike sandbox mode)
+
+** Undo/Redo System
+*** History Stack
+- Store each move as: ~{ type: AxiomType, target: NodeId, beforeState: Form, afterState: Form }~
+- Max 100 moves (sufficient for puzzle context)
+- History cleared when starting new level
+
+*** Visual Feedback
+- Undo/Redo buttons show current position in stack (e.g., "3/7")
+- Scrubbing through history shows animated transitions
+
+** Animation & Polish
+*** Transition Durations
+- Selection: 150ms ease-out
+- Action menu appear: 300ms spring
+- Transform animation: 500-800ms (depending on complexity)
+- Win celebration: 1500ms
+
+*** Transform Animations
+- *Inversion*: Boundaries shrink and fade or expand and fade in
+- *Arrangement*: Nodes duplicate and spread apart (distribute) or merge together (collect)
+- *Reflection*: Angle boundary appears with rotation, or pair spirals into void (cancel)
+
+* System Design
+** Network Dialect: Visual Representation
+*** Concept
+The Network Dialect represents forms as directed acyclic graphs (DAGs):
+- *Nodes* = Containers (round, square, angle boundaries)
+- *Edges* = Containment relationships (parent contains child)
+- Direction flows from shallow (top) to deep (bottom)
+- Shared structure: identical subtrees can reference the same node
+
+*** PixiJS Implementation
+**** Node Rendering
+Each node is a PixiJS Container with:
+- *Sprite*: Bauhaus-style dumpling character (different styles per boundary type)
+- *Graphics*: Boundary shape (circle, square, diamond) drawn behind sprite
+- *Text*: Optional label for debugging (can be toggled off)
+
+**** Edge Rendering
+- PixiJS Graphics lines connecting parent to children
+- Bezier curves for aesthetic appeal
+- Thickness: 3px
+- Color: ~#2A9D8F~ (teal) for normal, ~#E76F51~ (coral) for highlighted paths
+
+**** Boundary Type Visual Encoding
+- *Round*: Circular node, round dumpling character, ~#457B9D~ (blue)
+- *Square*: Square node, square dumpling character, ~#E63946~ (red)
+- *Angle*: Diamond node, angular dumpling character, ~#FCA311~ (orange)
+- *Empty containers (units)*: Smaller, semi-transparent, ~#A8DADC~ (light teal)
+
+*** Layout Algorithm
+**** Hierarchical Tree Layout
+1. *Depth assignment*: Count edges from root, assign Y position (depth * 120px)
+2. *Width calculation*: Calculate total width needed per level based on node count
+3. *Centering*: Center children under parent, balance horizontally
+4. *Collision avoidance*: Adjust X positions to prevent overlap (min 80px spacing)
+5. *Animation*: Smoothly transition nodes to new positions (500ms ease-out)
+
+**** Special Cases
+- *Multiple roots*: Arrange horizontally at top level
+- *Shared structure*: Draw multiple edges to same node, highlight sharing with distinct color
+- *Void*: Show empty canvas with subtle "∅" symbol at center
+
+*** Asset Specifications
+**** Dumpling Characters (Bauhaus Style)
+- *Style*: Geometric, minimal, cute
+- *Size*: 64x64px base (scales with zoom)
+- *Color palette*: Matches boundary type colors
+- *Variations*:
+  - Round dumpling: circular body, simple dot eyes, curved smile
+  - Square dumpling: square body, straight-line features, angular eyebrows
+  - Angle dumpling: diamond/triangle body, sharp eyes, geometric mouth
+
+**** Color Palette (Bauhaus-inspired)
+- Primary: ~#E63946~ (red), ~#457B9D~ (blue), ~#FCA311~ (orange)
+- Secondary: ~#2A9D8F~ (teal), ~#A8DADC~ (light teal)
+- Accent: ~#F1FAEE~ (off-white), ~#1D3557~ (dark blue)
+- Background: ~#F7F9FB~ (light grey-blue)
+
+**** Spacing & Sizing
+- Node radius: 40px (empty units: 30px)
+- Vertical spacing: 120px between levels
+- Horizontal spacing: 80px minimum between siblings
+- Edge curvature: 0.3 bezier factor for elegance
+
+*** Animation Strategy
+**** Morphing Transitions
+When axioms transform the form:
+1. *Fade/Scale*: Disappearing nodes fade + scale to 0 (300ms)
+2. *Spawn*: New nodes scale from 0 + fade in (300ms)
+3. *Move*: Existing nodes smoothly move to new positions (500ms ease-out)
+4. *Edge morph*: Edges redraw with animated line growth
+
+**** Special Effects
+- *Reflection cancel*: Pair spirals together, particles burst, then fade
+- *Inversion*: Boundaries pulse and shrink/expand with wobble
+- *Arrangement*: Nodes duplicate with ghost trails, spread apart
+
+*** Performance Targets
+- 60 FPS even with 50+ nodes
+- Sub-100ms response to user input
+- Smooth animations without jank
+- PixiJS batching for efficient rendering
+
+** Game Loop (Frontend)
+*** Level Structure
+- Win Conditions
+- Starting Form
+- Goal Conditions
+- Optional Narrative/Hint
+
+*** Logic Engine
+- Axiom Enforcement
+- Win condition checking
+- Move validation
+- Undo/Redo stack
+
+*** Interaction Layer
+- Click detection (PixiJS hit testing)
+- Action menu system
+- Hover effects
+
+*** Rendering Layer
+- PixiJS scene graph
+- Network dialect visualization
+- Animation system
+
+
+** Level System
+*** Level Data Format
+Each level is defined as a JSON object:
+
+#+begin_src typescript
+interface Level {
+  id: string;                    // "level-01", "level-02", etc.
+  name: string;                  // Display name: "First Steps"
+  description?: string;          // Tutorial text or hint
+  startForm: Form[];             // Initial state (array of root nodes)
+  goalForm: Form[];              // Target state to achieve
+  maxMoves?: number;             // Optional: move limit for challenge
+  allowedAxioms?: AxiomType[];   // Optional: restrict to specific axioms
+  difficulty: 1 | 2 | 3 | 4 | 5; // 1=tutorial, 5=expert
+}
+
+// Example level:
+{
+  "id": "level-01",
+  "name": "First Unwrap",
+  "description": "Remove the paired boundaries to reveal the unit.",
+  "startForm": [
+    {
+      "boundary": "round",
+      "children": [
+        {
+          "boundary": "square",
+          "children": [
+            { "boundary": "round", "children": [] }
+          ]
+        }
+      ]
+    }
+  ],
+  "goalForm": [
+    { "boundary": "round", "children": [] }
+  ],
+  "allowedAxioms": ["inversion"],
+  "difficulty": 1
+}
+#+end_src
+
+*** Progression Curve (30 Levels)
+**** Tutorial Arc (Levels 1-8)
+- *1-3*: Inversion only - Learn to unwrap/wrap paired boundaries
+- *4-6*: Arrangement only - Learn to distribute/collect
+- *7-8*: Reflection only - Learn to create/cancel pairs
+
+**** Integration Arc (Levels 9-16)
+- *9-12*: Combine two axioms (inversion + arrangement)
+- *13-16*: All three axioms available, simple combinations
+
+**** Mastery Arc (Levels 17-24)
+- *17-20*: Multi-step puzzles requiring planning
+- *21-24*: Introduce theorems implicitly (dominion, involution)
+
+**** Expert Arc (Levels 25-30)
+- *25-28*: Complex forms with optimal solution paths
+- *29-30*: Creative challenges, multiple valid solutions
+
+*** Sample Levels
+**** Level 1: "First Unwrap" (Inversion Tutorial)
+#+begin_example
+Start: ([])
+Goal:  void
+Moves: 1
+Concept: Basic clarification - round-square pair becomes void
+#+end_example
+
+**** Level 4: "Distribute" (Arrangement Tutorial)
+#+begin_example
+Start: ([()()])
+Goal:  ([])([])
+Moves: 1
+Concept: Distribute nothing across two units, creating two void frames
+#+end_example
+
+**** Level 7: "Create from Nothing" (Reflection Tutorial)
+#+begin_example
+Start: void
+Goal:  () <()>
+Moves: 1
+Concept: Create a reflected pair from nothing
+#+end_example
+
+**** Level 12: "Combination Challenge"
+#+begin_example
+Start: ([()])
+Goal:  void
+Moves: 2
+Solution:
+  1. Clarify ([()]) → ()
+  2. Create reflection () → () <()>, which auto-cancels → void
+  (Or alternative path)
+#+end_example
+
+**** Level 20: "Dominion Puzzle"
+#+begin_example
+Start: (()[()])
+Goal:  void
+Moves: 3
+Concept: Discover that (A []) = void (dominion theorem)
+Solution:
+  1. Clarify inner [()]  → ()
+  2. Now have (()[])
+  3. Recognize/create situation where dominion applies
+#+end_example
+
+**** Level 30: "The Grand Unification"
+#+begin_example
+Start: ([()()])([()])(<[()]>)
+Goal:  void
+Moves: 5-7 (multiple solutions)
+Concept: Complex multi-axiom challenge, reward creative thinking
+#+end_example
+
+*** Level Storage & Loading
+- Levels stored in ~/data/levels.json~ as array
+- Loaded at app initialization
+- Progress stored in LocalStorage as: ~{ completedLevels: string[], stars: Record<string, number> }~
+- Star system (optional): 3 stars for optimal moves, 2 for +2 moves, 1 for completion
+
+*** Level Design Principles
+1. *Introduce one concept at a time* - Don't overwhelm
+2. *Make goals visually distinct* - Clear visual difference between start and goal
+3. *Encourage discovery* - Don't always tell the solution, let players experiment
+4. *Multiple solutions are fine* - Unless explicitly marked as optimization challenge
+5. *Narrative continuity* - Levels tell a story of mathematical discovery
+
+** Backend (Not in MVP)
+Future considerations:
+- User accounts and cloud save
+- Leaderboards and optimal solution tracking
+- Level editor and community levels
+- Analytics for level difficulty tuning
+
+* Frontend Architecture
+** Architecture Overview
+#+begin_example
+┌─────────────────────────────────────────────┐
+│          React Application Layer            │
+│  (UI, Menus, HUD, Level Select, etc.)      │
+└─────────────────┬───────────────────────────┘
+                  │
+                  │ Props & Events
+                  ▼
+┌─────────────────────────────────────────────┐
+│         PixiJS Game Canvas                  │
+│  (Network Dialect, Nodes, Edges, Anims)    │
+└─────────────────┬───────────────────────────┘
+                  │
+                  │ Zustand Store
+                  ▼
+┌─────────────────────────────────────────────┐
+│          Game State Management              │
+│  (Current Form, History, Level Progress)    │
+└─────────────────┬───────────────────────────┘
+                  │
+                  │ LocalStorage
+                  ▼
+┌─────────────────────────────────────────────┐
+│          Persistence Layer                  │
+│         (Progress, Settings)                │
+└─────────────────────────────────────────────┘
+#+end_example
+
+** Module Structure
+#+begin_example
+src/
+├── main.tsx                    # Entry point
+├── App.tsx                     # Root component
+├── components/                 # React components
+│   ├── GameCanvas.tsx         # PixiJS canvas container
+│   ├── LevelSelect.tsx        # Level selection screen
+│   ├── WinScreen.tsx          # Victory modal
+│   ├── LoadingScreen.tsx      # Initial loading
+│   ├── HUD.tsx                # Move counter, undo/redo buttons
+│   └── ActionMenu.tsx         # Radial action menu overlay
+├── game/                       # PixiJS game engine
+│   ├── PixiGame.ts            # Main game class, manages PixiJS app
+│   ├── NetworkRenderer.ts     # Renders forms as network dialect
+│   ├── NodeSprite.ts          # Individual node rendering
+│   ├── EdgeGraphics.ts        # Edge rendering and bezier curves
+│   ├── LayoutEngine.ts        # Hierarchical layout algorithm
+│   └── AnimationController.ts # Handles morphing transitions
+├── logic/                      # Core algebra logic
+│   ├── Form.ts                # Form data structures
+│   ├── Axioms.ts              # Inversion, Arrangement, Reflection
+│   ├── Validator.ts           # Legal move checking
+│   ├── Comparator.ts          # Win condition checking
+│   └── History.ts             # Undo/redo stack
+├── store/                      # State management
+│   ├── gameStore.ts           # Zustand store (current form, level)
+│   └── progressStore.ts       # LocalStorage persistence layer
+├── data/                       # Static game data
+│   └── levels.json            # All 30 levels
+└── assets/                     # Images, sprites, fonts
+    ├── dumplings/             # Bauhaus dumpling sprites
+    │   ├── round.png
+    │   ├── square.png
+    │   └── angle.png
+    └── sounds/                # Optional: SFX
+#+end_example
+
+** Component Architecture
+*** GameCanvas.tsx
+React component that creates and manages the PixiJS Application:
+
+#+begin_src typescript
+export function GameCanvas() {
+  const canvasRef = useRef<HTMLDivElement>(null);
+  const gameRef = useRef<PixiGame | null>(null);
+  const currentForm = useGameStore(state => state.currentForm);
+
+  useEffect(() => {
+    if (!canvasRef.current) return;
+
+    // Initialize PixiJS
+    gameRef.current = new PixiGame(canvasRef.current);
+
+    return () => gameRef.current?.destroy();
+  }, []);
+
+  useEffect(() => {
+    // Update PixiJS when game state changes
+    if (gameRef.current && currentForm) {
+      gameRef.current.render(currentForm);
+    }
+  }, [currentForm]);
+
+  return <div ref={canvasRef} className="game-canvas" />;
+}
+#+end_src
+
+*** PixiGame.ts
+Main game engine class:
+
+#+begin_src typescript
+export class PixiGame {
+  private app: Application;
+  private renderer: NetworkRenderer;
+  private animationController: AnimationController;
+
+  constructor(container: HTMLElement) {
+    this.app = new Application({
+      width: 1024,
+      height: 768,
+      backgroundColor: 0xF7F9FB,
+      antialias: true,
+    });
+    container.appendChild(this.app.view as HTMLCanvasElement);
+
+    this.renderer = new NetworkRenderer(this.app.stage);
+    this.animationController = new AnimationController();
+
+    this.setupInteraction();
+  }
+
+  render(form: Form[]) {
+    this.renderer.renderForm(form);
+  }
+
+  private setupInteraction() {
+    // PixiJS hit testing and click handlers
+    this.app.stage.eventMode = 'static';
+    this.app.stage.hitArea = this.app.screen;
+    this.app.stage.on('pointerdown', this.handleClick);
+  }
+}
+#+end_src
+
+** State Management (Zustand)
+*** gameStore.ts
+#+begin_src typescript
+interface GameState {
+  // Current game state
+  currentLevel: Level | null;
+  currentForm: Form[];
+  goalForm: Form[];
+
+  // Interaction state
+  selectedNode: string | null;
+  hoveredNode: string | null;
+
+  // History
+  history: HistoryEntry[];
+  historyIndex: number;
+
+  // Actions
+  loadLevel: (level: Level) => void;
+  applyAxiom: (axiom: AxiomType, target: string) => void;
+  selectNode: (nodeId: string | null) => void;
+  undo: () => void;
+  redo: () => void;
+  checkWin: () => boolean;
+}
+
+export const useGameStore = create<GameState>((set, get) => ({
+  currentLevel: null,
+  currentForm: [],
+  goalForm: [],
+  selectedNode: null,
+  hoveredNode: null,
+  history: [],
+  historyIndex: -1,
+
+  loadLevel: (level) => set({
+    currentLevel: level,
+    currentForm: structuredClone(level.startForm),
+    goalForm: level.goalForm,
+    history: [],
+    historyIndex: -1,
+  }),
+
+  applyAxiom: (axiom, target) => {
+    const state = get();
+    const newForm = applyAxiomToForm(state.currentForm, axiom, target);
+
+    set({
+      currentForm: newForm,
+      history: [...state.history.slice(0, state.historyIndex + 1), {
+        axiom,
+        target,
+        beforeForm: state.currentForm,
+        afterForm: newForm,
+      }],
+      historyIndex: state.historyIndex + 1,
+    });
+
+    if (get().checkWin()) {
+      // Trigger win event
+    }
+  },
+
+  checkWin: () => {
+    const { currentForm, goalForm } = get();
+    return formsAreEqual(currentForm, goalForm);
+  },
+
+  // ... undo, redo, etc.
+}));
+#+end_src
+
+*** progressStore.ts
+#+begin_src typescript
+interface ProgressState {
+  completedLevels: Set<string>;
+  stars: Record<string, number>;
+
+  markComplete: (levelId: string, stars: number) => void;
+  load: () => void;
+  save: () => void;
+}
+
+export const useProgressStore = create<ProgressState>((set, get) => ({
+  completedLevels: new Set(),
+  stars: {},
+
+  markComplete: (levelId, stars) => {
+    set(state => ({
+      completedLevels: new Set([...state.completedLevels, levelId]),
+      stars: { ...state.stars, [levelId]: Math.max(state.stars[levelId] || 0, stars) },
+    }));
+    get().save();
+  },
+
+  load: () => {
+    const data = localStorage.getItem('house-of-bao-progress');
+    if (data) {
+      const parsed = JSON.parse(data);
+      set({
+        completedLevels: new Set(parsed.completedLevels),
+        stars: parsed.stars,
+      });
+    }
+  },
+
+  save: () => {
+    const { completedLevels, stars } = get();
+    localStorage.setItem('house-of-bao-progress', JSON.stringify({
+      completedLevels: Array.from(completedLevels),
+      stars,
+    }));
+  },
+}));
+#+end_src
+
+** Data Flow
+1. *Level Load*: User selects level → ~gameStore.loadLevel()~ → updates state → React re-renders → PixiJS re-renders
+2. *User Interaction*: Click node in PixiJS → event bubbles to store → ~gameStore.selectNode()~ → Action menu appears (React)
+3. *Action Execution*: Click action → ~gameStore.applyAxiom()~ → logic engine transforms form → PixiJS animates transition
+4. *Win Detection*: After each move → ~checkWin()~ → if true, show WinScreen (React) + save progress (LocalStorage)
+
+** Performance Considerations
+- *React rendering*: Use ~React.memo()~ for UI components that don't change often
+- *PixiJS updates*: Only re-render network when form actually changes (use deep equality check)
+- *Animation*: Use PixiJS Ticker for smooth 60fps animations
+- *State updates*: Batch Zustand updates where possible
+- *LocalStorage*: Debounce saves (don't save on every move, only on level complete)
+
+* Technical Decisions & Rationale
+** Why PixiJS Over Alternatives?
+*** Decision: PixiJS v8
+*** Alternatives Considered:
+- Two.js (SVG/Canvas renderer)
+- Pure Canvas API
+- p5.js
+- Phaser (full game framework)
+
+*** Rationale:
+1. *Performance*: WebGL-first approach gives us 60fps even with complex scenes
+2. *Game-appropriate*: Built for games, unlike Two.js which is more general-purpose
+3. *Effects & Polish*: Easy access to particles, filters, shaders for juice
+4. *Community & Ecosystem*: Large community, many plugins, well-maintained
+5. *TypeScript Support*: First-class TypeScript definitions
+6. *Future-proofing*: If we want to add visual effects, transitions, or even 3D elements later, PixiJS supports this
+
+*** Trade-offs Accepted:
+- Slightly larger bundle size than pure Canvas (~200kb vs ~0kb)
+- Learning curve for developers unfamiliar with scene graphs
+- Overkill for the initial MVP, but worth it for long-term flexibility
+
+** Why NOT tau-prolog?
+*** Previous Approach: tau-prolog for logic engine
+*** Decision: Custom TypeScript logic engine
+
+*** Rationale:
+1. *Simplicity*: James Algebra operations are straightforward tree transformations
+2. *Performance*: Direct TypeScript is faster than Prolog interpretation
+3. *Debuggability*: TypeScript stack traces vs Prolog query debugging
+4. *Type Safety*: Full TypeScript types throughout the codebase
+5. *Bundle Size*: tau-prolog adds ~100kb, unnecessary for our needs
+6. *Team Familiarity*: More developers know TypeScript than Prolog
+
+*** Trade-offs Accepted:
+- Lose some theoretical elegance of pattern-matching axioms
+- Cannot easily experiment with different formal systems
+- Manual implementation of tree traversal and transformation
+
+*** When to Reconsider:
+- If we add an automated solver (where Prolog shines)
+- If we want to expose the system to end-users for custom rule creation
+- If we expand beyond James Algebra to more complex formal systems
+
+** Why Zustand Over Redux?
+*** Decision: Zustand for state management
+*** Alternatives Considered:
+- Redux Toolkit
+- Jotai
+- React Context + useReducer
+- MobX
+
+*** Rationale:
+1. *Minimal Boilerplate*: Define store in ~50 lines vs ~200+ for Redux
+2. *No Provider Hell*: Direct imports, no wrapper components needed
+3. *Great DevTools*: Redux DevTools integration available
+4. *Performance*: Subscription-based updates, minimal re-renders
+5. *Learning Curve*: Simpler mental model than Redux
+6. *Perfect for Game State*: Mutable-style updates (with immer if needed) work well for game logic
+
+*** Trade-offs Accepted:
+- Less middleware ecosystem than Redux
+- Fewer "patterns" and "best practices" documented
+- Team members may need to learn a new library (but it's small)
+
+** Frontend-Only MVP
+*** Decision: No backend for MVP
+*** Rationale:
+1. *Faster Iteration*: Can ship and test core gameplay without server setup
+2. *Lower Costs*: No hosting, database, or API maintenance during development
+3. *Offline-First*: Works without internet, better UX for puzzle games
+4. *Simpler Architecture*: Fewer moving parts = less complexity
+5. *LocalStorage Sufficient*: Progress and settings fit easily in browser storage
+
+*** Planned Migration Path:
+When ready to add backend (post-MVP):
+1. Create simple REST API with authentication
+2. Sync LocalStorage → Cloud on login
+3. Merge conflict resolution (pick higher progress)
+4. Add leaderboards, community features
+5. Backend can be thin layer (Supabase, Firebase, or custom)
+
+** Network Dialect First
+*** Decision: MVP uses only Network Dialect
+*** Alternatives Considered:
+- Path Dialect (experiential, path-based)
+- Bucket Dialect (container-based)
+- Block Dialect (Tetris-like blocks)
+- Multiple dialects simultaneously
+
+*** Rationale:
+1. *Computational Tractability*: Easiest to implement algorithmically
+2. *Shared Structure*: Network dialect supports DAGs naturally (key for optimization)
+3. *Clear Hierarchy*: Visual representation of depth is intuitive
+4. *Animation-Friendly*: Node-edge graphs morph cleanly
+5. *Focus*: Ship one polished dialect rather than multiple rough ones
+
+*** Future Expansion:
+- Post-MVP: Add Path Dialect (more experiential, exploration-based)
+- Later: Add Room Dialect (3D-ish, room-to-room navigation)
+- Each dialect can use the same core logic engine, just different renderers
+
+** Custom Tree Manipulation vs flatten-js
+*** Decision: Custom tree utilities in TypeScript
+*** Previous Approach: flatten-js for geometric operations
+
+*** Rationale:
+1. *Network Dialect Doesn't Need Geometry*: No boolean operations, no polygon merging
+2. *Simple Layout*: Hierarchical tree layout is straightforward (depth + centering)
+3. *Smaller Bundle*: Avoid 50kb+ library for operations we don't use
+4. *Direct Control*: Easier to optimize and debug custom code
+5. *Tree Operations Are Natural*: Containment = tree edges, axioms = tree transformations
+
+*** What We Actually Need:
+- Tree traversal (DFS, BFS)
+- Parent-child relationship tracking
+- Subtree equality checking
+- Node ID generation and management
+- Simple 2D point math (PixiJS provides this)
+
+*** When to Reconsider:
+- If we add Path or Bucket dialects (may need bezier curves, polygon operations)
+- If we want sophisticated collision detection
+- If we implement "ink-style" morphing animations
+
+** TypeScript Throughout
+*** Decision: Strict TypeScript for entire codebase
+*** Rationale:
+1. *Type Safety*: Catch bugs at compile-time, especially for tree transformations
+2. *Better Refactoring*: Confident renames and structural changes
+3. *Self-Documenting*: Types serve as inline documentation
+4. *IDE Support*: Excellent autocomplete and inline errors
+5. *Team Onboarding*: Easier for new developers to understand data structures
+
+*** Configuration:
+#+begin_src json
+{
+  "compilerOptions": {
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true
+  }
+}
+#+end_src
+
+* Development Roadmap
+** Phase 1: Core Engine (2-3 weeks)
+- [ ] Set up Vite + React + TypeScript project
+- [ ] Implement Form data structures
+- [ ] Implement 3 axioms (Inversion, Arrangement, Reflection)
+- [ ] Write unit tests for axiom operations
+- [ ] Implement win condition checker
+- [ ] Implement undo/redo system
+
+** Phase 2: Rendering (2-3 weeks)
+- [ ] Set up PixiJS integration with React
+- [ ] Implement basic node rendering (circles, squares, diamonds)
+- [ ] Implement edge rendering with bezier curves
+- [ ] Implement hierarchical layout algorithm
+- [ ] Add basic click/hover interaction
+- [ ] Test with sample forms
+
+** Phase 3: Game Loop (2 weeks)
+- [ ] Implement Zustand stores (game + progress)
+- [ ] Create GameCanvas component
+- [ ] Create ActionMenu component
+- [ ] Create HUD component (move counter, undo/redo)
+- [ ] Wire up interaction: click → menu → action → animation
+- [ ] Implement LocalStorage persistence
+
+** Phase 4: Content (2-3 weeks)
+- [ ] Design and implement 30 levels in JSON
+- [ ] Create level progression system
+- [ ] Implement LoadingScreen component
+- [ ] Implement LevelSelect component
+- [ ] Implement WinScreen component
+- [ ] Playtest and balance difficulty
+
+** Phase 5: Polish (1-2 weeks)
+- [ ] Create Bauhaus dumpling sprites
+- [ ] Implement smooth animations for axiom transformations
+- [ ] Add visual feedback (hover, selection, illegal moves)
+- [ ] Add sound effects (optional)
+- [ ] Responsive design for different screen sizes
+- [ ] Performance optimization (60fps target)
+
+** Phase 6: Testing & Launch (1 week)
+- [ ] Cross-browser testing (Chrome, Firefox, Safari)
+- [ ] Mobile testing (touch interactions)
+- [ ] Bug fixing
+- [ ] Deploy to web (Vercel, Netlify, or similar)
+- [ ] Soft launch for feedback
+
+*
+
+
