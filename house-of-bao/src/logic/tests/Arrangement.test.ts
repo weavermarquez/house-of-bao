@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { collect, disperse, isCollectApplicable, isFrame } from "../Axioms";
+import {
+  isCollectApplicable,
+  collect,
+  disperse,
+  isFrame,
+} from "../Arrangement";
 import { canonicalSignature, round, square, angle, atom } from "../Form";
 
 describe("Arrangement Axiom", () => {

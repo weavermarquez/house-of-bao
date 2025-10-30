@@ -33,6 +33,26 @@ export function angle(...children: Form[]): Form {
 }
 
 /**
+ * Deep clones a Form tree, creating new Form objects with new IDs.
+ */
+export function deepClone(form: Form): Form {
+  return {
+    id: crypto.randomUUID(),
+    boundary: form.boundary,
+    children: new Set<Form>([...form.children].map(deepClone)),
+    label: form.label,
+  };
+}
+
+export function noop(form: Form): Form[] {
+  return [deepClone(form)];
+}
+
+export function noopForest(forms: Form[]): Form[] {
+  return forms.map((form) => deepClone(form));
+}
+
+/**
  * Produces an order-invariant signature for structural comparisons:
  * - Ignores runtime-generated ids
  * - Sorts child signatures to account for unordered sibling sets
@@ -53,6 +73,14 @@ export function canonicalSignatureForest(forms: Iterable<Form>): string[] {
   return [...forms].map((form) => canonicalSignature(form)).sort();
 }
 
+export function sortedBoundaries(forms: Form[]): string[] {
+  return forms.map((form) => form.boundary).sort();
+}
+
+export function sortedCanonicalSignatures(forms: Form[]): string[] {
+  return forms.map((form) => canonicalSignature(form)).sort();
+}
+
 /**
  * Traverses a Form tree depth-first, invoking the supplied visitor for each
  * node. Traversal order is implementation-defined but guarantees every node is
@@ -67,10 +95,7 @@ export function traverseForm(form: Form, visit: (node: Form) => void): void {
   }
 }
 
-function assertCanonicalSignature(
-  actual: string,
-  expected?: string,
-): void {
+function assertCanonicalSignature(actual: string, expected?: string): void {
   if (expected === undefined) {
     return;
   }
@@ -82,10 +107,7 @@ function assertCanonicalSignature(
   }
 }
 
-function signaturesMatch(
-  actual: string[],
-  expected?: string[],
-): boolean {
+function signaturesMatch(actual: string[], expected?: string[]): boolean {
   if (!expected) {
     return true;
   }
@@ -95,7 +117,9 @@ function signaturesMatch(
   }
 
   const sortedExpected = [...expected].sort();
-  return actual.every((signature, index) => signature === sortedExpected[index]);
+  return actual.every(
+    (signature, index) => signature === sortedExpected[index],
+  );
 }
 
 /**
