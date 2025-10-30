@@ -44,3 +44,11 @@ export function canonicalSignature(form: Form): string {
     .sort();
   return `${form.boundary}:${labelPart}[${childSignatures.join(",")}]`;
 }
+
+/**
+ * Generates order-invariant signatures for every form in a forest. Helpful when
+ * comparing contexts (unordered sets of siblings).
+ */
+export function canonicalSignatureForest(forms: Iterable<Form>): string[] {
+  return [...forms].map((form) => canonicalSignature(form)).sort();
+}

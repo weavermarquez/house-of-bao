@@ -362,6 +362,26 @@ describe("Axioms", () => {
       expect(canonicalSignature(collected[0])).toBe(canonicalSignature(original));
     });
 
+    it("collects frames that share additional square context", () => {
+      const sharedContext = square(variable("shared"));
+      const a = variable("a");
+      const b = variable("b");
+      const payload = square(a, b);
+      const base = round(sharedContext, payload);
+
+      const distributed = disperse(base, {
+        squareId: payload.id,
+        contentIds: [b.id],
+      });
+
+      expect(distributed).toHaveLength(2);
+      expect(isCollectApplicable(distributed)).toBe(true);
+
+      const collected = collect(distributed);
+      expect(collected).toHaveLength(1);
+      expect(canonicalSignature(collected[0])).toBe(canonicalSignature(base));
+    });
+
     it("handles empty input gracefully", () => {
       expect(isCollectApplicable([])).toBe(false);
       expect(collect([])).toEqual([]);

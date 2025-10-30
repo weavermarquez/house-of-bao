@@ -4,26 +4,27 @@ import {
   round,
   square,
   canonicalSignature,
+  canonicalSignatureForest,
 } from "./Form";
 
 /**
  * Deep clones a Form tree, creating new Form objects with new IDs.
  */
 export function deepClone(form: Form): Form {
-  const clonedChildren = new Set<Form>();
-  for (const child of form.children) {
-    clonedChildren.add(deepClone(child));
-  }
   return {
     id: crypto.randomUUID(),
     boundary: form.boundary,
-    children: clonedChildren,
+    children: new Set<Form>([...form.children].map(deepClone)),
     label: form.label,
   };
 }
 
 function noop(form: Form): Form[] {
   return [deepClone(form)];
+}
+
+function noopForest(forms: Form[]): Form[] {
+  return forms.map((form) => deepClone(form));
 }
 
 function getSquareChildren(form: Form): Form[] {
@@ -43,10 +44,7 @@ type FramePartition = {
  * - If any requested id is unknown, we return null so the caller can treat the
  *   entire disperse attempt as a no-op.
  */
-function partitionFrameContents(
-  available: Form[],
-  requestedIds?: string[],
-): FramePartition | null {
+function partitionFrameContents(available: Form[], requestedIds?: string[]): FramePartition | null {
   if (!requestedIds || requestedIds.length === 0) {
     return {
       picked: available,
@@ -54,20 +52,12 @@ function partitionFrameContents(
     };
   }
 
-  const lookup = new Map<string, Form>();
-  for (const entry of available) {
-    lookup.set(entry.id, entry);
-  }
-
-  const seen = new Set<string>();
+  const uniqueIds = [...new Set(requestedIds)];
+  const idToForm = new Map(available.map((entry) => [entry.id, entry]));
   const picked: Form[] = [];
 
-  for (const id of requestedIds) {
-    if (seen.has(id)) {
-      continue;
-    }
-    seen.add(id);
-    const match = lookup.get(id);
+  for (const id of uniqueIds) {
+    const match = idToForm.get(id);
     if (!match) {
       return null;
     }
@@ -78,7 +68,9 @@ function partitionFrameContents(
     return null;
   }
 
-  const remaining = available.filter((entry) => !seen.has(entry.id));
+  const pickedIds = new Set(picked.map((form) => form.id));
+  const remaining = available.filter((entry) => !pickedIds.has(entry.id));
+
   return { picked, remaining };
 }
 
@@ -86,6 +78,90 @@ function cloneFrame(contextForms: Form[], contents: Form[]): Form {
   const contextClones = contextForms.map((context) => deepClone(context));
   const contentsClones = contents.map((content) => deepClone(content));
   return round(...contextClones, square(...contentsClones));
+}
+
+type CollectTarget = {
+  contextForms: Form[];
+  squares: Form[];
+};
+
+function matchingContextForms(frame: Form, square: Form): Form[] {
+  return [...frame.children].filter((child) => child !== square);
+}
+
+function matchingContextSignature(frame: Form, square: Form): string[] {
+  return canonicalSignatureForest(matchingContextForms(frame, square));
+}
+
+function gatherMatchingSquares(
+  candidateSquare: Form,
+  frames: Form[],
+): Form[] | null {
+  const templateSignature = matchingContextSignature(frames[0], candidateSquare);
+
+  const matches: Form[] = [];
+  for (const [index, frame] of frames.entries()) {
+    if (!isFrame(frame)) {
+      return null;
+    }
+
+    if (index === 0) {
+      matches.push(candidateSquare);
+      continue;
+    }
+
+    const match = getSquareChildren(frame).find((squareOption) => {
+      if (squareOption.children.size === 0) {
+        return false;
+      }
+      return arraysEqual(
+        matchingContextSignature(frame, squareOption),
+        templateSignature,
+      );
+    });
+
+    if (!match) {
+      return null;
+    }
+
+    matches.push(match);
+  }
+
+  return matches;
+}
+
+function attemptCollectTarget(candidateSquare: Form, frames: Form[]): CollectTarget | null {
+  if (candidateSquare.children.size === 0) {
+    return null;
+  }
+
+  const contextForms = matchingContextForms(frames[0], candidateSquare);
+  const matchingSquares = gatherMatchingSquares(candidateSquare, frames);
+  if (!matchingSquares) {
+    return null;
+  }
+
+  return {
+    contextForms,
+    squares: matchingSquares,
+  };
+}
+
+function resolveCollectTarget(forms: Form[]): CollectTarget | null {
+  if (forms.length === 0) {
+    return null;
+  }
+
+  const template = forms[0];
+  if (!isFrame(template)) {
+    return null;
+  }
+
+  return (
+    getSquareChildren(template)
+      .map((candidateSquare) => attemptCollectTarget(candidateSquare, forms))
+      .find((result): result is CollectTarget => result !== null) ?? null
+  );
 }
 
 function arraysEqual<T>(a: T[], b: T[]): boolean {
@@ -251,56 +327,7 @@ export function disperse(form: Form, options?: DisperseOptions): Form[] {
 }
 
 export function isCollectApplicable(forms: Form[]): boolean {
-  if (forms.length === 0) {
-    return false;
-  }
-
-  const template = forms[0];
-  if (template.boundary !== "round") {
-    return false;
-  }
-
-  const templateSquares = getSquareChildren(template);
-  if (templateSquares.length !== 1) {
-    return false;
-  }
-
-  const [templateSquare] = templateSquares;
-  if (!templateSquare || templateSquare.children.size === 0) {
-    return false;
-  }
-
-  const templateContextSignatures = [...template.children]
-    .filter((child) => child !== templateSquare)
-    .map((child) => canonicalSignature(child))
-    .sort();
-
-  for (const form of forms) {
-    if (form.boundary !== "round") {
-      return false;
-    }
-
-    const frameSquaresForForm = getSquareChildren(form);
-    if (frameSquaresForForm.length !== 1) {
-      return false;
-    }
-
-    const [frameSquare] = frameSquaresForForm;
-    if (!frameSquare || frameSquare.children.size === 0) {
-      return false;
-    }
-
-    const contextSignatures = [...form.children]
-      .filter((child) => child !== frameSquare)
-      .map((child) => canonicalSignature(child))
-      .sort();
-
-    if (!arraysEqual(contextSignatures, templateContextSignatures)) {
-      return false;
-    }
-  }
-
-  return true;
+  return resolveCollectTarget(forms) !== null;
 }
 
 /**
@@ -312,41 +339,19 @@ export function isCollectApplicable(forms: Form[]): boolean {
  *          or deep clones of the original forms otherwise.
  */
 export function collect(forms: Form[]): Form[] {
-  if (!isCollectApplicable(forms)) {
-    return forms.map((form) => deepClone(form));
+  const target = resolveCollectTarget(forms);
+  if (!target) {
+    return noopForest(forms);
   }
 
-  const template = forms[0];
-  const [templateSquare] = getSquareChildren(template);
-  if (!templateSquare) {
-    return forms.map((form) => deepClone(form));
-  }
-
-  const templateContext = [...template.children].filter(
-    (child) => child !== templateSquare,
+  const combinedSquareContents = target.squares.flatMap((square) =>
+    [...square.children],
   );
-  const combinedSquareChildren: Form[] = [];
-  for (const form of forms) {
-    const frameSquare = getSquareChildren(form)[0]!;
-    for (const content of frameSquare.children) {
-      combinedSquareChildren.push(deepClone(content));
-    }
+
+  if (combinedSquareContents.length === 0) {
+    // Dominion: aggregating frames whose squares are empty collapses to void.
+    return [];
   }
 
-  const combinedSquare: Form = {
-    id: crypto.randomUUID(),
-    boundary: "square",
-    children: new Set<Form>(combinedSquareChildren),
-  };
-
-  const combinedChildren = templateContext.map((child) => deepClone(child));
-  combinedChildren.push(combinedSquare);
-
-  const combinedRound: Form = {
-    id: crypto.randomUUID(),
-    boundary: "round",
-    children: new Set<Form>(combinedChildren),
-  };
-
-  return [combinedRound];
+  return [cloneFrame(target.contextForms, combinedSquareContents)];
 }
