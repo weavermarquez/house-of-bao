@@ -1,16 +1,13 @@
 import { describe, it, expect } from "vitest";
+import fc from "fast-check";
 import {
   clarify,
-  collect,
   deepClone,
-  disperse,
   enfold,
   enfoldRoundSquare,
   enfoldSquareRound,
   isClarifyApplicable,
-  isCollectApplicable,
-  isFrame,
-} from "./Axioms";
+} from "../Axioms";
 import {
   canonicalSignature,
   round,
@@ -18,9 +15,14 @@ import {
   angle,
   variable,
   type Form,
-} from "./Form";
+} from "../Form";
+import {
+  invertiblePairArb,
+  materializeRawForm,
+  rawFormArb,
+} from "./FormArbitraries";
 
-describe("Axioms", () => {
+describe("Clarify Axiom", () => {
   describe("deepClone", () => {
     it("clones a simple form with new id", () => {
       const original = round();
@@ -45,7 +47,6 @@ describe("Axioms", () => {
       const clonedGrandchild = [...clonedChild.children][0];
       expect(clonedGrandchild.boundary).toBe("angle");
 
-      // All ids should be different
       expect(cloned.id).not.toBe(original.id);
       expect(clonedChild.id).not.toBe([...original.children][0].id);
       expect(clonedGrandchild.id).not.toBe(
@@ -110,7 +111,7 @@ describe("Axioms", () => {
         },
       },
       {
-        label: "false positive guard: (<>) stays inapplicable",
+        label: "false positive guard: (o<>) stays inapplicable",
         factory: () => round(angle()),
         expected: false,
         assert: (clarified, original) => {
@@ -137,11 +138,58 @@ describe("Axioms", () => {
       const clarified = clarify(form);
       assert(clarified, form);
     });
+
+    it("property: clarify returns inner contents for invertible pairs", () => {
+      fc.assert(
+        fc.property(invertiblePairArb, ({ outer, payloads }) => {
+          const payloadForms = payloads.map(materializeRawForm);
+          const inner =
+            outer === "round"
+              ? square(...payloadForms)
+              : round(...payloadForms);
+          const form = outer === "round" ? round(inner) : square(inner);
+
+          expect(isClarifyApplicable(form)).toBe(true);
+
+          const clarified = clarify(form);
+          const expectedSignatures = [...inner.children]
+            .map((child) => canonicalSignature(child))
+            .sort();
+          const actualSignatures = clarified
+            .map((child) => canonicalSignature(child))
+            .sort();
+          expect(actualSignatures).toEqual(expectedSignatures);
+
+          const originalIds = new Set(
+            [...inner.children].map((child) => child.id),
+          );
+          clarified.forEach((clone) => {
+            expect(originalIds.has(clone.id)).toBe(false);
+          });
+        }),
+      );
+    });
+
+    it("property: clarify clones when inversion is inapplicable", () => {
+      fc.assert(
+        fc.property(rawFormArb, (raw) => {
+          const form = materializeRawForm(raw);
+          fc.pre(!isClarifyApplicable(form));
+
+          const clarified = clarify(form);
+          expect(clarified).toHaveLength(1);
+
+          const [clone] = clarified;
+          expect(canonicalSignature(clone)).toBe(canonicalSignature(form));
+          expect(clone.id).not.toBe(form.id);
+        }),
+      );
+    });
   });
 
   describe("clarify", () => {
     it("clarifies ([()]) to void (empty array)", () => {
-      const form = round(square()); // ([()])
+      const form = round(square());
       const result = clarify(form);
 
       expect(result).toEqual([]);
@@ -149,7 +197,7 @@ describe("Axioms", () => {
 
     it("clarifies ([A]) where A is a single form", () => {
       const inner = round();
-      const form = round(square(inner)); // ([o])
+      const form = round(square(inner));
       const result = clarify(form);
 
       expect(result).toHaveLength(1);
@@ -160,7 +208,7 @@ describe("Axioms", () => {
     it("clarifies ([A B]) where A and B are multiple forms", () => {
       const inner1 = round();
       const inner2 = square();
-      const form = round(square(inner1, inner2)); // ([o []])
+      const form = round(square(inner1, inner2));
       const result = clarify(form);
 
       expect(result).toHaveLength(2);
@@ -170,7 +218,7 @@ describe("Axioms", () => {
     });
 
     it("clarifies [(A)] where A is void", () => {
-      const form = square(round()); // [(())]
+      const form = square(round());
       const result = clarify(form);
 
       expect(result).toEqual([]);
@@ -178,7 +226,7 @@ describe("Axioms", () => {
 
     it("clarifies [(A)] where A is a form", () => {
       const inner = square();
-      const form = square(round(inner)); // [([])]
+      const form = square(round(inner));
       const result = clarify(form);
 
       expect(result).toHaveLength(1);
@@ -187,12 +235,12 @@ describe("Axioms", () => {
     });
 
     it("does not clarify if not a paired boundary", () => {
-      const form = round(); // just ()
+      const form = round();
       const result = clarify(form);
 
       expect(result).toHaveLength(1);
       expect(result[0].boundary).toBe("round");
-      expect(result[0].id).not.toBe(form.id); // cloned
+      expect(result[0].id).not.toBe(form.id);
     });
 
     it("does not clarify round with multiple children", () => {
@@ -287,230 +335,6 @@ describe("Axioms", () => {
 
       const innermost = [...inner.children][0];
       expect(innermost.id).not.toBe(original.id);
-    });
-  });
-
-  describe("isFrame", () => {
-    it("identifies (x [ab]) as a frame", () => {
-      const form = round(variable("x"), square(variable("a"), variable("b")));
-      expect(isFrame(form)).toBe(true);
-    });
-
-    it("rejects (x <>) without square", () => {
-      const form = round(variable("x"), angle(variable("a")));
-      expect(isFrame(form)).toBe(false);
-    });
-
-    it("rejects [] as not a frame", () => {
-      const form = square(variable("a"));
-      expect(isFrame(form)).toBe(false);
-    });
-  });
-
-  describe("disperse", () => {
-    it("distributes (x [ab]) -> (x [a])(x [b]) by default", () => {
-      const context = variable("x");
-      const form = round(context, square(variable("a"), variable("b")));
-
-      expect(isFrame(form)).toBe(true);
-
-      const result = disperse(form);
-
-      expect(result).toHaveLength(2);
-      result.forEach((roundForm) => {
-        expect(roundForm.boundary).toBe("round");
-
-        const contextForms = [...roundForm.children].filter(
-          (child) => child.boundary === "atom",
-        );
-        expect(contextForms).toHaveLength(1);
-        expect(contextForms[0].label).toBe("x");
-        expect(contextForms[0].id).not.toBe(context.id);
-
-        const frameSquare = [...roundForm.children].find(
-          (child) => child.boundary === "square",
-        );
-        expect(frameSquare).toBeDefined();
-        expect(frameSquare?.children.size).toBe(1);
-      });
-
-      const distributedLabels = result.map((roundForm) => {
-        const frameSquare = [...roundForm.children].find(
-          (child) => child.boundary === "square",
-        )!;
-        const content = [...frameSquare.children][0];
-        return content.label;
-      });
-      expect(new Set(distributedLabels)).toEqual(new Set(["a", "b"]));
-    });
-
-    it("selectively disperses (x [abc]) with c -> (x [ab])(x [c])", () => {
-      const context = variable("x");
-      const a = variable("a");
-      const b = variable("b");
-      const c = variable("c");
-      const form = round(context, square(a, b, c));
-
-      const result = disperse(form, { contentIds: [c.id] });
-
-      expect(result).toHaveLength(2);
-
-      const signatures = new Set(result.map(canonicalSignature));
-      expect(signatures.size).toBe(2);
-      const expectedRemainder = canonicalSignature(
-        round(variable("x"), square(variable("a"), variable("b"))),
-      );
-      const expectedSelected = canonicalSignature(
-        round(variable("x"), square(variable("c"))),
-      );
-      expect(signatures.has(expectedRemainder)).toBe(true);
-      expect(signatures.has(expectedSelected)).toBe(true);
-    });
-
-    it("returns void for (x [ ])", () => {
-      const form = round(variable("x"), square());
-      expect(isFrame(form)).toBe(true);
-      expect(disperse(form)).toEqual([]);
-    });
-
-    it("clones when given (x <>)", () => {
-      const form = round(variable("x"), angle());
-
-      expect(isFrame(form)).toBe(false);
-
-      const result = disperse(form);
-      expect(result).toHaveLength(1);
-      expect(canonicalSignature(result[0])).toBe(canonicalSignature(form));
-      expect(result[0].id).not.toBe(form.id);
-    });
-
-    it("clones when selection ids are invalid on (x [ab])", () => {
-      const context = variable("x");
-      const form = round(context, square(variable("a"), variable("b")));
-
-      const result = disperse(form, { contentIds: ["not-real"] });
-      expect(result).toHaveLength(1);
-      expect(canonicalSignature(result[0])).toBe(canonicalSignature(form));
-      expect(result[0].id).not.toBe(form.id);
-    });
-
-    it("targets the requested square in (x [ab][c])", () => {
-      const context = variable("x");
-      const primarySquare = square(variable("a"), variable("b"));
-      const secondarySquare = square(variable("c"));
-      const form = round(context, primarySquare, secondarySquare);
-
-      const result = disperse(form, { squareId: secondarySquare.id });
-
-      expect(result).toHaveLength(1);
-      const [distributed] = result;
-      const frameSquares = [...distributed.children].filter(
-        (child) => child.boundary === "square",
-      );
-      expect(frameSquares).toHaveLength(2);
-
-      const distributedSquare = frameSquares.find((squareForm) =>
-        [...squareForm.children].some((content) => content.label === "c"),
-      );
-      expect(distributedSquare).toBeDefined();
-    });
-  });
-
-  describe("collect", () => {
-    it("combines (x [a])(x [b]) -> (x [ab])", () => {
-      const original = round(
-        variable("x"),
-        square(variable("a"), variable("b")),
-      );
-      const distributed = disperse(original);
-
-      expect(isCollectApplicable(distributed)).toBe(true);
-
-      const collected = collect(distributed);
-      expect(collected).toHaveLength(1);
-
-      const [combined] = collected;
-      expect(combined.boundary).toBe("round");
-      expect(canonicalSignature(combined)).toBe(canonicalSignature(original));
-      expect(combined.id).not.toBe(original.id);
-    });
-
-    it("returns clones for (x [a]) vs (y [b]) mismatch", () => {
-      const form1 = round(variable("x"), square(variable("a")));
-      const form2 = round(variable("y"), square(variable("b")));
-
-      expect(isCollectApplicable([form1, form2])).toBe(false);
-
-      const result = collect([form1, form2]);
-      expect(result).toHaveLength(2);
-      expect(canonicalSignature(result[0])).toBe(canonicalSignature(form1));
-      expect(canonicalSignature(result[1])).toBe(canonicalSignature(form2));
-      expect(result[0].id).not.toBe(form1.id);
-      expect(result[1].id).not.toBe(form2.id);
-    });
-
-    it("collects (x [ab])(x [c]) after selective disperse", () => {
-      const x = variable("x");
-      const a = variable("a");
-      const b = variable("b");
-      const c = variable("c");
-      const original = round(x, square(a, b, c));
-      const distributed = disperse(original, { contentIds: [c.id] });
-
-      expect(isCollectApplicable(distributed)).toBe(true);
-
-      const collected = collect(distributed);
-      expect(collected).toHaveLength(1);
-      expect(canonicalSignature(collected[0])).toBe(
-        canonicalSignature(original),
-      );
-    });
-
-    it("collects frames that share additional square context", () => {
-      const sharedContext = square(variable("shared"));
-      const a = variable("a");
-      const b = variable("b");
-      const payload = square(a, b);
-      const base = round(sharedContext, payload);
-
-      const distributed = disperse(base, {
-        squareId: payload.id,
-        contentIds: [b.id],
-      });
-
-      expect(distributed).toHaveLength(2);
-      expect(isCollectApplicable(distributed)).toBe(true);
-
-      const collected = collect(distributed);
-      expect(collected).toHaveLength(1);
-      expect(canonicalSignature(collected[0])).toBe(canonicalSignature(base));
-    });
-
-    it("handles empty input gracefully", () => {
-      expect(isCollectApplicable([])).toBe(false);
-      expect(collect([])).toEqual([]);
-    });
-  });
-
-  describe("isCollectApplicable", () => {
-    it("returns true for (x [a])(x [b])", () => {
-      const frameA = round(variable("x"), square(variable("a")));
-      const frameB = round(variable("x"), square(variable("b")));
-
-      expect(isCollectApplicable([frameA, frameB])).toBe(true);
-    });
-
-    it("returns false for mismatched contexts (x [a])(y [b])", () => {
-      const frameA = round(variable("x"), square(variable("a")));
-      const frameB = round(variable("y"), square(variable("b")));
-
-      expect(isCollectApplicable([frameA, frameB])).toBe(false);
-    });
-
-    it("returns false when any square is empty (x [ ])", () => {
-      const frameEmpty = round(variable("x"), square());
-
-      expect(isCollectApplicable([frameEmpty])).toBe(false);
     });
   });
 
