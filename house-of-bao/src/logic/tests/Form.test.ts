@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createForm, round, square, angle, variable, type Form } from "./Form";
+import { createForm, round, square, angle, atom, type Form } from "../Form";
 
 describe("Form Data Structure", () => {
   describe("createForm", () => {
@@ -85,8 +85,8 @@ describe("Form Data Structure", () => {
       expect(a.children.has(child2)).toBe(true);
     });
 
-    it("variable(name) creates an atom with label", () => {
-      const v = variable("x");
+    it("atom(name) creates an atom with label", () => {
+      const v = atom("x");
       expect(v.boundary).toBe("atom");
       expect(v.children.size).toBe(0);
       expect(v.label).toBe("x");
