@@ -157,7 +157,7 @@ A form and its angled reflection annihilate each other.
 [A] <[A]> = void         (any form and its reflection cancel)
 (A) <(A)> = void
 A <A> = void
-() = <()> ()        (can create pairs from nothing)
+void = <()> ()        (can create pairs from nothing)
 #+end_example
 
 ** Data Model: Tree Representation

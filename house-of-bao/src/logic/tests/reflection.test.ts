@@ -84,8 +84,12 @@ describe("Reflection Axiom", () => {
           const base = materializeFormNode(pairRaw);
           const context = materializeFormNode(contextRaw);
           fc.pre(
-            canonicalSignature(base) !== canonicalSignature(context),
+            canonicalSignature(base) !== canonicalSignature(context) &&
+              canonicalSignature(base) !== canonicalSignature(angle(context)) &&
+              canonicalSignature(angle(base)) !== canonicalSignature(context),
           );
+          // Special case: if base == angle(context), the forest becomes context, angle(context), angle(angle(context)).
+          // After cancel, it leaves angle(angle(context)), which is equivalent to context via <<A>> == A theorem.
 
           const [baseClone, reflectionClone] = create(base);
           const forest = [context, baseClone, reflectionClone];
@@ -146,9 +150,7 @@ describe("Reflection Axiom", () => {
 
           const baseIds = collectFormIds(baseClone, expectedSignature);
           const reflectionChild = [...reflection.children][0];
-          expect(canonicalSignature(reflectionChild)).toBe(
-            expectedSignature,
-          );
+          expect(canonicalSignature(reflectionChild)).toBe(expectedSignature);
           const reflectionIds = collectFormIds(
             reflectionChild,
             expectedSignature,

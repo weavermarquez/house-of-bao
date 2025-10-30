@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import fc from "fast-check";
 import {
   isCollectApplicable,
   collect,
@@ -9,17 +10,17 @@ import { canonicalSignature, round, square, angle, atom } from "../Form";
 
 describe("Arrangement Axiom", () => {
   describe("isFrame", () => {
-    it("identifies (x [ab]) as a frame", () => {
+    it("identifies (x [a b]) as a frame", () => {
       const form = round(atom("x"), square(atom("a"), atom("b")));
       expect(isFrame(form)).toBe(true);
     });
 
-    it("rejects (x <>) without square", () => {
+    it("rejects (x <a>) without square", () => {
       const form = round(atom("x"), angle(atom("a")));
       expect(isFrame(form)).toBe(false);
     });
 
-    it("rejects [] as not a frame", () => {
+    it("rejects [a] as not a frame", () => {
       const form = square(atom("a"));
       expect(isFrame(form)).toBe(false);
     });
@@ -28,7 +29,7 @@ describe("Arrangement Axiom", () => {
   describe("disperse", () => {
     it("distributes (x [ab]) -> (x [a])(x [b]) by default", () => {
       const context = atom("x");
-      const form = round(context, square(atom("a"), atom("b")));
+      const form = round(square(atom("a"), atom("b")), context);
 
       expect(isFrame(form)).toBe(true);
 
@@ -86,6 +87,7 @@ describe("Arrangement Axiom", () => {
     });
 
     it("returns void for (x [ ])", () => {
+      // Dominion Theorem
       const form = round(atom("x"), square());
       expect(isFrame(form)).toBe(true);
       expect(disperse(form)).toEqual([]);
@@ -112,14 +114,17 @@ describe("Arrangement Axiom", () => {
       expect(result[0].id).not.toBe(form.id);
     });
 
-    it("targets the requested square in (x [ab][c])", () => {
+    it("noop if target [c] in (x [ab][c]) -> (x [ab][c])", () => {
       const context = atom("x");
       const primarySquare = square(atom("a"), atom("b"));
       const secondarySquare = square(atom("c"));
       const form = round(context, primarySquare, secondarySquare);
 
+      // console.log("Initial Form", canonicalSignature(form));
+      // I'm not happy with Arrangement
       const result = disperse(form, { squareId: secondarySquare.id });
 
+      // console.log("Dispersed", canonicalSignature(result.at(0)));
       expect(result).toHaveLength(1);
       const [distributed] = result;
       const frameSquares = [...distributed.children].filter(
@@ -131,6 +136,48 @@ describe("Arrangement Axiom", () => {
         [...squareForm.children].some((content) => content.label === "c"),
       );
       expect(distributedSquare).toBeDefined();
+    });
+
+    it("handles nested frames: disperse inner square", () => {
+      const innerFrame = round(atom("y"), square(atom("a")));
+      const outerFrame = round(atom("x"), square(innerFrame, atom("b")));
+
+      const outerSquare = [...outerFrame.children].find(
+        (c) => c.boundary === "square",
+      )!;
+      const result = disperse(outerFrame, { squareId: outerSquare.id });
+
+      expect(result).toHaveLength(2);
+      // One with inner frame, one with b
+    });
+
+    it("disperse if target [ab] in (x [a b][c d]) -> (x [a][c d])(x [b][c d])", () => {
+      const context = atom("x");
+      const square1 = square(atom("a"), atom("b"));
+      const square2 = square(atom("c"), atom("d"));
+      const form = round(context, square1, square2);
+
+      const result = disperse(form, { squareId: square1.id });
+      expect(result).toHaveLength(2);
+      result.forEach((frame) => {
+        const squares = [...frame.children].filter(
+          (c) => c.boundary === "square",
+        );
+        expect(squares).toHaveLength(2); // original square1 and square2
+        expect(
+          squares.some((sq) =>
+            [...sq.children].every(
+              (cont) => cont.label === "c" || cont.label === "d",
+            ),
+          ),
+        ).toBe(true);
+        const distributedSquare = squares.find((sq) =>
+          [...sq.children].some(
+            (cont) => cont.label === "a" || cont.label === "b",
+          ),
+        );
+        expect(distributedSquare).toBeDefined();
+      });
     });
   });
 
