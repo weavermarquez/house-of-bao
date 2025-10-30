@@ -31,3 +31,16 @@ export function square(...children: Form[]): Form {
 export function angle(...children: Form[]): Form {
   return createForm("angle", ...children);
 }
+
+/**
+ * Produces an order-invariant signature for structural comparisons:
+ * - Ignores runtime-generated ids
+ * - Sorts child signatures to account for unordered sibling sets
+ */
+export function canonicalSignature(form: Form): string {
+  const labelPart = form.label ?? "";
+  const childSignatures = [...form.children]
+    .map((child) => canonicalSignature(child))
+    .sort();
+  return `${form.boundary}:${labelPart}[${childSignatures.join(",")}]`;
+}
