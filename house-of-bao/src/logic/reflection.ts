@@ -1,6 +1,7 @@
 import {
   type Form,
   deepClone,
+  angle,
   canonicalSignature,
   noopForest,
 } from "./Form";
@@ -26,7 +27,11 @@ function findReflectionPair(forms: Form[]): ReflectionPair | null {
 
   const canonicalCache = forms.map((form) => canonicalSignature(form));
 
-  for (let reflectionIndex = 0; reflectionIndex < forms.length; reflectionIndex += 1) {
+  for (
+    let reflectionIndex = 0;
+    reflectionIndex < forms.length;
+    reflectionIndex += 1
+  ) {
     const candidateReflection = forms[reflectionIndex];
     if (candidateReflection.boundary !== "angle") {
       continue;
@@ -53,11 +58,11 @@ function findReflectionPair(forms: Form[]): ReflectionPair | null {
   return null;
 }
 
-export function isReflectionApplicable(forms: Form[]): boolean {
+export function isCancelApplicable(forms: Form[]): boolean {
   return findReflectionPair(forms) !== null;
 }
 
-export function cancelReflection(forms: Form[]): Form[] {
+export function cancel(forms: Form[]): Form[] {
   const pair = findReflectionPair(forms);
   if (!pair) {
     return noopForest(forms);
@@ -74,16 +79,8 @@ export function cancelReflection(forms: Form[]): Form[] {
   return noopForest(survivors);
 }
 
-export function createReflection(form: Form): Form {
-  return {
-    id: crypto.randomUUID(),
-    boundary: "angle",
-    children: new Set<Form>([deepClone(form)]),
-  };
-}
-
-export function createReflectionPair(form: Form): Form[] {
-  const baseClone = deepClone(form);
-  const reflectionClone = createReflection(form);
+export function create(template: Form): Form[] {
+  const baseClone = deepClone(template);
+  const reflectionClone = angle(template);
   return [baseClone, reflectionClone];
 }
