@@ -60,7 +60,7 @@ Overall Features:
 
 ** MVP System Design
 *** Core Game Loop
-- Network Dialect and respective assets
+- Bounding Box Dialect and respective assets
 *** Tutorial
 *** User Accounts
 - Progress saving
@@ -80,6 +80,7 @@ https://developers.google.com/youtube/gaming/playables/certification/
   
 *** More Visual Dialects
 - Path Dialect
+- Network Dialect
 - Room Dialect
 - Block Dialect
 - Bucket Dialect
@@ -169,7 +170,7 @@ type BoundaryType = 'round' | 'square' | 'angle';
 type Form = {
   id: string;           // Unique identifier for rendering/selection
   boundary: BoundaryType;
-  children: Form[];     // Contents (unordered)
+  children: Set<Form>;     // Contents (unordered)
 };
 
 // Examples:
@@ -201,7 +202,7 @@ Double reflection returns to original.
 *** Separation: ~<A><B> = <A B>~
 Adjacent reflections can be combined.
 
-* Interaction Design
+* TODO Interaction Design
 ** Core Interaction Flow
 1. *Hover*: Mouse over any node → highlight with glow/outline
 2. *Click*: Click a node → select it (different highlight color)
@@ -291,7 +292,7 @@ Before showing an action in the menu, engine checks:
 - *Reflection*: Angle boundary appears with rotation, or pair spirals into void (cancel)
 
 * System Design
-** Network Dialect: Visual Representation
+** TODO Network Dialect: Visual Representation
 *** Concept
 The Network Dialect represents forms as directed acyclic graphs (DAGs):
 - *Nodes* = Containers (round, square, angle boundaries)
@@ -394,7 +395,6 @@ When axioms transform the form:
 - PixiJS scene graph
 - Network dialect visualization
 - Animation system
-
 
 ** Level System
 *** Level Data Format
@@ -583,7 +583,9 @@ src/
 │   └── AnimationController.ts # Handles morphing transitions
 ├── logic/                      # Core algebra logic
 │   ├── Form.ts                # Form data structures
-│   ├── Axioms.ts              # Inversion, Arrangement, Reflection
+│   ├── inversion.ts           # Inversion axiom
+│   ├── arrangement.ts         # Arrangement axiom
+│   ├── reflection.ts          # Reflection axiom
 │   ├── Validator.ts           # Legal move checking
 │   ├── Comparator.ts          # Win condition checking
 │   └── History.ts             # Undo/redo stack
@@ -818,28 +820,6 @@ export const useProgressStore = create<ProgressState>((set, get) => ({
 - Learning curve for developers unfamiliar with scene graphs
 - Overkill for the initial MVP, but worth it for long-term flexibility
 
-** Why NOT tau-prolog?
-*** Previous Approach: tau-prolog for logic engine
-*** Decision: Custom TypeScript logic engine
-
-*** Rationale:
-1. *Simplicity*: James Algebra operations are straightforward tree transformations
-2. *Performance*: Direct TypeScript is faster than Prolog interpretation
-3. *Debuggability*: TypeScript stack traces vs Prolog query debugging
-4. *Type Safety*: Full TypeScript types throughout the codebase
-5. *Bundle Size*: tau-prolog adds ~100kb, unnecessary for our needs
-6. *Team Familiarity*: More developers know TypeScript than Prolog
-
-*** Trade-offs Accepted:
-- Lose some theoretical elegance of pattern-matching axioms
-- Cannot easily experiment with different formal systems
-- Manual implementation of tree traversal and transformation
-
-*** When to Reconsider:
-- If we add an automated solver (where Prolog shines)
-- If we want to expose the system to end-users for custom rule creation
-- If we expand beyond James Algebra to more complex formal systems
-
 ** Why Zustand Over Redux?
 *** Decision: Zustand for state management
 *** Alternatives Considered:
@@ -943,10 +923,10 @@ When ready to add backend (post-MVP):
 
 * Development Roadmap
 ** Phase 1: Core Engine (2-3 weeks)
-- [ ] Set up Vite + React + TypeScript project
-- [ ] Implement Form data structures
-- [ ] Implement 3 axioms (Inversion, Arrangement, Reflection)
-- [ ] Write unit tests for axiom operations
+- [X] Set up Vite + React + TypeScript project
+- [X] Implement Form data structures
+- [X] Implement 3 axioms (Inversion, Arrangement, Reflection)
+- [X] Write unit tests for axiom operations
 - [ ] Implement win condition checker
 - [ ] Implement undo/redo system
 
