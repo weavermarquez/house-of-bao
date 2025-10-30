@@ -17,9 +17,9 @@ import {
   type Form,
 } from "../Form";
 import {
-  invertiblePairArb,
-  materializeRawForm,
-  rawFormArb,
+  formNodeArb,
+  invertiblePairNodesArb,
+  materializeFormNode,
 } from "./FormArbitraries";
 
 describe("Clarify Axiom", () => {
@@ -141,8 +141,8 @@ describe("Clarify Axiom", () => {
 
     it("property: clarify returns inner contents for invertible pairs", () => {
       fc.assert(
-        fc.property(invertiblePairArb, ({ outer, payloads }) => {
-          const payloadForms = payloads.map(materializeRawForm);
+        fc.property(invertiblePairNodesArb, ({ outer, payloads }) => {
+          const payloadForms = payloads.map(materializeFormNode);
           const inner =
             outer === "round"
               ? square(...payloadForms)
@@ -172,8 +172,8 @@ describe("Clarify Axiom", () => {
 
     it("property: clarify clones when inversion is inapplicable", () => {
       fc.assert(
-        fc.property(rawFormArb, (raw) => {
-          const form = materializeRawForm(raw);
+        fc.property(formNodeArb, (raw) => {
+          const form = materializeFormNode(raw);
           fc.pre(!isClarifyApplicable(form));
 
           const clarified = clarify(form);
