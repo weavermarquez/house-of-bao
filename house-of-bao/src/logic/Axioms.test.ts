@@ -7,10 +7,18 @@ import {
   enfold,
   enfoldRoundSquare,
   enfoldSquareRound,
+  isClarifyApplicable,
   isCollectApplicable,
   isFrame,
 } from "./Axioms";
-import { canonicalSignature, round, square, angle, variable } from "./Form";
+import {
+  canonicalSignature,
+  round,
+  square,
+  angle,
+  variable,
+  type Form,
+} from "./Form";
 
 describe("Axioms", () => {
   describe("deepClone", () => {
@@ -51,6 +59,83 @@ describe("Axioms", () => {
 
       expect(cloned.label).toBe("x");
       expect(cloned.id).not.toBe(original.id);
+    });
+  });
+
+  describe("isClarifyApplicable", () => {
+    type ClarifyCase = {
+      label: string;
+      factory: () => Form;
+      expected: boolean;
+      assert: (clarified: Form[], original: Form) => void;
+    };
+
+    const cases: ClarifyCase[] = [
+      {
+        label: "true positive: ([o]) → applicable",
+        factory: () => round(square(round())),
+        expected: true,
+        assert: (clarified) => {
+          expect(clarified).toHaveLength(1);
+          expect(clarified[0].boundary).toBe("round");
+        },
+      },
+      {
+        label: "true positive: [(o)] → applicable",
+        factory: () => square(round(square())),
+        expected: true,
+        assert: (clarified) => {
+          expect(clarified).toHaveLength(1);
+          expect(clarified[0].boundary).toBe("square");
+        },
+      },
+      {
+        label: "true negative: (()[]) → inapplicable",
+        factory: () => round(square(), round()),
+        expected: false,
+        assert: (clarified, original) => {
+          expect(clarified).toHaveLength(1);
+          expect(clarified[0].boundary).toBe("round");
+          expect(clarified[0].id).not.toBe(original.id);
+        },
+      },
+      {
+        label: "true negative: [[]] → inapplicable",
+        factory: () => square(square()),
+        expected: false,
+        assert: (clarified, original) => {
+          expect(clarified).toHaveLength(1);
+          expect(clarified[0].boundary).toBe("square");
+          expect(clarified[0].id).not.toBe(original.id);
+        },
+      },
+      {
+        label: "false positive guard: (<>) stays inapplicable",
+        factory: () => round(angle()),
+        expected: false,
+        assert: (clarified, original) => {
+          expect(clarified).toHaveLength(1);
+          expect(clarified[0].boundary).toBe("round");
+          expect(clarified[0].id).not.toBe(original.id);
+        },
+      },
+      {
+        label: "false negative guard: ([(o)]) stays applicable",
+        factory: () => round(square(round(square()))),
+        expected: true,
+        assert: (clarified) => {
+          expect(clarified).toHaveLength(1);
+          expect(clarified[0].boundary).toBe("round");
+        },
+      },
+    ];
+
+    it.each(cases)("$label", ({ factory, expected, assert }) => {
+      const form = factory();
+      expect(isClarifyApplicable(form)).toBe(expected);
+
+      const clarified = clarify(form);
+      assert(clarified, form);
     });
   });
 
@@ -128,7 +213,7 @@ describe("Axioms", () => {
   });
 
   describe("enfoldRoundSquare", () => {
-    it("enfolds a simple form", () => {
+    it("enfolds () -> [(())]", () => {
       const form = round();
       const result = enfoldRoundSquare(form);
 
@@ -144,7 +229,7 @@ describe("Axioms", () => {
       expect(innermost.children.size).toBe(0);
     });
 
-    it("enfolds a complex form", () => {
+    it("enfolds A = [()<>] -> ([ A ])", () => {
       const form = square(round(), angle());
       const result = enfoldRoundSquare(form);
 
@@ -175,7 +260,7 @@ describe("Axioms", () => {
   });
 
   describe("enfoldSquareRound", () => {
-    it("wraps form with square outer and round inner boundaries", () => {
+    it("enfolds [] -> [([])]", () => {
       const form = square();
       const result = enfoldSquareRound(form);
 
@@ -205,8 +290,25 @@ describe("Axioms", () => {
     });
   });
 
+  describe("isFrame", () => {
+    it("identifies (x [ab]) as a frame", () => {
+      const form = round(variable("x"), square(variable("a"), variable("b")));
+      expect(isFrame(form)).toBe(true);
+    });
+
+    it("rejects (x <>) without square", () => {
+      const form = round(variable("x"), angle(variable("a")));
+      expect(isFrame(form)).toBe(false);
+    });
+
+    it("rejects [] as not a frame", () => {
+      const form = square(variable("a"));
+      expect(isFrame(form)).toBe(false);
+    });
+  });
+
   describe("disperse", () => {
-    it("distributes shared context to each child inside the square by default", () => {
+    it("distributes (x [ab]) -> (x [a])(x [b]) by default", () => {
       const context = variable("x");
       const form = round(context, square(variable("a"), variable("b")));
 
@@ -242,7 +344,7 @@ describe("Axioms", () => {
       expect(new Set(distributedLabels)).toEqual(new Set(["a", "b"]));
     });
 
-    it("can disperse a selected child while keeping the remainder grouped", () => {
+    it("selectively disperses (x [abc]) with c -> (x [ab])(x [c])", () => {
       const context = variable("x");
       const a = variable("a");
       const b = variable("b");
@@ -265,13 +367,13 @@ describe("Axioms", () => {
       expect(signatures.has(expectedSelected)).toBe(true);
     });
 
-    it("returns void when the enclosed square is empty", () => {
+    it("returns void for (x [ ])", () => {
       const form = round(variable("x"), square());
       expect(isFrame(form)).toBe(true);
       expect(disperse(form)).toEqual([]);
     });
 
-    it("returns a clone of the original form when not a frame", () => {
+    it("clones when given (x <>)", () => {
       const form = round(variable("x"), angle());
 
       expect(isFrame(form)).toBe(false);
@@ -282,7 +384,7 @@ describe("Axioms", () => {
       expect(result[0].id).not.toBe(form.id);
     });
 
-    it("returns a clone when an invalid content selection is provided", () => {
+    it("clones when selection ids are invalid on (x [ab])", () => {
       const context = variable("x");
       const form = round(context, square(variable("a"), variable("b")));
 
@@ -292,7 +394,7 @@ describe("Axioms", () => {
       expect(result[0].id).not.toBe(form.id);
     });
 
-    it("disperses the specified square when multiple squares exist", () => {
+    it("targets the requested square in (x [ab][c])", () => {
       const context = variable("x");
       const primarySquare = square(variable("a"), variable("b"));
       const secondarySquare = square(variable("c"));
@@ -315,7 +417,7 @@ describe("Axioms", () => {
   });
 
   describe("collect", () => {
-    it("combines distributed forms back into a single round context", () => {
+    it("combines (x [a])(x [b]) -> (x [ab])", () => {
       const original = round(
         variable("x"),
         square(variable("a"), variable("b")),
@@ -333,7 +435,7 @@ describe("Axioms", () => {
       expect(combined.id).not.toBe(original.id);
     });
 
-    it("returns clones when contexts differ", () => {
+    it("returns clones for (x [a]) vs (y [b]) mismatch", () => {
       const form1 = round(variable("x"), square(variable("a")));
       const form2 = round(variable("y"), square(variable("b")));
 
@@ -347,7 +449,7 @@ describe("Axioms", () => {
       expect(result[1].id).not.toBe(form2.id);
     });
 
-    it("collects forms after a selective disperse", () => {
+    it("collects (x [ab])(x [c]) after selective disperse", () => {
       const x = variable("x");
       const a = variable("a");
       const b = variable("b");
@@ -359,7 +461,9 @@ describe("Axioms", () => {
 
       const collected = collect(distributed);
       expect(collected).toHaveLength(1);
-      expect(canonicalSignature(collected[0])).toBe(canonicalSignature(original));
+      expect(canonicalSignature(collected[0])).toBe(
+        canonicalSignature(original),
+      );
     });
 
     it("collects frames that share additional square context", () => {
@@ -385,6 +489,28 @@ describe("Axioms", () => {
     it("handles empty input gracefully", () => {
       expect(isCollectApplicable([])).toBe(false);
       expect(collect([])).toEqual([]);
+    });
+  });
+
+  describe("isCollectApplicable", () => {
+    it("returns true for (x [a])(x [b])", () => {
+      const frameA = round(variable("x"), square(variable("a")));
+      const frameB = round(variable("x"), square(variable("b")));
+
+      expect(isCollectApplicable([frameA, frameB])).toBe(true);
+    });
+
+    it("returns false for mismatched contexts (x [a])(y [b])", () => {
+      const frameA = round(variable("x"), square(variable("a")));
+      const frameB = round(variable("y"), square(variable("b")));
+
+      expect(isCollectApplicable([frameA, frameB])).toBe(false);
+    });
+
+    it("returns false when any square is empty (x [ ])", () => {
+      const frameEmpty = round(variable("x"), square());
+
+      expect(isCollectApplicable([frameEmpty])).toBe(false);
     });
   });
 
