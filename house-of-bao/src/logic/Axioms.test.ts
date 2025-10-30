@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { clarify, enfold, deepClone } from "./Axioms";
+import {
+  clarify,
+  deepClone,
+  enfold,
+  enfoldRoundSquare,
+  enfoldSquareRound,
+} from "./Axioms";
 import { round, square, angle, variable } from "./Form";
 
 describe("Axioms", () => {
@@ -117,10 +123,10 @@ describe("Axioms", () => {
     });
   });
 
-  describe("enfold", () => {
+  describe("enfoldRoundSquare", () => {
     it("enfolds a simple form", () => {
       const form = round();
-      const result = enfold(form);
+      const result = enfoldRoundSquare(form);
 
       expect(result.boundary).toBe("round");
       expect(result.children.size).toBe(1);
@@ -136,7 +142,7 @@ describe("Axioms", () => {
 
     it("enfolds a complex form", () => {
       const form = square(round(), angle());
-      const result = enfold(form);
+      const result = enfoldRoundSquare(form);
 
       expect(result.boundary).toBe("round");
       expect(result.children.size).toBe(1);
@@ -152,7 +158,7 @@ describe("Axioms", () => {
 
     it("creates new IDs for all levels", () => {
       const original = round();
-      const result = enfold(original);
+      const result = enfoldRoundSquare(original);
 
       expect(result.id).not.toBe(original.id);
 
@@ -162,5 +168,47 @@ describe("Axioms", () => {
       const innermost = [...inner.children][0];
       expect(innermost.id).not.toBe(original.id);
     });
+  });
+
+  describe("enfoldSquareRound", () => {
+    it("wraps form with square outer and round inner boundaries", () => {
+      const form = square();
+      const result = enfoldSquareRound(form);
+
+      expect(result.boundary).toBe("square");
+      expect(result.children.size).toBe(1);
+
+      const inner = [...result.children][0];
+      expect(inner.boundary).toBe("round");
+      expect(inner.children.size).toBe(1);
+
+      const innermost = [...inner.children][0];
+      expect(innermost.boundary).toBe("square");
+      expect(innermost.children.size).toBe(0);
+    });
+
+    it("creates new IDs for all levels", () => {
+      const original = round();
+      const result = enfoldSquareRound(original);
+
+      expect(result.id).not.toBe(original.id);
+
+      const inner = [...result.children][0];
+      expect(inner.id).not.toBe(original.id);
+
+      const innermost = [...inner.children][0];
+      expect(innermost.id).not.toBe(original.id);
+    });
+  });
+
+  it("enfold alias matches round-square variant", () => {
+    const form = angle();
+    const roundSquare = enfoldRoundSquare(form);
+    const alias = enfold(form);
+
+    expect(alias.boundary).toBe(roundSquare.boundary);
+    expect([...alias.children][0].boundary).toBe(
+      [...roundSquare.children][0].boundary,
+    );
   });
 });

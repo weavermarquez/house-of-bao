@@ -62,20 +62,37 @@ export function clarify(form: Form): Form[] {
 /**
  * Applies Enfold (Inversion axiom, addition direction): A = ([A]) or A = [(A)]
  * Adds paired boundaries around the form.
- *
- * @param form The form to enfold
- * @returns The form wrapped in paired boundaries: ([form])
  */
-export function enfold(form: Form): Form {
-  // Create ([form]) - round containing square containing the form
-  const innerSquare = {
+function wrapWithPair(form: Form, outer: BoundaryType, inner: BoundaryType): Form {
+  const innerWrapper = {
     id: crypto.randomUUID(),
-    boundary: "square" as BoundaryType,
-    children: new Set([deepClone(form)]),
+    boundary: inner,
+    children: new Set<Form>([deepClone(form)]),
   };
   return {
     id: crypto.randomUUID(),
-    boundary: "round" as BoundaryType,
-    children: new Set([innerSquare]),
+    boundary: outer,
+    children: new Set<Form>([innerWrapper]),
   };
+}
+
+/**
+ * Adds round outer/square inner boundaries: ([form]).
+ */
+export function enfoldRoundSquare(form: Form): Form {
+  return wrapWithPair(form, "round", "square");
+}
+
+/**
+ * Adds square outer/round inner boundaries: [(form)].
+ */
+export function enfoldSquareRound(form: Form): Form {
+  return wrapWithPair(form, "square", "round");
+}
+
+/**
+ * Default enfold (round outer, square inner) for backward compatibility.
+ */
+export function enfold(form: Form): Form {
+  return enfoldRoundSquare(form);
 }
