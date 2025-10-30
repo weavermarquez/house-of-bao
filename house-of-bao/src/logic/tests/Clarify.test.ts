@@ -13,7 +13,7 @@ import {
   round,
   square,
   angle,
-  variable,
+  atom,
   type Form,
 } from "../Form";
 import {
@@ -55,7 +55,7 @@ describe("Clarify Axiom", () => {
     });
 
     it("preserves atom labels when cloning", () => {
-      const original = variable("x");
+      const original = atom("x");
       const cloned = deepClone(original);
 
       expect(cloned.label).toBe("x");

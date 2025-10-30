@@ -16,7 +16,7 @@ export function createForm(boundary: BoundaryType, ...children: Form[]): Form {
 }
 
 // Convenience functions for creating forms
-export function variable(label: string): Form {
+export function atom(label: string): Form {
   return { ...createForm("atom"), label };
 }
 
