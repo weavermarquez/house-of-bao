@@ -10,7 +10,7 @@ import {
   collectFormIds,
   traverseForm,
 } from "../Form";
-import { formNodeArb, materializeFormNode } from "./FormArbitraries";
+import { formNodeArb, materializeFormNode } from "./formArbitraries";
 
 describe("deepClone", () => {
   it("clones a simple form with new id", () => {

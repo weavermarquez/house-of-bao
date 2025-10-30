@@ -4,7 +4,7 @@ import {
   collect,
   disperse,
   isFrame,
-} from "../Arrangement";
+} from "../arrangement";
 import { canonicalSignature, round, square, angle, atom } from "../Form";
 
 describe("Arrangement Axiom", () => {
