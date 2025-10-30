@@ -85,11 +85,12 @@ describe("Form Data Structure", () => {
       expect(a.children.has(child2)).toBe(true);
     });
 
-    it("variable(name) creates an atom with custom id", () => {
+    it("variable(name) creates an atom with label", () => {
       const v = variable("x");
       expect(v.boundary).toBe("atom");
       expect(v.children.size).toBe(0);
-      expect(v.id).toBe("x");
+      expect(v.label).toBe("x");
+      expect(v.id).toMatch(/^[a-f0-9-]+$/);
     });
   });
 
