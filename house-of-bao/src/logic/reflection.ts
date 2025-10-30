@@ -26,32 +26,37 @@ function findReflectionPair(forms: Form[]): ReflectionPair | null {
   }
 
   const canonicalCache = forms.map((form) => canonicalSignature(form));
+  const reflectionsBySignature = new Map<string, number[]>();
 
-  for (
-    let reflectionIndex = 0;
-    reflectionIndex < forms.length;
-    reflectionIndex += 1
-  ) {
-    const candidateReflection = forms[reflectionIndex];
-    if (candidateReflection.boundary !== "angle") {
-      continue;
+  forms.forEach((form, index) => {
+    if (form.boundary !== "angle") {
+      return;
     }
 
-    const inner = firstChild(candidateReflection);
+    const inner = firstChild(form);
     if (!inner) {
-      continue;
+      return;
     }
 
     const innerSignature = canonicalSignature(inner);
+    const existing = reflectionsBySignature.get(innerSignature);
+    if (existing) {
+      existing.push(index);
+    } else {
+      reflectionsBySignature.set(innerSignature, [index]);
+    }
+  });
 
-    for (let baseIndex = 0; baseIndex < forms.length; baseIndex += 1) {
-      if (baseIndex === reflectionIndex) {
-        continue;
-      }
+  for (let baseIndex = 0; baseIndex < forms.length; baseIndex += 1) {
+    const baseSignature = canonicalCache[baseIndex];
+    const candidates = reflectionsBySignature.get(baseSignature);
+    if (!candidates) {
+      continue;
+    }
 
-      if (canonicalCache[baseIndex] === innerSignature) {
-        return { baseIndex, reflectionIndex };
-      }
+    const reflectionIndex = candidates.find((index) => index !== baseIndex);
+    if (reflectionIndex !== undefined) {
+      return { baseIndex, reflectionIndex };
     }
   }
 
@@ -81,6 +86,7 @@ export function cancel(forms: Form[]): Form[] {
 
 export function create(template: Form): Form[] {
   const baseClone = deepClone(template);
-  const reflectionClone = angle(template);
+  const reflectionChild = deepClone(template);
+  const reflectionClone = angle(reflectionChild);
   return [baseClone, reflectionClone];
 }

@@ -1,36 +1,43 @@
 import { describe, it, expect } from "vitest";
-import {
-  isReflectionApplicable,
-  cancelReflection,
-  createReflection,
-  createReflectionPair,
-} from "../reflection";
+import fc from "fast-check";
+import { isCancelApplicable, cancel, create } from "../reflection";
 import {
   canonicalSignature,
+  collectFormIds,
+  collectFormForestIds,
   round,
   square,
   angle,
   atom,
-  collectFormIds,
+  type Form,
 } from "../Form";
+import { formNodeArb, materializeFormNode } from "./formArbitraries";
+
+function expectNoSharedIds(result: Form[], originals: Set<string>): void {
+  result.forEach((form) => {
+    collectFormIds(form).forEach((id) => {
+      expect(originals.has(id)).toBe(false);
+    });
+  });
+}
 
 describe("Reflection Axiom", () => {
-  describe("isReflectionApplicable / cancelReflection", () => {
-    it("detects and cancels simple pair (() <()>)", () => {
+  describe("isCancelApplicable / cancel", () => {
+    it("detects and cancels a simple (() <()>) pair", () => {
       const base = round();
-      const pair = createReflectionPair(base);
+      const pair = create(base);
 
-      expect(isReflectionApplicable(pair)).toBe(true);
-      expect(cancelReflection(pair)).toEqual([]);
+      expect(isCancelApplicable(pair)).toBe(true);
+      expect(cancel(pair)).toEqual([]);
     });
 
     it("returns clones of survivors when extra context remains", () => {
       const base = square(round(atom("x")));
-      const [baseClone, reflection] = createReflectionPair(base);
+      const [baseClone, reflection] = create(base);
       const context = angle(atom("y"));
       const forms = [context, baseClone, reflection];
 
-      const result = cancelReflection(forms);
+      const result = cancel(forms);
 
       expect(result).toHaveLength(1);
       const [contextClone] = result;
@@ -44,7 +51,7 @@ describe("Reflection Axiom", () => {
       const formA = round(atom("a"));
       const formB = square(atom("b"));
 
-      const result = cancelReflection([formA, formB]);
+      const result = cancel([formA, formB]);
 
       expect(result).toHaveLength(2);
       expect(canonicalSignature(result[0])).toBe(canonicalSignature(formA));
@@ -52,35 +59,92 @@ describe("Reflection Axiom", () => {
       expect(canonicalSignature(result[1])).toBe(canonicalSignature(formB));
       expect(result[1].id).not.toBe(formB.id);
     });
-  });
 
-  describe("createReflection / createReflectionPair", () => {
-    it("creates reflection with cloned contents", () => {
-      const payload = round(square(atom("p")));
-      const reflection = createReflection(payload);
-
-      expect(reflection.boundary).toBe("angle");
-      const child = [...reflection.children][0];
-      expect(canonicalSignature(child)).toBe(canonicalSignature(payload));
-
-      const originalIds = collectFormIds(payload, canonicalSignature(payload));
-      const reflectedIds = collectFormIds(child, canonicalSignature(payload));
-      originalIds.forEach((id) => {
-        expect(reflectedIds.has(id)).toBe(false);
-      });
+    it("property: cancel(create(A)) eliminates the pair", () => {
+      fc.assert(
+        fc.property(formNodeArb, (raw) => {
+          const base = materializeFormNode(raw);
+          const pair = create(base);
+          expect(isCancelApplicable(pair)).toBe(true);
+          expect(cancel(pair)).toEqual([]);
+        }),
+      );
     });
 
-    it("creates pair with base clone and matching reflection", () => {
+    it("property: survivors retain structure with fresh ids", () => {
+      fc.assert(
+        fc.property(formNodeArb, formNodeArb, (pairRaw, contextRaw) => {
+          const base = materializeFormNode(pairRaw);
+          const context = materializeFormNode(contextRaw);
+          fc.pre(
+            canonicalSignature(base) !== canonicalSignature(context),
+          );
+
+          const [baseClone, reflectionClone] = create(base);
+          const forest = [context, baseClone, reflectionClone];
+
+          const result = cancel(forest);
+          expect(result).toHaveLength(1);
+
+          const [contextClone] = result;
+          const expectedSignature = canonicalSignature(context);
+          expect(canonicalSignature(contextClone)).toBe(expectedSignature);
+
+          const originalIds = collectFormIds(context, expectedSignature);
+          const cloneIds = collectFormForestIds(result, [expectedSignature]);
+          originalIds.forEach((id) => {
+            expect(cloneIds.has(id)).toBe(false);
+          });
+        }),
+      );
+    });
+  });
+
+  describe("create", () => {
+    it("creates a pair with cloned base and reflection", () => {
       const original = square(round(atom("base")), angle());
-      const [baseClone, reflection] = createReflectionPair(original);
+      const [baseClone, reflection] = create(original);
 
       const expectedSignature = canonicalSignature(original);
       expect(canonicalSignature(baseClone)).toBe(expectedSignature);
       expect(baseClone.id).not.toBe(original.id);
 
       expect(reflection.boundary).toBe("angle");
-      const reflectedChild = [...reflection.children][0];
-      expect(canonicalSignature(reflectedChild)).toBe(expectedSignature);
+      const child = [...reflection.children][0];
+      expect(canonicalSignature(child)).toBe(expectedSignature);
+
+      const baseIds = collectFormIds(baseClone, expectedSignature);
+      const reflectionIds = collectFormIds(child, expectedSignature);
+      baseIds.forEach((id) => {
+        expect(reflectionIds.has(id)).toBe(false);
+      });
+    });
+
+    it("property: created pair uses fresh ids", () => {
+      fc.assert(
+        fc.property(formNodeArb, (raw) => {
+          const original = materializeFormNode(raw);
+          const [baseClone, reflection] = create(original);
+
+          const expectedSignature = canonicalSignature(original);
+          expect(canonicalSignature(baseClone)).toBe(expectedSignature);
+
+          const baseIds = collectFormIds(baseClone, expectedSignature);
+          const reflectionChild = [...reflection.children][0];
+          expect(canonicalSignature(reflectionChild)).toBe(
+            expectedSignature,
+          );
+          const reflectionIds = collectFormIds(
+            reflectionChild,
+            expectedSignature,
+          );
+
+          expectNoSharedIds([baseClone], collectFormIds(original));
+          baseIds.forEach((id) => {
+            expect(reflectionIds.has(id)).toBe(false);
+          });
+        }),
+      );
     });
   });
 });
