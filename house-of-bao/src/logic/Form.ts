@@ -52,3 +52,94 @@ export function canonicalSignature(form: Form): string {
 export function canonicalSignatureForest(forms: Iterable<Form>): string[] {
   return [...forms].map((form) => canonicalSignature(form)).sort();
 }
+
+/**
+ * Traverses a Form tree depth-first, invoking the supplied visitor for each
+ * node. Traversal order is implementation-defined but guarantees every node is
+ * visited exactly once.
+ */
+export function traverseForm(form: Form, visit: (node: Form) => void): void {
+  const stack: Form[] = [form];
+  while (stack.length > 0) {
+    const current = stack.pop()!;
+    visit(current);
+    current.children.forEach((child) => stack.push(child));
+  }
+}
+
+function assertCanonicalSignature(
+  actual: string,
+  expected?: string,
+): void {
+  if (expected === undefined) {
+    return;
+  }
+
+  if (actual !== expected) {
+    throw new Error(
+      `Expected canonical signature "${expected}" but received "${actual}"`,
+    );
+  }
+}
+
+function signaturesMatch(
+  actual: string[],
+  expected?: string[],
+): boolean {
+  if (!expected) {
+    return true;
+  }
+
+  if (actual.length !== expected.length) {
+    return false;
+  }
+
+  const sortedExpected = [...expected].sort();
+  return actual.every((signature, index) => signature === sortedExpected[index]);
+}
+
+/**
+ * Collects every id present in the supplied Form tree. When an expected
+ * canonical signature is provided, the structure is validated before ids are
+ * collected.
+ */
+export function collectFormIds(
+  form: Form,
+  expectedSignature?: string,
+): Set<string> {
+  assertCanonicalSignature(canonicalSignature(form), expectedSignature);
+
+  const ids = new Set<string>();
+  traverseForm(form, (node) => {
+    ids.add(node.id);
+  });
+  return ids;
+}
+
+/**
+ * Collects every id across a forest of Forms. When expected canonical
+ * signatures are passed, the forest structure is validated (order-invariant)
+ * before ids are returned.
+ */
+export function collectFormForestIds(
+  forms: Iterable<Form>,
+  expectedSignatures?: string[],
+): Set<string> {
+  const materialized = [...forms];
+  const actualSignatures = canonicalSignatureForest(materialized);
+  if (!signaturesMatch(actualSignatures, expectedSignatures)) {
+    throw new Error(
+      `Expected canonical signatures ${JSON.stringify(
+        expectedSignatures ?? [],
+      )} but received ${JSON.stringify(actualSignatures)}`,
+    );
+  }
+
+  const ids = new Set<string>();
+  materialized.forEach((form) => {
+    traverseForm(form, (node) => {
+      ids.add(node.id);
+    });
+  });
+  return ids;
+}

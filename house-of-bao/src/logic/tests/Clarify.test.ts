@@ -2,7 +2,6 @@ import { describe, it, expect } from "vitest";
 import fc from "fast-check";
 import {
   clarify,
-  deepClone,
   enfold,
   enfoldRoundSquare,
   enfoldSquareRound,
@@ -15,6 +14,9 @@ import {
   angle,
   atom,
   type Form,
+  collectFormIds,
+  collectFormForestIds,
+  traverseForm,
 } from "../Form";
 import {
   formNodeArb,
@@ -22,47 +24,33 @@ import {
   materializeFormNode,
 } from "./FormArbitraries";
 
-describe("Clarify Axiom", () => {
-  describe("deepClone", () => {
-    it("clones a simple form with new id", () => {
-      const original = round();
-      const cloned = deepClone(original);
+function expectDisjoint(setA: Set<string>, setB: Set<string>): void {
+  for (const id of setA) {
+    expect(setB.has(id)).toBe(false);
+  }
+}
 
-      expect(cloned.boundary).toBe(original.boundary);
-      expect(cloned.children.size).toBe(original.children.size);
-      expect(cloned.id).not.toBe(original.id);
-    });
-
-    it("deep clones nested forms", () => {
-      const original = round(square(angle()));
-      const cloned = deepClone(original);
-
-      expect(cloned.boundary).toBe("round");
-      expect(cloned.children.size).toBe(1);
-
-      const clonedChild = [...cloned.children][0];
-      expect(clonedChild.boundary).toBe("square");
-      expect(clonedChild.children.size).toBe(1);
-
-      const clonedGrandchild = [...clonedChild.children][0];
-      expect(clonedGrandchild.boundary).toBe("angle");
-
-      expect(cloned.id).not.toBe(original.id);
-      expect(clonedChild.id).not.toBe([...original.children][0].id);
-      expect(clonedGrandchild.id).not.toBe(
-        [...[...original.children][0].children][0].id,
-      );
-    });
-
-    it("preserves atom labels when cloning", () => {
-      const original = atom("x");
-      const cloned = deepClone(original);
-
-      expect(cloned.label).toBe("x");
-      expect(cloned.id).not.toBe(original.id);
+function expectFreshClones(forms: Form[], original: Form): void {
+  const originalIds = collectFormIds(original, canonicalSignature(original));
+  const observed = new Set<string>();
+  forms.forEach((form) => {
+    traverseForm(form, (node) => {
+      expect(originalIds.has(node.id)).toBe(false);
+      expect(observed.has(node.id)).toBe(false);
+      observed.add(node.id);
     });
   });
+}
 
+function sortedBoundaries(forms: Form[]): string[] {
+  return forms.map((form) => form.boundary).sort();
+}
+
+function sortedCanonicalSignatures(forms: Form[]): string[] {
+  return forms.map((form) => canonicalSignature(form)).sort();
+}
+
+describe("Clarify Axiom", () => {
   describe("isClarifyApplicable", () => {
     type ClarifyCase = {
       label: string;
@@ -188,75 +176,158 @@ describe("Clarify Axiom", () => {
   });
 
   describe("clarify", () => {
-    it("clarifies ([()]) to void (empty array)", () => {
-      const form = round(square());
+    type ClarifyExampleCase = {
+      label: string;
+      factory: () => Form;
+      expectedBoundaries?: (original: Form) => string[];
+      expectedSignatures?: (original: Form) => string[];
+    };
+
+    const clarifyExamples: ClarifyExampleCase[] = [
+      {
+        label: "clarifies ([()]) to void (empty array)",
+        factory: () => round(square()),
+        expectedBoundaries: () => [],
+        expectedSignatures: () => [],
+      },
+      {
+        label: "clarifies ([A]) where A is a single form",
+        factory: () => {
+          const inner = round();
+          return round(square(inner));
+        },
+        expectedBoundaries: () => ["round"],
+        expectedSignatures: (original) => {
+          const [squareChild] = [...original.children];
+          return [...squareChild.children].map((child) =>
+            canonicalSignature(child),
+          );
+        },
+      },
+      {
+        label: "clarifies ([A B]) where A and B are multiple forms",
+        factory: () => {
+          const inner1 = round();
+          const inner2 = square();
+          return round(square(inner1, inner2));
+        },
+        expectedBoundaries: () => ["round", "square"],
+        expectedSignatures: (original) => {
+          const [squareChild] = [...original.children];
+          return [...squareChild.children].map((child) =>
+            canonicalSignature(child),
+          );
+        },
+      },
+      {
+        label: "clarifies [(A)] where A is void",
+        factory: () => square(round()),
+        expectedBoundaries: () => [],
+        expectedSignatures: () => [],
+      },
+      {
+        label: "clarifies [(A)] where A is a form",
+        factory: () => {
+          const inner = square();
+          return square(round(inner));
+        },
+        expectedBoundaries: () => ["square"],
+        expectedSignatures: (original) => {
+          const [roundChild] = [...original.children];
+          return [...roundChild.children].map((child) =>
+            canonicalSignature(child),
+          );
+        },
+      },
+      {
+        label: "does not clarify if not a paired boundary",
+        factory: () => round(),
+        expectedBoundaries: (original) => [original.boundary],
+        expectedSignatures: (original) => [canonicalSignature(original)],
+      },
+      {
+        label: "does not clarify round with multiple children",
+        factory: () => round(square(), angle()),
+        expectedBoundaries: (original) => [original.boundary],
+        expectedSignatures: (original) => [canonicalSignature(original)],
+      },
+      {
+        label: "does not clarify square with non-round child",
+        factory: () => square(angle()),
+        expectedBoundaries: (original) => [original.boundary],
+        expectedSignatures: (original) => [canonicalSignature(original)],
+      },
+    ];
+
+    it.each(clarifyExamples)("$label", (testCase) => {
+      const form = testCase.factory();
       const result = clarify(form);
 
-      expect(result).toEqual([]);
+      if (testCase.expectedBoundaries) {
+        const expected = [...testCase.expectedBoundaries(form)].sort();
+        expect(sortedBoundaries(result)).toEqual(expected);
+      }
+
+      if (testCase.expectedSignatures) {
+        const expected = [...testCase.expectedSignatures(form)].sort();
+        expect(sortedCanonicalSignatures(result)).toEqual(expected);
+      }
+
+      expectFreshClones(result, form);
     });
 
-    it("clarifies ([A]) where A is a single form", () => {
-      const inner = round();
-      const form = round(square(inner));
-      const result = clarify(form);
+    it("property: clarify(enfoldRoundSquare(form)) yields clones of the original form", () => {
+      fc.assert(
+        fc.property(formNodeArb, (raw) => {
+          const original = materializeFormNode(raw);
+          const wrapped = enfoldRoundSquare(original);
 
-      expect(result).toHaveLength(1);
-      expect(result[0].boundary).toBe("round");
-      expect(result[0].children.size).toBe(0);
+          expect(isClarifyApplicable(wrapped)).toBe(true);
+
+          const clarified = clarify(wrapped);
+          expect(clarified).toHaveLength(1);
+          expect(sortedCanonicalSignatures(clarified)).toEqual([
+            canonicalSignature(original),
+          ]);
+
+          expectFreshClones(clarified, original);
+          const wrappedIds = collectFormIds(
+            wrapped,
+            canonicalSignature(wrapped),
+          );
+          const clarifiedIds = collectFormForestIds(clarified, [
+            canonicalSignature(original),
+          ]);
+          expectDisjoint(clarifiedIds, wrappedIds);
+        }),
+      );
     });
 
-    it("clarifies ([A B]) where A and B are multiple forms", () => {
-      const inner1 = round();
-      const inner2 = square();
-      const form = round(square(inner1, inner2));
-      const result = clarify(form);
+    it("property: clarify(enfoldSquareRound(form)) yields clones of the original form", () => {
+      fc.assert(
+        fc.property(formNodeArb, (raw) => {
+          const original = materializeFormNode(raw);
+          const wrapped = enfoldSquareRound(original);
 
-      expect(result).toHaveLength(2);
-      const boundaries = result.map((f) => f.boundary);
-      expect(boundaries).toContain("round");
-      expect(boundaries).toContain("square");
-    });
+          expect(isClarifyApplicable(wrapped)).toBe(true);
 
-    it("clarifies [(A)] where A is void", () => {
-      const form = square(round());
-      const result = clarify(form);
+          const clarified = clarify(wrapped);
+          expect(clarified).toHaveLength(1);
+          expect(sortedCanonicalSignatures(clarified)).toEqual([
+            canonicalSignature(original),
+          ]);
 
-      expect(result).toEqual([]);
-    });
-
-    it("clarifies [(A)] where A is a form", () => {
-      const inner = square();
-      const form = square(round(inner));
-      const result = clarify(form);
-
-      expect(result).toHaveLength(1);
-      expect(result[0].boundary).toBe("square");
-      expect(result[0].children.size).toBe(0);
-    });
-
-    it("does not clarify if not a paired boundary", () => {
-      const form = round();
-      const result = clarify(form);
-
-      expect(result).toHaveLength(1);
-      expect(result[0].boundary).toBe("round");
-      expect(result[0].id).not.toBe(form.id);
-    });
-
-    it("does not clarify round with multiple children", () => {
-      const form = round(square(), angle());
-      const result = clarify(form);
-
-      expect(result).toHaveLength(1);
-      expect(result[0].boundary).toBe("round");
-    });
-
-    it("does not clarify square with non-round child", () => {
-      const form = square(angle());
-      const result = clarify(form);
-
-      expect(result).toHaveLength(1);
-      expect(result[0].boundary).toBe("square");
+          expectFreshClones(clarified, original);
+          const wrappedIds = collectFormIds(
+            wrapped,
+            canonicalSignature(wrapped),
+          );
+          const clarifiedIds = collectFormForestIds(clarified, [
+            canonicalSignature(original),
+          ]);
+          expectDisjoint(clarifiedIds, wrappedIds);
+        }),
+      );
     });
   });
 
@@ -338,14 +409,41 @@ describe("Clarify Axiom", () => {
     });
   });
 
-  it("enfold alias matches round-square variant", () => {
-    const form = angle();
-    const roundSquare = enfoldRoundSquare(form);
-    const alias = enfold(form);
+  describe("enfold", () => {
+    it("alias matches round-square variant (example)", () => {
+      const form = angle();
+      const roundSquare = enfoldRoundSquare(form);
+      const alias = enfold(form);
 
-    expect(alias.boundary).toBe(roundSquare.boundary);
-    expect([...alias.children][0].boundary).toBe(
-      [...roundSquare.children][0].boundary,
-    );
+      expect(alias.boundary).toBe(roundSquare.boundary);
+      expect([...alias.children][0].boundary).toBe(
+        [...roundSquare.children][0].boundary,
+      );
+    });
+
+    it("property: alias matches round-square variant structurally", () => {
+      fc.assert(
+        fc.property(formNodeArb, (raw) => {
+          const form = materializeFormNode(raw);
+          const roundSquare = enfoldRoundSquare(form);
+          const alias = enfold(form);
+
+          expect(canonicalSignature(alias)).toBe(
+            canonicalSignature(roundSquare),
+          );
+
+          const originalIds = collectFormIds(form, canonicalSignature(form));
+          const roundSquareIds = collectFormIds(
+            roundSquare,
+            canonicalSignature(roundSquare),
+          );
+          const aliasIds = collectFormIds(alias, canonicalSignature(alias));
+
+          expectDisjoint(aliasIds, originalIds);
+          expectDisjoint(roundSquareIds, originalIds);
+          expectDisjoint(aliasIds, roundSquareIds);
+        }),
+      );
+    });
   });
 });
