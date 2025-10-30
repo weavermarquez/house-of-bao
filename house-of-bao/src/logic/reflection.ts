@@ -63,14 +63,26 @@ function findReflectionPair(forms: Form[]): ReflectionPair | null {
   return null;
 }
 
+function isVoidReflection(form: Form): boolean {
+  return form.boundary === "angle" && form.children.size === 0;
+}
+
 export function isCancelApplicable(forms: Form[]): boolean {
-  return findReflectionPair(forms) !== null;
+  return findReflectionPair(forms) !== null || forms.some(isVoidReflection);
 }
 
 export function cancel(forms: Form[]): Form[] {
   const pair = findReflectionPair(forms);
   if (!pair) {
-    return noopForest(forms);
+    const survivors = forms.filter((form) => !isVoidReflection(form));
+    if (survivors.length === forms.length) {
+      return noopForest(forms);
+    }
+
+    if (survivors.length === 0) {
+      return [];
+    }
+    return noopForest(survivors);
   }
 
   const survivors = forms.filter((_, index) => {
@@ -84,9 +96,17 @@ export function cancel(forms: Form[]): Form[] {
   return noopForest(survivors);
 }
 
-export function create(template: Form): Form[] {
-  const baseClone = deepClone(template);
-  const reflectionChild = deepClone(template);
-  const reflectionClone = angle(reflectionChild);
-  return [baseClone, reflectionClone];
+export function create(...templates: Form[]): Form[] {
+  if (templates.length === 0) {
+    return [angle()];
+  }
+
+  const results: Form[] = [];
+  templates.forEach((template) => {
+    const baseClone = deepClone(template);
+    results.push(baseClone);
+    const reflectionClone = angle(deepClone(template));
+    results.push(reflectionClone);
+  });
+  return results;
 }

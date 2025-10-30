@@ -60,6 +60,13 @@ describe("Reflection Axiom", () => {
       expect(result[1].id).not.toBe(formB.id);
     });
 
+    it("eliminates void reflections without a base", () => {
+      const voidReflection = angle();
+
+      expect(isCancelApplicable([voidReflection])).toBe(true);
+      expect(cancel([voidReflection])).toEqual([]);
+    });
+
     it("property: cancel(create(A)) eliminates the pair", () => {
       fc.assert(
         fc.property(formNodeArb, (raw) => {
@@ -118,6 +125,14 @@ describe("Reflection Axiom", () => {
       baseIds.forEach((id) => {
         expect(reflectionIds.has(id)).toBe(false);
       });
+    });
+
+    it("creates an angle unit when given void template", () => {
+      const result = create();
+      expect(result).toHaveLength(1);
+      const [voidReflection] = result;
+      expect(voidReflection.boundary).toBe("angle");
+      expect(voidReflection.children.size).toBe(0);
     });
 
     it("property: created pair uses fresh ids", () => {
