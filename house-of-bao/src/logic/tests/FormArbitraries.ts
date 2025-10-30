@@ -1,5 +1,5 @@
 import fc from "fast-check";
-import { angle, round, square, variable, type Form } from "../Form";
+import { angle, round, square, atom, type Form } from "../Form";
 
 export type RawFormNode =
   | { kind: "atom"; label: string }
@@ -28,7 +28,7 @@ export const invertiblePairArb = fc.record({
 export function materializeRawForm(raw: RawFormNode): Form {
   switch (raw.kind) {
     case "atom":
-      return variable(raw.label);
+      return atom(raw.label);
     case "round":
       return round(...raw.children.map(materializeRawForm));
     case "square":
