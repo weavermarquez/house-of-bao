@@ -2,7 +2,7 @@ import {
   partitionFrameContents,
   cloneFrame,
   resolveCollectTarget,
-} from "./Arrangement";
+} from "./arrangement";
 
 import {} from // partitionFrameContents,
 // cloneFrame,

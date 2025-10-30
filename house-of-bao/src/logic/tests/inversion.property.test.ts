@@ -6,7 +6,7 @@ import {
   enfoldSquareRound,
   isClarifyApplicable,
   clarify,
-} from "../Inversion";
+} from "../inversion";
 import {
   canonicalSignature,
   round,
@@ -22,7 +22,7 @@ import {
   formNodeArb,
   invertiblePairNodesArb,
   materializeFormNode,
-} from "./FormArbitraries";
+} from "./formArbitraries";
 
 function expectDisjoint(setA: Set<string>, setB: Set<string>): void {
   for (const id of setA) {
