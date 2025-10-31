@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { useGameStore } from "./gameStore";
-import { createForm, round, square } from "../logic";
+import { round, square, atom } from "../logic";
 import { canonicalSignatureForest } from "../logic/Form";
 import { type LevelDefinition } from "../levels/types";
 
@@ -102,10 +102,7 @@ describe("game store operations", () => {
   });
 
   it("disperse splits selection of square contents", () => {
-    const unitA = createForm("round");
-    const unitB = createForm("round");
-    const squareNode = createForm("square", unitA, unitB);
-    const frame = createForm("round", squareNode);
+    const frame = round(square(round(), round()));
 
     const level: LevelDefinition = {
       id: "test-disperse",
@@ -125,7 +122,7 @@ describe("game store operations", () => {
 
     store.applyOperation({
       type: "disperse",
-      selectionIds: contentIds,
+      contentIds,
     });
 
     const { currentForms: dispersed } = useGameStore.getState();
@@ -133,6 +130,57 @@ describe("game store operations", () => {
     const signatures = canonicalSignatureForest(dispersed);
     signatures.forEach((signature) => {
       expect(signature).toBe("round:[square:[round:[]]]");
+    });
+  });
+
+  it("disperse distributes content from specified square in frame", () => {
+    const frame = round(
+      square(atom("a"), atom("b")),
+      square(atom("c"), atom("d")),
+      atom("e"),
+    );
+
+    const level: LevelDefinition = {
+      id: "test-disperse-frame",
+      name: "Disperse Frame",
+      start: [frame],
+      goal: [],
+      difficulty: 1,
+      allowedAxioms: ["arrangement"],
+    };
+
+    loadTestLevel(level);
+
+    const store = useGameStore.getState();
+    const frameNode = store.currentForms[0];
+    const frameSquareAB = [...frameNode.children].find(
+      (child) =>
+        child.boundary === "square" && [...child.children].length === 2,
+    );
+    expect(frameSquareAB).toBeDefined();
+    const contentIds = [...frameSquareAB!.children].map((child) => child.id);
+
+    store.applyOperation({
+      type: "disperse",
+      contentIds,
+      squareId: frameSquareAB!.id,
+      frameId: frameNode.id,
+    });
+
+    const { currentForms: dispersed } = useGameStore.getState();
+    expect(dispersed).toHaveLength(2);
+    dispersed.forEach((form) => {
+      expect(form.boundary).toBe("round");
+      const children = [...form.children];
+      expect(children).toHaveLength(3);
+      const squares = children.filter((c) => c.boundary === "square");
+      expect(squares).toHaveLength(2);
+      const atoms = children.filter((c) => c.boundary === "atom");
+      expect(atoms).toHaveLength(1);
+      const singleSquares = squares.filter((s) => [...s.children].length === 1);
+      expect(singleSquares).toHaveLength(1);
+      const doubleSquares = squares.filter((s) => [...s.children].length === 2);
+      expect(doubleSquares).toHaveLength(1);
     });
   });
 });

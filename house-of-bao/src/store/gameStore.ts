@@ -23,10 +23,9 @@ export type GameOperation =
     }
   | {
       type: "disperse";
-      targetId?: string;
+      contentIds: string[];
       squareId?: string;
-      contentIds?: string[];
-      selectionIds: string[];
+      frameId?: string;
     }
   | { type: "collect"; targetIds: string[] }
   | { type: "cancel"; targetIds: string[] }
@@ -135,6 +134,10 @@ function applySingleTarget(
   return modified ? updatedRoots : null;
 }
 
+/**
+ * Applies a transformation to sibling forms with the same parent.
+ * Replaces the siblings with the transformed result, preserving order.
+ */
 function applySiblingOperation(
   forest: Form[],
   targetIds: string[],
@@ -194,6 +197,10 @@ function isAllowed(allowed: AxiomType[] | undefined, type: AxiomType): boolean {
   return allowed.includes(type);
 }
 
+/**
+ * Adds new child forms to a parent form or the root forest.
+ * Does not remove any existing children.
+ */
 function addChild(
   forest: Form[],
   parentId: string | null,
@@ -213,6 +220,42 @@ function addChild(
       },
     ];
   });
+}
+
+/**
+ * Distributes content forms from their containing square into separate frames.
+ */
+function disperseContent(forest: Form[], contentIds: string[]): Form[] | null {
+  if (contentIds.length === 0) {
+    return null;
+  }
+
+  const locations = locateNodes(forest, new Set(contentIds));
+  if (locations.size !== contentIds.length) {
+    return null;
+  }
+
+  const squareIds = new Set(
+    [...locations.values()].map((entry) => entry.parent?.id ?? null),
+  );
+  if (squareIds.size !== 1) {
+    return null;
+  }
+
+  const [squareId] = [...squareIds];
+  if (!squareId) {
+    return null;
+  }
+
+  const squareLocation = locateNodes(forest, new Set([squareId])).get(squareId);
+  if (!squareLocation || !squareLocation.parent) {
+    return null;
+  }
+
+  const frameId = squareLocation.parent.id;
+  return applySingleTarget(forest, frameId, (form) =>
+    disperse(form, { squareId, contentIds }),
+  );
 }
 
 function formsEqual(left: Form[], right: Form[]): boolean {
@@ -289,96 +332,17 @@ export const useGameStore = create<GameState>((set, get) => ({
         const targetIds = [...new Set(operation.targetIds)];
 
         if (targetIds.length === 0) {
+          // Create a new wrapper form and add it to the specified parent or roots.
           const wrapper = enfold(variant);
-          const parentId = operation.parentId ?? null;
-
-          if (parentId === null) {
-            nextForms = [...state.currentForms, wrapper];
-          } else {
-            const parentLocation = locateNodes(
-              state.currentForms,
-              new Set([parentId]),
-            ).get(parentId);
-            if (!parentLocation) {
-              return;
-            }
-
-            nextForms = applySingleTarget(
-              state.currentForms,
-              parentId,
-              (form) => {
-                const nextChildren: Form[] = [];
-                form.children.forEach((child) => nextChildren.push(child));
-                nextChildren.push(wrapper);
-                return [
-                  {
-                    id: form.id,
-                    boundary: form.boundary,
-                    label: form.label,
-                    children: new Set<Form>(nextChildren),
-                  },
-                ];
-              },
-            );
-          }
-          break;
-        }
-
-        const locations = locateNodes(state.currentForms, new Set(targetIds));
-        if (locations.size !== targetIds.length) {
-          return;
-        }
-
-        const parentIds = new Set(
-          [...locations.values()].map((entry) => entry.parent?.id ?? "__root"),
-        );
-        if (parentIds.size !== 1) {
-          return;
-        }
-
-        const orderedNodes = targetIds.map((id) => locations.get(id)!.node);
-        const wrapper = enfold(variant, ...orderedNodes);
-        const parent = [...locations.values()][0].parent;
-
-        if (parent === null) {
-          const targetSet = new Set(targetIds);
-          const nextRoots: Form[] = [];
-          let inserted = false;
-          state.currentForms.forEach((root) => {
-            if (targetSet.has(root.id)) {
-              if (!inserted) {
-                nextRoots.push(wrapper);
-                inserted = true;
-              }
-              return;
-            }
-            nextRoots.push(root);
-          });
-          if (!inserted) {
-            nextRoots.push(wrapper);
-          }
-          nextForms = nextRoots;
+          nextForms = addChild(state.currentForms, operation.parentId ?? null, [
+            wrapper,
+          ]);
         } else {
-          nextForms = applySingleTarget(
+          // Wrap the target siblings in a new wrapper form.
+          nextForms = applySiblingOperation(
             state.currentForms,
-            parent.id,
-            (form) => {
-              const nextChildren: Form[] = [];
-              form.children.forEach((child) => {
-                if (!targetIds.includes(child.id)) {
-                  nextChildren.push(child);
-                }
-              });
-              nextChildren.push(wrapper);
-              return [
-                {
-                  id: form.id,
-                  boundary: form.boundary,
-                  label: form.label,
-                  children: new Set<Form>(nextChildren),
-                },
-              ];
-            },
+            targetIds,
+            (nodes) => [enfold(variant, ...nodes)],
           );
         }
         break;
@@ -387,56 +351,21 @@ export const useGameStore = create<GameState>((set, get) => ({
         if (!isAllowed(allowed, "arrangement")) {
           return;
         }
-        if (operation.targetId) {
-          const options: DisperseOptions = {
-            squareId: operation.squareId,
-            contentIds: operation.contentIds,
-          };
+        if (operation.frameId) {
+          // Distribute contentIds from squareId within frameId into separate frames.
           nextForms = applySingleTarget(
             state.currentForms,
-            operation.targetId,
-            (form) => disperse(form, options),
+            operation.frameId,
+            (form) =>
+              disperse(form, {
+                squareId: operation.squareId,
+                contentIds: operation.contentIds,
+              }),
           );
-          break;
+        } else {
+          // Distribute contentIds from their current containing square into separate frames.
+          nextForms = disperseContent(state.currentForms, operation.contentIds);
         }
-
-        const selectionIds = operation.selectionIds;
-        if (selectionIds.length === 0) {
-          return;
-        }
-
-        const locations = locateNodes(
-          state.currentForms,
-          new Set(selectionIds),
-        );
-        if (locations.size !== selectionIds.length) {
-          return;
-        }
-
-        const squareIds = new Set(
-          [...locations.values()].map((entry) => entry.parent?.id ?? null),
-        );
-        if (squareIds.size !== 1) {
-          return;
-        }
-
-        const [squareId] = [...squareIds];
-        if (!squareId) {
-          return;
-        }
-
-        const squareLocation = locateNodes(
-          state.currentForms,
-          new Set([squareId]),
-        ).get(squareId);
-        if (!squareLocation || !squareLocation.parent) {
-          return;
-        }
-
-        const frameId = squareLocation.parent.id;
-        nextForms = applySingleTarget(state.currentForms, frameId, (form) =>
-          disperse(form, { squareId, contentIds: selectionIds }),
-        );
         break;
       }
       case "collect": {
@@ -485,27 +414,7 @@ export const useGameStore = create<GameState>((set, get) => ({
             ? (templateLocations?.get(templateIds[0])?.parent?.id ?? null)
             : null);
 
-        if (parentId === null) {
-          nextForms = [...state.currentForms, ...created];
-        } else {
-          nextForms = applySingleTarget(
-            state.currentForms,
-            parentId,
-            (form) => {
-              const nextChildren: Form[] = [];
-              form.children.forEach((child) => nextChildren.push(child));
-              created.forEach((child) => nextChildren.push(child));
-              return [
-                {
-                  id: form.id,
-                  boundary: form.boundary,
-                  label: form.label,
-                  children: new Set<Form>(nextChildren),
-                },
-              ];
-            },
-          );
-        }
+        nextForms = addChild(state.currentForms, parentId, created);
         break;
       }
       default:
