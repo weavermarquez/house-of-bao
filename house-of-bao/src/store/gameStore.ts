@@ -1,8 +1,17 @@
 import { create } from "zustand";
-import { type Form, deepClone, canonicalSignatureForest } from "../logic/Form";
+import {
+  type Form,
+  deepClone,
+  canonicalSignatureForest,
+  canonicalSignature,
+} from "../logic/Form";
 import { clarify, enfold } from "../logic/inversion";
 import { disperse, collect } from "../logic/arrangement";
-import { cancel, create as createReflection } from "../logic/reflection";
+import {
+  cancel,
+  create as createReflection,
+  isCancelApplicable,
+} from "../logic/reflection";
 import { checkWinCondition } from "../logic/win";
 import { type LevelDefinition, type AxiomType } from "../levels/types";
 
@@ -37,6 +46,7 @@ export type GameState = {
   goalForms: Form[];
   status: GameStatus;
   selectedNodeIds: string[];
+  selectedParentId: string | null;
   history: HistoryStack;
   loadLevel: (level: LevelDefinition) => void;
   resetLevel: () => void;
@@ -45,6 +55,8 @@ export type GameState = {
   redo: () => void;
   toggleSelection: (nodeId: string) => void;
   clearSelection: () => void;
+  selectParent: (nodeId: string | null) => void;
+  clearParentSelection: () => void;
 };
 
 type LocatedNode = {
@@ -190,6 +202,95 @@ function applySiblingOperation(
   });
 }
 
+function firstChild(form: Form): Form | null {
+  const iterator = form.children.values();
+  const first = iterator.next();
+  return first.done ? null : (first.value as Form);
+}
+
+function ensureCancelPairs(forest: Form[], targetIds: string[]): string[] {
+  const uniqueIds = [...new Set(targetIds)];
+  if (uniqueIds.length === 0) {
+    return uniqueIds;
+  }
+
+  const locations = locateNodes(forest, new Set(uniqueIds));
+  if (locations.size !== uniqueIds.length) {
+    return uniqueIds;
+  }
+
+  const parentKeys = new Set(
+    [...locations.values()].map((entry) => entry.parent?.id ?? "__root"),
+  );
+
+  if (parentKeys.size !== 1) {
+    return uniqueIds;
+  }
+
+  const parent = [...locations.values()][0].parent;
+  const siblings = parent ? [...parent.children] : forest;
+
+  const idToForm = new Map<string, Form>(
+    siblings.map((form) => [form.id, form]),
+  );
+  const baseBySignature = new Map<string, Form[]>();
+  const anglesByInnerSignature = new Map<string, Form[]>();
+
+  siblings.forEach((form) => {
+    const signature = canonicalSignature(form);
+    const existingBases = baseBySignature.get(signature);
+    if (existingBases) {
+      existingBases.push(form);
+    } else {
+      baseBySignature.set(signature, [form]);
+    }
+
+    if (form.boundary === "angle") {
+      const inner = firstChild(form);
+      if (inner) {
+        const innerSignature = canonicalSignature(inner);
+        const angles = anglesByInnerSignature.get(innerSignature);
+        if (angles) {
+          angles.push(form);
+        } else {
+          anglesByInnerSignature.set(innerSignature, [form]);
+        }
+      }
+    }
+  });
+
+  const augmented = new Set(uniqueIds);
+
+  uniqueIds.forEach((id) => {
+    const form = idToForm.get(id);
+    if (!form) {
+      return;
+    }
+
+    if (form.boundary === "angle") {
+      const inner = firstChild(form);
+      if (!inner) {
+        return;
+      }
+      const innerSignature = canonicalSignature(inner);
+      const candidates = baseBySignature.get(innerSignature) ?? [];
+      const partner = candidates.find((candidate) => candidate.id !== form.id);
+      if (partner) {
+        augmented.add(partner.id);
+      }
+    } else {
+      const signature = canonicalSignature(form);
+      const candidates = anglesByInnerSignature.get(signature) ?? [];
+      const partner = candidates.find((candidate) => candidate.id !== form.id);
+      if (partner) {
+        augmented.add(partner.id);
+      }
+    }
+  });
+
+  return [...augmented];
+}
+
 function isAllowed(allowed: AxiomType[] | undefined, type: AxiomType): boolean {
   if (!allowed || allowed.length === 0) {
     return true;
@@ -275,6 +376,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   goalForms: [],
   status: "idle",
   selectedNodeIds: [],
+  selectedParentId: null,
   history: { past: [], future: [] },
   loadLevel: (level: LevelDefinition) => {
     const start = cloneForest(level.start);
@@ -285,6 +387,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       goalForms: goal,
       status: checkWinCondition(start, goal) ? "won" : "playing",
       selectedNodeIds: [],
+      selectedParentId: null,
       history: { past: [], future: [] },
     });
   },
@@ -299,6 +402,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       goalForms: cloneForest(state.level.goal),
       status: checkWinCondition(start, state.goalForms) ? "won" : "playing",
       selectedNodeIds: [],
+      selectedParentId: null,
       history: { past: [], future: [] },
     });
   },
@@ -383,10 +487,19 @@ export const useGameStore = create<GameState>((set, get) => ({
         if (!isAllowed(allowed, "reflection")) {
           return;
         }
-        nextForms = applySiblingOperation(
+        const augmentedIds = ensureCancelPairs(
           state.currentForms,
           operation.targetIds,
-          (forms) => cancel(forms.map((entry) => deepClone(entry))),
+        );
+        nextForms = applySiblingOperation(
+          state.currentForms,
+          augmentedIds,
+          (forms) => {
+            if (!isCancelApplicable(forms)) {
+              return forms;
+            }
+            return cancel(forms.map((entry) => deepClone(entry)));
+          },
         );
         break;
       }
@@ -435,6 +548,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       history: { past, future },
       status: won ? "won" : "playing",
       selectedNodeIds: [],
+      selectedParentId: null,
     });
   },
   undo: () => {
@@ -451,6 +565,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       currentForms: previous.map((form) => deepClone(form)),
       history: { past, future },
       status: checkWinCondition(previous, state.goalForms) ? "won" : "playing",
+      selectedNodeIds: [],
+      selectedParentId: null,
     });
   },
   redo: () => {
@@ -466,6 +582,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       currentForms: next.map((form) => deepClone(form)),
       history: { past, future: rest },
       status: checkWinCondition(next, state.goalForms) ? "won" : "playing",
+      selectedNodeIds: [],
+      selectedParentId: null,
     });
   },
   toggleSelection: (nodeId: string) => {
@@ -480,5 +598,11 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
   clearSelection: () => {
     set({ selectedNodeIds: [] });
+  },
+  selectParent: (nodeId: string | null) => {
+    set({ selectedParentId: nodeId });
+  },
+  clearParentSelection: () => {
+    set({ selectedParentId: null });
   },
 }));
