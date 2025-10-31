@@ -1,7 +1,13 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { useGameStore } from "./gameStore";
 import { round, square, atom } from "../logic";
-import { canonicalSignatureForest } from "../logic/Form";
+import { canonicalSignatureForest, deepClone } from "../logic/Form";
+import { clarify } from "../logic/inversion";
+import { collect as arrangementCollect } from "../logic/arrangement";
+import {
+  cancel as reflectionCancel,
+  create as reflectionCreate,
+} from "../logic/reflection";
 import { type LevelDefinition } from "../levels/types";
 
 function loadTestLevel(level: LevelDefinition): void {
@@ -182,5 +188,246 @@ describe("game store operations", () => {
       const doubleSquares = squares.filter((s) => [...s.children].length === 2);
       expect(doubleSquares).toHaveLength(1);
     });
+  });
+
+  it("clarify matches inversion behaviour for a round-square pair", () => {
+    const startForm = round(square(atom("x")));
+    const level: LevelDefinition = {
+      id: "test-clarify-match",
+      name: "Clarify Match",
+      start: [startForm],
+      goal: [],
+      difficulty: 1,
+      allowedAxioms: ["inversion"],
+    };
+
+    loadTestLevel(level);
+
+    const store = useGameStore.getState();
+    const target = store.currentForms[0];
+    const expected = clarify(deepClone(target));
+
+    store.applyOperation({ type: "clarify", targetId: target.id });
+
+    const { currentForms: after } = useGameStore.getState();
+    expect(canonicalSignatureForest(after)).toEqual(
+      canonicalSignatureForest(expected),
+    );
+  });
+
+  it("clarify does nothing when inversion is disallowed", () => {
+    const startForm = round(square(atom("x")));
+    const level: LevelDefinition = {
+      id: "test-clarify-guard",
+      name: "Clarify Guard",
+      start: [startForm],
+      goal: [],
+      difficulty: 1,
+      allowedAxioms: ["arrangement"],
+    };
+
+    loadTestLevel(level);
+    const before = useGameStore.getState().currentForms;
+    const beforeSignatures = canonicalSignatureForest(before);
+
+    useGameStore
+      .getState()
+      .applyOperation({ type: "clarify", targetId: before[0].id });
+
+    const { currentForms: after } = useGameStore.getState();
+    expect(canonicalSignatureForest(after)).toEqual(beforeSignatures);
+  });
+
+  it("collect matches arrangement collect behaviour", () => {
+    const frameA = round(atom("ctx"), square(atom("a")));
+    const frameB = round(atom("ctx"), square(atom("b")));
+    const level: LevelDefinition = {
+      id: "test-collect-match",
+      name: "Collect Match",
+      start: [frameA, frameB],
+      goal: [],
+      difficulty: 1,
+      allowedAxioms: ["arrangement"],
+    };
+
+    loadTestLevel(level);
+
+    const store = useGameStore.getState();
+    const [first, second] = store.currentForms;
+    const expected = arrangementCollect([deepClone(first), deepClone(second)]);
+
+    store.applyOperation({
+      type: "collect",
+      targetIds: [first.id, second.id],
+    });
+
+    const { currentForms: after } = useGameStore.getState();
+    expect(canonicalSignatureForest(after)).toEqual(
+      canonicalSignatureForest(expected),
+    );
+  });
+
+  it("cancel matches reflection cancel behaviour for a base-reflection pair", () => {
+    const base = atom("z");
+    const reflection = reflectionCreate(base)[1];
+    const filler = atom("y");
+    const level: LevelDefinition = {
+      id: "test-cancel-match",
+      name: "Cancel Match",
+      start: [base, reflection, filler],
+      goal: [],
+      difficulty: 1,
+      allowedAxioms: ["reflection"],
+    };
+
+    loadTestLevel(level);
+
+    const store = useGameStore.getState();
+    const current = store.currentForms;
+    const baseNode = current.find(
+      (form) => form.boundary === "atom" && form.label === "z",
+    );
+    const reflectionNode = current.find((form) => form.boundary === "angle");
+    const fillerNode = current.find(
+      (form) => form.boundary === "atom" && form.label === "y",
+    );
+    if (!baseNode || !reflectionNode || !fillerNode) {
+      throw new Error("Failed to locate test nodes");
+    }
+
+    const expectedReplacement = reflectionCancel([
+      deepClone(baseNode),
+      deepClone(reflectionNode),
+    ]);
+    const expectedForest = [deepClone(fillerNode), ...expectedReplacement];
+
+    store.applyOperation({
+      type: "cancel",
+      targetIds: [baseNode.id, reflectionNode.id],
+    });
+
+    const { currentForms: after } = useGameStore.getState();
+    expect(canonicalSignatureForest(after)).toEqual(
+      canonicalSignatureForest(expectedForest),
+    );
+  });
+
+  it("create adds reflections alongside templates under the parent", () => {
+    const template = atom("seed");
+    const parent = round(template);
+    const level: LevelDefinition = {
+      id: "test-create-match",
+      name: "Create Match",
+      start: [parent],
+      goal: [],
+      difficulty: 1,
+      allowedAxioms: ["reflection"],
+    };
+
+    loadTestLevel(level);
+
+    const store = useGameStore.getState();
+    const parentNode = store.currentForms[0];
+    const templateNode = [...parentNode.children][0];
+    const existingChildren = [...parentNode.children].map((child) =>
+      deepClone(child),
+    );
+    const created = reflectionCreate(deepClone(templateNode));
+    const expectedChildren = [...existingChildren, ...created];
+
+    store.applyOperation({
+      type: "create",
+      parentId: parentNode.id,
+      templateIds: [templateNode.id],
+    });
+
+    const updatedParent = useGameStore.getState().currentForms[0];
+    expect(canonicalSignatureForest(updatedParent.children)).toEqual(
+      canonicalSignatureForest(expectedChildren),
+    );
+  });
+
+  it("create without templates adds a lone angle form at the root", () => {
+    const level: LevelDefinition = {
+      id: "test-create-void",
+      name: "Create Void",
+      start: [],
+      goal: [],
+      difficulty: 1,
+      allowedAxioms: ["reflection"],
+    };
+
+    loadTestLevel(level);
+
+    const expected = reflectionCreate();
+    useGameStore
+      .getState()
+      .applyOperation({ type: "create", parentId: null, templateIds: [] });
+
+    const { currentForms: after } = useGameStore.getState();
+    expect(canonicalSignatureForest(after)).toEqual(
+      canonicalSignatureForest(expected),
+    );
+  });
+
+  it("create with missing template ids falls back to root angle", () => {
+    const origin = atom("origin");
+    const level: LevelDefinition = {
+      id: "test-create-missing-template",
+      name: "Create Missing Template",
+      start: [origin],
+      goal: [],
+      difficulty: 1,
+      allowedAxioms: ["reflection"],
+    };
+
+    loadTestLevel(level);
+    const before = useGameStore.getState().currentForms;
+    const beforeSignatures = canonicalSignatureForest(before);
+
+    useGameStore
+      .getState()
+      .applyOperation({
+        type: "create",
+        parentId: null,
+        templateIds: ["non-existent-template"],
+      });
+
+    const { currentForms: after } = useGameStore.getState();
+    expect(after).toHaveLength(before.length + 1);
+    const angleForms = after.filter((form) => form.boundary === "angle");
+    expect(angleForms).toHaveLength(1);
+    expect(canonicalSignatureForest(after)).toEqual(
+      canonicalSignatureForest([...before, angleForms[0]]),
+    );
+  });
+
+  it("create with missing template ids inserts fallback under provided parent", () => {
+    const frame = round(square(atom("leaf")), atom("context"));
+    const level: LevelDefinition = {
+      id: "test-create-missing-template-parent",
+      name: "Create Missing Template Parent",
+      start: [frame],
+      goal: [],
+      difficulty: 1,
+      allowedAxioms: ["reflection"],
+    };
+
+    loadTestLevel(level);
+
+    const store = useGameStore.getState();
+    const parent = store.currentForms[0];
+    const beforeChildren = [...parent.children].map((child) => deepClone(child));
+
+    store.applyOperation({
+      type: "create",
+      parentId: parent.id,
+      templateIds: ["missing-template"],
+    });
+
+    const updated = useGameStore.getState().currentForms[0];
+    expect(canonicalSignatureForest(updated.children)).toEqual(
+      canonicalSignatureForest([...beforeChildren, ...reflectionCreate()]),
+    );
   });
 });
