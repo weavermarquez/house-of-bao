@@ -1,10 +1,11 @@
 import { create } from "zustand";
-import { type Form, deepClone, canonicalSignatureForest } from "../logic/Form";
 import {
-  clarify,
-  enfoldRoundSquare,
-  enfoldSquareRound,
-} from "../logic/inversion";
+  type Form,
+  deepClone,
+  canonicalSignatureForest,
+  createForm,
+} from "../logic/Form";
+import { clarify, enfold } from "../logic/inversion";
 import { disperse, type DisperseOptions, collect } from "../logic/arrangement";
 import { cancel, create as createReflection } from "../logic/reflection";
 import { checkWinCondition } from "../logic/win";
@@ -21,14 +22,15 @@ export type GameOperation =
   | { type: "clarify"; targetId: string }
   | {
       type: "enfold";
-      targetId: string;
-      variant?: "round-square" | "square-round";
+      targetIds: string[];
+      variant?: "frame" | "mark";
     }
   | {
       type: "disperse";
-      targetId: string;
+      targetId?: string;
       squareId?: string;
       contentIds?: string[];
+      selectionIds?: string[];
     }
   | { type: "collect"; targetIds: string[] }
   | { type: "cancel"; targetIds: string[] }
@@ -266,30 +268,127 @@ export const useGameStore = create<GameState>((set, get) => ({
         if (!isAllowed(allowed, "inversion")) {
           return;
         }
-        nextForms = applySingleTarget(
-          state.currentForms,
-          operation.targetId,
-          (form) => {
-            if (operation.variant === "square-round") {
-              return [enfoldSquareRound(form)];
-            }
-            return [enfoldRoundSquare(form)];
-          },
+        const variant = operation.variant ?? "frame";
+        const targetIds = operation.targetIds ?? [];
+        if (targetIds.length === 0) {
+          const wrapper = enfold(variant, ...[]);
+          nextForms = [...state.currentForms, wrapper];
+          break;
+        }
+
+        const uniqueIds = [...new Set(targetIds)];
+        const locations = locateNodes(state.currentForms, new Set(uniqueIds));
+        if (locations.size !== uniqueIds.length) {
+          return;
+        }
+
+        const parentIds = new Set(
+          [...locations.values()].map((entry) => entry.parent?.id ?? "__root"),
         );
+        if (parentIds.size !== 1) {
+          return;
+        }
+
+        const orderedNodes = uniqueIds.map((id) => locations.get(id)!.node);
+        const wrapper = enfold(variant, ...orderedNodes);
+        const parent = [...locations.values()][0].parent;
+
+        if (parent === null) {
+          const targetSet = new Set(uniqueIds);
+          const nextRoots: Form[] = [];
+          let inserted = false;
+          state.currentForms.forEach((root) => {
+            if (targetSet.has(root.id)) {
+              if (!inserted) {
+                nextRoots.push(wrapper);
+                inserted = true;
+              }
+              return;
+            }
+            nextRoots.push(root);
+          });
+          if (!inserted) {
+            nextRoots.push(wrapper);
+          }
+          nextForms = nextRoots;
+        } else {
+          nextForms = applySingleTarget(
+            state.currentForms,
+            parent.id,
+            (form) => {
+              const nextChildren: Form[] = [];
+              form.children.forEach((child) => {
+                if (!uniqueIds.includes(child.id)) {
+                  nextChildren.push(child);
+                }
+              });
+              nextChildren.push(wrapper);
+              return [
+                {
+                  id: form.id,
+                  boundary: form.boundary,
+                  label: form.label,
+                  children: new Set<Form>(nextChildren),
+                },
+              ];
+            },
+          );
+        }
         break;
       }
       case "disperse": {
         if (!isAllowed(allowed, "arrangement")) {
           return;
         }
-        const options: DisperseOptions = {
-          squareId: operation.squareId,
-          contentIds: operation.contentIds,
-        };
-        nextForms = applySingleTarget(
+        if (operation.targetId) {
+          const options: DisperseOptions = {
+            squareId: operation.squareId,
+            contentIds: operation.contentIds,
+          };
+          nextForms = applySingleTarget(
+            state.currentForms,
+            operation.targetId,
+            (form) => disperse(form, options),
+          );
+          break;
+        }
+
+        const selectionIds = operation.selectionIds ?? [];
+        if (selectionIds.length === 0) {
+          return;
+        }
+
+        const locations = locateNodes(
           state.currentForms,
-          operation.targetId,
-          (form) => disperse(form, options),
+          new Set(selectionIds),
+        );
+        if (locations.size !== selectionIds.length) {
+          return;
+        }
+
+        const squareIds = new Set(
+          [...locations.values()].map((entry) => entry.parent?.id ?? null),
+        );
+        if (squareIds.size !== 1) {
+          return;
+        }
+
+        const [squareId] = [...squareIds];
+        if (!squareId) {
+          return;
+        }
+
+        const squareLocation = locateNodes(
+          state.currentForms,
+          new Set([squareId]),
+        ).get(squareId);
+        if (!squareLocation || !squareLocation.parent) {
+          return;
+        }
+
+        const frameId = squareLocation.parent.id;
+        nextForms = applySingleTarget(state.currentForms, frameId, (form) =>
+          disperse(form, { squareId, contentIds: selectionIds }),
         );
         break;
       }
