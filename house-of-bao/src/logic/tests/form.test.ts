@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createForm, round, square, angle, atom, type Form } from "../Form";
+import { createForm, round, square, angle, atom } from "../Form";
 
 describe("Form Data Structure", () => {
   describe("createForm", () => {

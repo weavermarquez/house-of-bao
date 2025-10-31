@@ -7,3 +7,8 @@ export {
   square,
   angle,
 } from "./Form";
+export {
+  formsEquivalent,
+  forestsEquivalent,
+  checkWinCondition,
+} from "./win";

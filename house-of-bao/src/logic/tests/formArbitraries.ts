@@ -5,7 +5,7 @@ export type RawFormNode =
   | { kind: "atom"; label: string }
   | { kind: "round" | "square" | "angle"; children: RawFormNode[] };
 
-const rawLetrec = fc.letrec<RawFormNode>((tie) => ({
+const rawLetrec = fc.letrec<{ node: RawFormNode }>((tie) => ({
   node: fc.oneof(
     fc.record({
       kind: fc.constant("atom"),
@@ -18,7 +18,7 @@ const rawLetrec = fc.letrec<RawFormNode>((tie) => ({
   ),
 }));
 
-const structuralLetrec = fc.letrec<RawFormNode>((tie) => ({
+const structuralLetrec = fc.letrec<{ node: RawFormNode }>((tie) => ({
   node: fc.record({
     kind: fc.constantFrom("round", "square", "angle"),
     children: fc.array(tie("node"), { minLength: 0, maxLength: 3 }),
@@ -36,9 +36,9 @@ export type InvertiblePairNodes = {
 
 export const invertiblePairNodesArb: fc.Arbitrary<InvertiblePairNodes> =
   fc.record({
-  outer: fc.constantFrom<"round" | "square">("round", "square"),
+    outer: fc.constantFrom<"round" | "square">("round", "square"),
     payloads: fc.array(formNodeArb, { minLength: 0, maxLength: 3 }),
-});
+  });
 
 export function materializeFormNode(raw: RawFormNode): Form {
   switch (raw.kind) {
@@ -79,11 +79,10 @@ export const frameFormArb: fc.Arbitrary<Form> = frameNodesArb.map(
   },
 );
 
-export const reflectiveFormArb: fc.Arbitrary<Form> =
-  structuralFormNodeArb.map(
+export const reflectiveFormArb: fc.Arbitrary<Form> = structuralFormNodeArb.map(
   (raw: RawFormNode) => {
-      const base = materializeFormNode(raw);
-      const reflected = angle(materializeFormNode(raw));
+    const base = materializeFormNode(raw);
+    const reflected = angle(materializeFormNode(raw));
     return round(base, reflected);
   },
 );

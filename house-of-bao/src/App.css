@@ -1,42 +1,144 @@
 #root {
-  max-width: 1280px;
+  max-width: 960px;
   margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+  padding: 1.5rem;
+  font-family: system-ui, sans-serif;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+.app {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
+.status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
-.card {
-  padding: 2em;
+.controls {
+  display: flex;
+  gap: 0.5rem;
 }
 
-.read-the-docs {
-  color: #888;
+button {
+  border: 1px solid #1d3557;
+  background: #f1faee;
+  color: #1d3557;
+  padding: 0.35rem 0.75rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+button.secondary {
+  border-color: #457b9d;
+  background: #e9f2fb;
+}
+
+main {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.panel {
+  flex: 1 1 280px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 1rem;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.node {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  justify-content: flex-start;
+  font-family: "Fira Code", monospace;
+  background: #f8fafc;
+}
+
+.node.selected {
+  border-color: #e63946;
+  background: #ffe5e9;
+}
+
+.node .depth {
+  min-width: 4ch;
+  font-size: 0.85rem;
+  color: #457b9d;
+}
+
+.node .signature {
+  font-size: 0.85rem;
+}
+
+.empty {
+  color: #94a3b8;
+  font-style: italic;
+}
+
+.goal-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.action-row {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.badge {
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #fff;
+}
+
+.badge.idle {
+  background: #94a3b8;
+}
+
+.badge.playing {
+  background: #457b9d;
+}
+
+.badge.won {
+  background: #2a9d8f;
 }
