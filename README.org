@@ -209,6 +209,50 @@ Adjacent reflections can be combined.
 3. *Action Menu*: Contextual menu appears with legal moves for that selection
 4. *Execute*: Click action → animate transformation → check win condition
 5. *Deselect*: Click elsewhere or ESC to deselect
+** Thoughts while reading gameStore
+- 28 :: enfold targetId should be type ( string | null ) to support enfolding around void. 
+- 18 :: should gameStatus include "narration" / modal?
+- locateNodes :: I'm still struggling to see the purpose of this function. It's assuming that we have access to the Ids of the relevant forms (presumably from the users' selection). It's used in applySiblingLocation (used in create and cancel) and the create operation. I'll have to put off judgment till I get to those parts.
+  - i see, applySiblingOperation enforces locality.
+- applySingleTarget :: I see. So, by returning null when the id isn't found or nothing changes, then it doesn't matter that in the axioms, we returned a cloned set of nodes with different IDs, because they are discarded. Okay.
+- [ ] applySiblingOperation :: does this allow for /void/ operations?
+  
+- isAllowed :: We might want to also include unlocking specific theorems in the future. 
+- useGameStore :: it wraps everything in create because every transition creates a new gamestate object? Hmmm, I see that currentForms and goalForms starts off empty. So, it means that what I'm seeing is the default game state. And we are also defining functions for gamestate transitions, are they? 
+  - loadLevel :: takes a LevelDefinition, 'instantiates' the start/goal, then transitions to a playing gamestate.
+  - [ ] resetLevel :: Lambda function. It takes the current level with =get()=. If inside a level, resets the gamestate to a fresh start.
+    - I feel like there resetLevel should retain the history in case the user wants to go back. This is the case for resets in baba is you. Depends on how we're using resetLevel, I suppose.
+  - applyOperation :: Takes in that discriminated union GameOperation type. These are the actual manipulations. Switch statement makes sense.
+    - Each operation case has a guard clause for if the action is allowed. Useful.
+    - Then it applies the rule on the target(s) and gets the resulting rule.
+    - We pass in a function to applySingleTarget / applySiblingOperation to call on those forms.
+      I wrote out the targeting rules below, and I'm comparing it against the implementation here.
+      - [X] clarify :: applySingleTarget is appropriate.
+      - [ ] enfold :: why does this use applySingleTarget? Enfold applies to 0, 1, and N forms. Users must be able to create void-equivalent forms for most puzzles
+      - [ ] disperse :: It seems that there are two distinct operations both in the name of disperse. Does this case handle both? It seems that it may, since the types for squareId and contentIds are optional. However, it is applying to a single target. Which may be correct if the target is the square of the frame, but it is possible to select children of a square.
+      - [X] collect :: applySiblingOperation seems appropriate.
+      - [X] cancel :: applySiblingOperation seems appropriate.
+      - [ ] create :: this is a surprisingly complex case. could you walk me through this?
+    - now that nextForms are defined, it returns early if nothing changed.
+    - otherwise, it adds the last state to the past and clears the future.
+    - then checks if the goalstate is met.
+    - then sets the next state.
+  - [ ] undo :: pops the history, makes sense. Actually, why isn't past and future implemented as a stack anyways?
+  - [X] redo :: yep,goes in the past and lets the user go back forward.
+  - [X] toggleSelection :: users are able to toggle the set of what is selected.
+  - [ ] clearSelection :: I feel like selectedNodeIds should be cleared on each action, as well. I noticed that they are not referenced at all in any of the other gamestate manipulation features. They are explicitly reset on loadLevel and resetLevel. What do you think? Maybe the client calls it after switching to a new gamestate? IDK.
+
+** User Targeting Requirements Reference
+- clarify: exactly 1 form
+- enfold: 0,1,N forms
+- disperse: 1, N forms
+  - case a: 1 form (a frame if squareId is null, or square in a frame is defined)
+    - can lead either to disperse or to dominion (if any square is empty)
+  - case b: N forms (the content of a square)
+    - leads to disperse with contentIds
+- collect: 2, N forms
+- cancel: 2, N forms
+- create: requires specifying forms. may need a sandbox / sketch area to define that form.
 
 ** Selection System
 *** What Can Be Selected?
@@ -671,6 +715,29 @@ export class PixiGame {
 
 ** State Management (Zustand)
 *** gameStore.ts
+
+#+begin_quote
+• At a high level the store is a single Zustand hook (useGameStore) that owns the current forest, level metadata, selection, and history, plus typed actions that wrap each axiom. Here’s how it’s wired:
+
+  - Imports set the stage: we pull cloning helpers and canonical signatures from the logic layer, the axiom implementations, the win checker, and the level types in src/store/gameStore.ts:1. That keeps the store thin—it orchestrates operations but doesn’t reimplement algebra.
+  - Core types live up front. A simple { past, future } history stack, the GameStatus union, and a discriminated GameOperation union give TypeScript a precise shape for every action (src/store/ gameStore.ts:17, src/store/gameStore.ts:24). The state interface gathers everything the UI needs (src/store/gameStore.ts:36).
+  - A few helpers prevent duplication:
+      - cloneForest deep-clones every root (src/store/gameStore.ts:57) so history snapshots stay immutable.
+      - locateNodes walks the forest once to map ids to nodes/parents, which we reuse for multi-node ops (src/store/gameStore.ts:61).
+      - applySingleTarget rewrites a single subtree in place, returning null when the id isn’t found or nothing changes (src/store/gameStore.ts:87).
+      - applySiblingOperation enforces “same parent” selection for collect/cancel/create and handles root replacements (src/store/gameStore.ts:137).
+      - isAllowed enforces the level’s allowed-axiom list (src/store/gameStore.ts:189), while formsEqual compares canonical signatures to skip no-op updates (src/store/gameStore.ts:196).
+        
+  - useGameStore wraps everything in create(...) (src/store/gameStore.ts:207). Key actions:
+      - loadLevel hydrates and resets history/selection, immediately marking the level won if start=goal (src/store/gameStore.ts:214).
+      - resetLevel replays the raw level data without re-fetching (src/store/gameStore.ts:226).
+      - applyOperation is the heart: it looks at the GameOperation union, short-circuits if the axiom isn’t allowed, delegates to the helper transforms, and snapshots history before committing new forms (src/store/gameStore.ts:240). Undo/redo get seed data from the history arrays (src/store/ gameStore.ts:365, src/store/gameStore.ts:381).
+      - toggleSelection/clearSelection just mutate the tracked node id set (src/store/gameStore.ts:396).
+  - Reflection create has a small extra step: if no explicit parent is provided, it infers a parent from the first template selection so the new pair appears alongside the template (src/store/ gameStore.ts:311).
+
+  With that structure, the React UI can subscribe to whatever slices it needs, call the typed actions, and rely on the store to manage history, win detection, and level gating automatically.
+#+end_quote
+
 #+begin_src typescript
 interface GameState {
   // Current game state
