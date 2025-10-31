@@ -1,7 +1,6 @@
 import { describe, it, expect } from "vitest";
 import fc from "fast-check";
 import {
-  enfold,
   enfoldRoundSquare,
   enfoldSquareRound,
   isClarifyApplicable,
@@ -15,7 +14,6 @@ import {
   collectFormIds,
   collectFormForestIds,
   traverseForm,
-  sortedBoundaries,
   sortedCanonicalSignatures,
 } from "../Form";
 import {

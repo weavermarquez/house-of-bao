@@ -1,12 +1,7 @@
 import { describe, it, expect } from "vitest";
 import fc from "fast-check";
-import {
-  isCollectApplicable,
-  collect,
-  disperse,
-  isFrame,
-} from "../arrangement";
-import { canonicalSignature, round, square, angle, atom } from "../Form";
+import { collect, disperse } from "../arrangement";
+import { canonicalSignature, round, square, atom } from "../Form";
 
 describe("Arrangement Axiom", () => {
   describe("Property-based tests", () => {
