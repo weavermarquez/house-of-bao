@@ -4,7 +4,7 @@ import type { NetworkEdge, NetworkGraph, NetworkNode } from "./types";
 const NODE_BASE_SIZE = 1;
 const VERTICAL_GAP = NODE_BASE_SIZE * 2;
 const HORIZONTAL_GAP = NODE_BASE_SIZE * 2;
-const ROOT_NODE_ID = "__root__";
+export const ROOT_NODE_ID = "__root__";
 
 type NormalizedForm = {
   id: string;

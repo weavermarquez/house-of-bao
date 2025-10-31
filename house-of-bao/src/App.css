@@ -332,6 +332,39 @@ button:disabled {
   color: #0f172a;
 }
 
+.parent-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(148, 163, 184, 0.3);
+}
+
+.parent-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.parent-value {
+  display: flex;
+  gap: 0.45rem;
+  align-items: baseline;
+  font-size: 0.85rem;
+}
+
+.parent-root {
+  color: #0f172a;
+  font-weight: 600;
+}
+
+.parent-none {
+  font-style: italic;
+  color: #94a3b8;
+}
+
 .action-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

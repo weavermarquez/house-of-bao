@@ -8,7 +8,7 @@ import {
   canonicalSignatureForest,
   type Form,
 } from "./logic/Form";
-import { NetworkView } from "./dialects/network";
+import { NetworkView, ROOT_NODE_ID } from "./dialects/network";
 
 type NodeView = {
   id: string;
@@ -118,6 +118,7 @@ const selectViewState = (state: GameState) => ({
   goalForms: state.goalForms,
   status: state.status,
   selectedNodeIds: state.selectedNodeIds,
+  selectedParentId: state.selectedParentId,
 });
 
 const selectLoadLevel = (state: GameState) => state.loadLevel;
@@ -125,6 +126,9 @@ const selectResetLevel = (state: GameState) => state.resetLevel;
 const selectApplyOperation = (state: GameState) => state.applyOperation;
 const selectToggleSelection = (state: GameState) => state.toggleSelection;
 const selectClearSelection = (state: GameState) => state.clearSelection;
+const selectParentSelection = (state: GameState) => state.selectParent;
+const selectClearParentSelection = (state: GameState) =>
+  state.clearParentSelection;
 const selectUndo = (state: GameState) => state.undo;
 const selectRedo = (state: GameState) => state.redo;
 const selectHistoryCounts = (state: GameState) => ({
@@ -133,13 +137,22 @@ const selectHistoryCounts = (state: GameState) => ({
 });
 
 function App() {
-  const { level, currentForms, goalForms, status, selectedNodeIds } =
+  const {
+    level,
+    currentForms,
+    goalForms,
+    status,
+    selectedNodeIds,
+    selectedParentId,
+  } =
     useGameStore(useShallow(selectViewState));
   const loadLevel = useGameStore(selectLoadLevel);
   const resetLevel = useGameStore(selectResetLevel);
   const applyOperation = useGameStore(selectApplyOperation);
   const toggleSelection = useGameStore(selectToggleSelection);
   const clearSelection = useGameStore(selectClearSelection);
+  const selectParent = useGameStore(selectParentSelection);
+  const clearParentSelection = useGameStore(selectClearParentSelection);
   const undo = useGameStore(selectUndo);
   const redo = useGameStore(selectRedo);
   const historyCounts = useGameStore(useShallow(selectHistoryCounts));
@@ -183,7 +196,17 @@ function App() {
       .filter((entry): entry is NodeView => entry !== undefined);
   }, [nodeViews, selectedNodeIds]);
 
+  const parentDetail = useMemo(() => {
+    if (!selectedParentId) {
+      return null;
+    }
+    const lookup = new Map(nodeViews.map((node) => [node.id, node]));
+    return lookup.get(selectedParentId) ?? null;
+  }, [nodeViews, selectedParentId]);
+
   const firstSelected = selectedNodeIds[0];
+  const parentIdForOps =
+    selectedParentId === ROOT_NODE_ID ? null : selectedParentId;
 
   return (
     <div className="app-shell">
@@ -237,8 +260,23 @@ function App() {
             <NetworkView
               forms={currentForms}
               selectedIds={selectionSet}
+              selectedParentId={selectedParentId}
               onToggleNode={(id) => toggleSelection(id)}
-              onBackgroundClick={() => clearSelection()}
+              onSelectParent={(id) => {
+                if (
+                  selectedParentId === id ||
+                  (selectedParentId === null && id === null) ||
+                  (selectedParentId === ROOT_NODE_ID && id === null)
+                ) {
+                  clearParentSelection();
+                } else {
+                  selectParent(id ?? ROOT_NODE_ID);
+                }
+              }}
+              onBackgroundClick={() => {
+                clearSelection();
+                clearParentSelection();
+              }}
             />
             <LegendPanel />
           </div>
@@ -286,6 +324,31 @@ function App() {
               >
                 Clear Selection
               </button>
+              <div className="parent-summary">
+                <span className="parent-label">Parent</span>
+                <div className="parent-value">
+                  {selectedParentId === null ? (
+                    <span className="parent-root">root (default)</span>
+                  ) : selectedParentId === ROOT_NODE_ID ? (
+                    <span className="parent-root">root (forest)</span>
+                  ) : parentDetail ? (
+                    <>
+                      <span className="selection-boundary">{parentDetail.boundary}</span>
+                      <code>{parentDetail.signature}</code>
+                    </>
+                  ) : (
+                    <span className="parent-none">none</span>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  className="ghost"
+                  onClick={() => clearParentSelection()}
+                  disabled={!selectedParentId}
+                >
+                  Clear Parent
+                </button>
+              </div>
             </section>
 
             <section className="info-card">
@@ -312,6 +375,7 @@ function App() {
                       type: "enfold",
                       targetIds: selectedNodeIds,
                       variant: "frame",
+                      parentId: parentIdForOps,
                     });
                   }}
                   disabled={status === "idle"}
@@ -325,6 +389,7 @@ function App() {
                       type: "enfold",
                       targetIds: selectedNodeIds,
                       variant: "mark",
+                      parentId: parentIdForOps,
                     });
                   }}
                   disabled={status === "idle"}
@@ -337,6 +402,7 @@ function App() {
                     applyOperation({
                       type: "disperse",
                       contentIds: selectedNodeIds,
+                      frameId: parentIdForOps ?? undefined,
                     });
                   }}
                   disabled={selectedNodeIds.length === 0}
@@ -376,7 +442,7 @@ function App() {
                   onClick={() => {
                     applyOperation({
                       type: "create",
-                      parentId: null,
+                      parentId: parentIdForOps,
                       templateIds:
                         selectedNodeIds.length > 0
                           ? selectedNodeIds

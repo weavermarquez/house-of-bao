@@ -1,11 +1,12 @@
 import { useMemo, type MouseEvent } from "react";
 
 import type { Form } from "../../logic/Form";
-import { buildNetworkGraph } from "./layout";
+import { buildNetworkGraph, ROOT_NODE_ID } from "./layout";
 import type { NetworkGraph, NetworkNode } from "./types";
 
 const NODE_STROKE = "#1f2937";
 const NODE_STROKE_SELECTED = "#ef4444";
+const NODE_STROKE_PARENT = "#38bdf8";
 const NODE_FILL_ROOT = "#dbeafe";
 const NODE_FILL_ROUND = "#fde68a";
 const NODE_FILL_SQUARE = "#bfdbfe";
@@ -14,6 +15,7 @@ const NODE_FILL_ATOM = "#f8fafc";
 const EDGE_STROKE = "#475569";
 const EDGE_WIDTH = 1.4;
 const EDGE_OPACITY = 0.55;
+const EDGE_STROKE_PARENT = "#38bdf8";
 
 const greekMap: Record<string, string> = {
   alpha: "α",
@@ -104,10 +106,31 @@ const expandBounds = (graph: NetworkGraph, padding = 4) => {
   };
 };
 
+const extendSegment = (
+  from: { x: number; y: number },
+  to: { x: number; y: number },
+  extension = 0.3,
+) => {
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  const length = Math.hypot(dx, dy) || 1;
+  const ux = dx / length;
+  const uy = dy / length;
+
+  return {
+    x1: from.x - ux * extension,
+    y1: from.y - uy * extension,
+    x2: to.x + ux * extension,
+    y2: to.y + uy * extension,
+  };
+};
+
 export interface NetworkViewProps {
   forms: readonly Form[];
   selectedIds?: ReadonlySet<string>;
+  selectedParentId?: string | null;
   onToggleNode?: (id: string) => void;
+  onSelectParent?: (id: string | null) => void;
   onBackgroundClick?: () => void;
   className?: string;
 }
@@ -115,7 +138,9 @@ export interface NetworkViewProps {
 export function NetworkView({
   forms,
   selectedIds,
+  selectedParentId,
   onToggleNode,
+  onSelectParent,
   onBackgroundClick,
   className,
 }: NetworkViewProps) {
@@ -127,6 +152,26 @@ export function NetworkView({
   );
 
   const selection = selectedIds ?? new Set<string>();
+  const parentSelection = selectedParentId ?? null;
+  const outgoingCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    graph.nodes.forEach((node) => counts.set(node.id, 0));
+    graph.edges.forEach((edge) => {
+      counts.set(edge.from, (counts.get(edge.from) ?? 0) + 1);
+    });
+    return counts;
+  }, [graph]);
+
+  const danglingSegments = useMemo(() => {
+    return graph.nodes
+      .filter((node) => node.type !== "root")
+      .filter((node) => (outgoingCounts.get(node.id) ?? 0) === 0)
+      .map((node) => ({
+        id: `${node.id}-dangling`,
+        from: node,
+        to: { x: node.x, y: node.y + 1.8 },
+      }));
+  }, [graph, outgoingCounts]);
 
   return (
     <div className={className}>
@@ -143,18 +188,67 @@ export function NetworkView({
           const from = nodeMap.get(edge.from);
           const to = nodeMap.get(edge.to);
           if (!from || !to) return null;
+          const { x1, y1, x2, y2 } = extendSegment(from, to, 0.35);
+          const isParentEdge =
+            parentSelection !== null && edge.from === parentSelection;
           return (
-            <line
-              key={edge.id}
-              x1={from.x}
-              y1={from.y}
-              x2={to.x}
-              y2={to.y}
-              stroke={EDGE_STROKE}
-              strokeWidth={EDGE_WIDTH}
-              strokeLinecap="round"
-              strokeOpacity={EDGE_OPACITY}
-            />
+            <g key={edge.id} style={{ cursor: "pointer" }}>
+              <line
+                x1={x1}
+                y1={y1}
+                x2={x2}
+                y2={y2}
+                stroke={isParentEdge ? EDGE_STROKE_PARENT : EDGE_STROKE}
+                strokeWidth={EDGE_WIDTH}
+                strokeLinecap="round"
+                strokeOpacity={EDGE_OPACITY}
+              />
+              <line
+                x1={x1}
+                y1={y1}
+                x2={x2}
+                y2={y2}
+                stroke="transparent"
+                strokeWidth={0.9}
+                strokeLinecap="round"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  const parentId = edge.from === ROOT_NODE_ID ? null : edge.from;
+                  onSelectParent?.(parentId);
+                }}
+              />
+            </g>
+          );
+        })}
+
+        {danglingSegments.map((segment) => {
+          const isParentEdge =
+            parentSelection !== null && segment.from.id === parentSelection;
+          return (
+            <g key={segment.id} style={{ cursor: "pointer" }}>
+              <line
+                x1={segment.from.x}
+                y1={segment.from.y}
+                x2={segment.to.x}
+                y2={segment.to.y}
+                stroke={isParentEdge ? EDGE_STROKE_PARENT : EDGE_STROKE}
+                strokeWidth={EDGE_WIDTH}
+                strokeOpacity={0.4}
+                strokeDasharray="0.2 0.5"
+              />
+              <line
+                x1={segment.from.x}
+                y1={segment.from.y}
+                x2={segment.to.x}
+                y2={segment.to.y}
+                stroke="transparent"
+                strokeWidth={0.9}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onSelectParent?.(segment.from.id);
+                }}
+              />
+            </g>
           );
         })}
 
@@ -162,8 +256,18 @@ export function NetworkView({
           const fill = getNodeFill(node);
           const label = formatNodeLabel(node);
           const isSelected = selection.has(node.id);
-          const stroke = isSelected ? NODE_STROKE_SELECTED : NODE_STROKE;
-          const strokeWidth = node.type === "root" ? 0.08 : isSelected ? 0.14 : 0.1;
+          const isParent = parentSelection !== null && node.id === parentSelection;
+          const stroke = isSelected
+            ? NODE_STROKE_SELECTED
+            : isParent
+              ? NODE_STROKE_PARENT
+              : NODE_STROKE;
+          const strokeWidth =
+            node.type === "root"
+              ? 0.08
+              : isSelected || isParent
+                ? 0.14
+                : 0.1;
 
           const handleClick = (event: MouseEvent<SVGElement>) => {
             event.stopPropagation();
