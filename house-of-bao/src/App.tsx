@@ -8,7 +8,8 @@ import {
   canonicalSignatureForest,
   type Form,
 } from "./logic/Form";
-import { NetworkView, ROOT_NODE_ID } from "./dialects/network";
+import { ROOT_NODE_ID } from "./dialects/network";
+import PhysicsSandbox from "./PhysicsSandbox";
 
 type NodeView = {
   id: string;
@@ -257,28 +258,7 @@ function App() {
 
         <div className="app-main">
           <div className="graph-panel">
-            <NetworkView
-              forms={currentForms}
-              selectedIds={selectionSet}
-              selectedParentId={selectedParentId}
-              onToggleNode={(id) => toggleSelection(id)}
-              onSelectParent={(id) => {
-                if (
-                  selectedParentId === id ||
-                  (selectedParentId === null && id === null) ||
-                  (selectedParentId === ROOT_NODE_ID && id === null)
-                ) {
-                  clearParentSelection();
-                } else {
-                  selectParent(id ?? ROOT_NODE_ID);
-                }
-              }}
-              onBackgroundClick={() => {
-                clearSelection();
-                clearParentSelection();
-              }}
-            />
-            <LegendPanel />
+            <PhysicsSandbox />
           </div>
           <aside className="side-panel">
             <section className="info-card">
