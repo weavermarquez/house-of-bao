@@ -434,6 +434,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       currentForms: nextForms,
       history: { past, future },
       status: won ? "won" : "playing",
+      selectedNodeIds: [],
     });
   },
   undo: () => {
