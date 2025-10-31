@@ -330,18 +330,19 @@ export const rawLevels: RawLevelDefinition[] = [
             boundary: "square",
             children: [
               { boundary: "round", children: [] },
+              { boundary: "round", children: [] },
+            ],
+          },
+          {
+            boundary: "angle",
+            children: [
               {
-                boundary: "angle",
+                boundary: "square",
                 children: [
-                  {
-                    boundary: "square",
-                    children: [
-                      { boundary: "round", children: [] },
-                      { boundary: "round", children: [] },
-                      { boundary: "round", children: [] },
-                      { boundary: "round", children: [] },
-                    ],
-                  },
+                  { boundary: "round", children: [] },
+                  { boundary: "round", children: [] },
+                  { boundary: "round", children: [] },
+                  { boundary: "round", children: [] },
                 ],
               },
             ],
@@ -394,13 +395,13 @@ export const rawLevels: RawLevelDefinition[] = [
                       { boundary: "round", children: [] },
                     ],
                   },
-                  {
-                    boundary: "square",
-                    children: [
-                      { boundary: "round", children: [] },
-                      { boundary: "round", children: [] },
-                    ],
-                  },
+                ],
+              },
+              {
+                boundary: "square",
+                children: [
+                  { boundary: "round", children: [] },
+                  { boundary: "round", children: [] },
                 ],
               },
             ],
@@ -438,16 +439,16 @@ export const rawLevels: RawLevelDefinition[] = [
                       { boundary: "round", children: [] },
                     ],
                   },
+                ],
+              },
+              {
+                boundary: "angle",
+                children: [
                   {
-                    boundary: "angle",
+                    boundary: "square",
                     children: [
-                      {
-                        boundary: "square",
-                        children: [
-                          { boundary: "round", children: [] },
-                          { boundary: "round", children: [] },
-                        ],
-                      },
+                      { boundary: "round", children: [] },
+                      { boundary: "round", children: [] },
                     ],
                   },
                 ],
