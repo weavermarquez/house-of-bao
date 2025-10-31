@@ -1,10 +1,5 @@
 import { create } from "zustand";
-import {
-  type Form,
-  deepClone,
-  canonicalSignatureForest,
-  createForm,
-} from "../logic/Form";
+import { type Form, deepClone, canonicalSignatureForest } from "../logic/Form";
 import { clarify, enfold } from "../logic/inversion";
 import { disperse, type DisperseOptions, collect } from "../logic/arrangement";
 import { cancel, create as createReflection } from "../logic/reflection";
@@ -24,13 +19,14 @@ export type GameOperation =
       type: "enfold";
       targetIds: string[];
       variant?: "frame" | "mark";
+      parentId?: string | null;
     }
   | {
       type: "disperse";
       targetId?: string;
       squareId?: string;
       contentIds?: string[];
-      selectionIds?: string[];
+      selectionIds: string[];
     }
   | { type: "collect"; targetIds: string[] }
   | { type: "cancel"; targetIds: string[] }
@@ -198,6 +194,27 @@ function isAllowed(allowed: AxiomType[] | undefined, type: AxiomType): boolean {
   return allowed.includes(type);
 }
 
+function addChild(
+  forest: Form[],
+  parentId: string | null,
+  newChildren: Form[],
+): Form[] | null {
+  if (parentId === null) {
+    return [...forest, ...newChildren];
+  }
+  return applySingleTarget(forest, parentId, (form) => {
+    const nextChildren: Form[] = [...form.children, ...newChildren];
+    return [
+      {
+        id: form.id,
+        boundary: form.boundary,
+        label: form.label,
+        children: new Set<Form>(nextChildren),
+      },
+    ];
+  });
+}
+
 function formsEqual(left: Form[], right: Form[]): boolean {
   if (left.length !== right.length) {
     return false;
@@ -269,16 +286,46 @@ export const useGameStore = create<GameState>((set, get) => ({
           return;
         }
         const variant = operation.variant ?? "frame";
-        const targetIds = operation.targetIds ?? [];
+        const targetIds = [...new Set(operation.targetIds)];
+
         if (targetIds.length === 0) {
-          const wrapper = enfold(variant, ...[]);
-          nextForms = [...state.currentForms, wrapper];
+          const wrapper = enfold(variant);
+          const parentId = operation.parentId ?? null;
+
+          if (parentId === null) {
+            nextForms = [...state.currentForms, wrapper];
+          } else {
+            const parentLocation = locateNodes(
+              state.currentForms,
+              new Set([parentId]),
+            ).get(parentId);
+            if (!parentLocation) {
+              return;
+            }
+
+            nextForms = applySingleTarget(
+              state.currentForms,
+              parentId,
+              (form) => {
+                const nextChildren: Form[] = [];
+                form.children.forEach((child) => nextChildren.push(child));
+                nextChildren.push(wrapper);
+                return [
+                  {
+                    id: form.id,
+                    boundary: form.boundary,
+                    label: form.label,
+                    children: new Set<Form>(nextChildren),
+                  },
+                ];
+              },
+            );
+          }
           break;
         }
 
-        const uniqueIds = [...new Set(targetIds)];
-        const locations = locateNodes(state.currentForms, new Set(uniqueIds));
-        if (locations.size !== uniqueIds.length) {
+        const locations = locateNodes(state.currentForms, new Set(targetIds));
+        if (locations.size !== targetIds.length) {
           return;
         }
 
@@ -289,12 +336,12 @@ export const useGameStore = create<GameState>((set, get) => ({
           return;
         }
 
-        const orderedNodes = uniqueIds.map((id) => locations.get(id)!.node);
+        const orderedNodes = targetIds.map((id) => locations.get(id)!.node);
         const wrapper = enfold(variant, ...orderedNodes);
         const parent = [...locations.values()][0].parent;
 
         if (parent === null) {
-          const targetSet = new Set(uniqueIds);
+          const targetSet = new Set(targetIds);
           const nextRoots: Form[] = [];
           let inserted = false;
           state.currentForms.forEach((root) => {
@@ -318,7 +365,7 @@ export const useGameStore = create<GameState>((set, get) => ({
             (form) => {
               const nextChildren: Form[] = [];
               form.children.forEach((child) => {
-                if (!uniqueIds.includes(child.id)) {
+                if (!targetIds.includes(child.id)) {
                   nextChildren.push(child);
                 }
               });
@@ -353,7 +400,7 @@ export const useGameStore = create<GameState>((set, get) => ({
           break;
         }
 
-        const selectionIds = operation.selectionIds ?? [];
+        const selectionIds = operation.selectionIds;
         if (selectionIds.length === 0) {
           return;
         }

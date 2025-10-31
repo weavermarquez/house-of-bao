@@ -44,6 +44,37 @@ describe("game store operations", () => {
     expect(signatures[0]).toBe("round:[square:[]]");
   });
 
+  it("enfold inserts empty wrapper under a selected parent", () => {
+    const parent = round();
+    const level: LevelDefinition = {
+      id: "test-parent-enfold",
+      name: "Parent Enfold",
+      start: [parent],
+      goal: [],
+      difficulty: 1,
+    };
+
+    loadTestLevel(level);
+
+    const { currentForms, applyOperation } = useGameStore.getState();
+    const parentId = currentForms[0].id;
+
+    applyOperation({
+      type: "enfold",
+      targetIds: [],
+      parentId,
+      variant: "mark",
+    });
+
+    const updated = useGameStore.getState().currentForms[0];
+    const children = [...updated.children];
+    expect(children).toHaveLength(1);
+    const wrapper = children[0];
+    expect(wrapper.boundary).toBe("square");
+    const inner = [...wrapper.children][0];
+    expect(inner.boundary).toBe("round");
+  });
+
   it("enfold wraps multiple root siblings under a new pair", () => {
     const start = [round(), square()];
     const level: LevelDefinition = {
