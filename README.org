@@ -228,11 +228,11 @@ Adjacent reflections can be combined.
     - We pass in a function to applySingleTarget / applySiblingOperation to call on those forms.
       I wrote out the targeting rules below, and I'm comparing it against the implementation here.
       - [X] clarify :: applySingleTarget is appropriate.
-      - [ ] enfold :: why does this use applySingleTarget? Enfold applies to 0, 1, and N forms. Users must be able to create void-equivalent forms for most puzzles
-      - [ ] disperse :: It seems that there are two distinct operations both in the name of disperse. Does this case handle both? It seems that it may, since the types for squareId and contentIds are optional. However, it is applying to a single target. Which may be correct if the target is the square of the frame, but it is possible to select children of a square.
+      - [X] enfold :: why does this use applySingleTarget? Enfold applies to 0, 1, and N forms. Users must be able to create void-equivalent forms for most puzzles
+      - [X] disperse :: It seems that there are two distinct operations both in the name of disperse. Does this case handle both? It seems that it may, since the types for squareId and contentIds are optional. However, it is applying to a single target. Which may be correct if the target is the square of the frame, but it is possible to select children of a square.
       - [X] collect :: applySiblingOperation seems appropriate.
       - [X] cancel :: applySiblingOperation seems appropriate.
-      - [ ] create :: this is a surprisingly complex case. could you walk me through this?
+      - [X] create :: this is a surprisingly complex case. could you walk me through this?
     - now that nextForms are defined, it returns early if nothing changed.
     - otherwise, it adds the last state to the past and clears the future.
     - then checks if the goalstate is met.
@@ -240,11 +240,15 @@ Adjacent reflections can be combined.
   - [ ] undo :: pops the history, makes sense. Actually, why isn't past and future implemented as a stack anyways?
   - [X] redo :: yep,goes in the past and lets the user go back forward.
   - [X] toggleSelection :: users are able to toggle the set of what is selected.
-  - [ ] clearSelection :: I feel like selectedNodeIds should be cleared on each action, as well. I noticed that they are not referenced at all in any of the other gamestate manipulation features. They are explicitly reset on loadLevel and resetLevel. What do you think? Maybe the client calls it after switching to a new gamestate? IDK.
+  - [X] clearSelection :: I feel like selectedNodeIds should be cleared on each action, as well. I noticed that they are not referenced at all in any of the other gamestate manipulation features. They are explicitly reset on loadLevel and resetLevel. What do you think? Maybe the client calls it after switching to a new gamestate? IDK.
 
 ** User Targeting Requirements Reference
 - clarify: exactly 1 form
 - enfold: 0,1,N forms
+  - Hmm, seems that we also have two types of enfolding.
+    - case A: where 1 to N forms are selected: enfold /around/ one or a set of selected forms. 
+    - case B: where 0 or 1 forms are selected: create an empty frame/mark at a given location; aka, as the child of a selected boundary!
+      - brainstorm: actually, these ([])/[()]s could be draggable around anywhere and pass through any boundary, given that their whole point is to be easily disappearable. but that's beside the point.
 - disperse: 1, N forms
   - case a: 1 form (a frame if squareId is null, or square in a frame is defined)
     - can lead either to disperse or to dominion (if any square is empty)

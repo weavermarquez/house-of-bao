@@ -82,10 +82,25 @@ function App() {
     [selectedNodeIds],
   );
 
-  const goalSignatures = useMemo(
-    () => canonicalSignatureForest(goalForms),
-    [goalForms],
-  );
+  const goalProgress = useMemo(() => {
+    const currentCounts = new Map<string, number>();
+    canonicalSignatureForest(currentForms).forEach((signature) => {
+      currentCounts.set(signature, (currentCounts.get(signature) ?? 0) + 1);
+    });
+
+    const remaining: Array<{ id: string; signature: string }> = [];
+    goalForms.forEach((form) => {
+      const signature = canonicalSignature(form);
+      const available = currentCounts.get(signature) ?? 0;
+      if (available > 0) {
+        currentCounts.set(signature, available - 1);
+      } else {
+        remaining.push({ id: form.id, signature });
+      }
+    });
+
+    return remaining;
+  }, [goalForms, currentForms]);
 
   const firstSelected = selectedNodeIds[0];
 
@@ -157,12 +172,12 @@ function App() {
         <section className="panel">
           <h2>Goal Signature</h2>
           <ul className="goal-list">
-            {goalSignatures.length === 0 ? (
-              <li>void</li>
+            {goalProgress.length === 0 ? (
+              <li>Goal satisfied</li>
             ) : (
-              goalSignatures.map((signature) => (
-                <li key={signature}>
-                  <code>{signature}</code>
+              goalProgress.map((entry) => (
+                <li key={entry.id}>
+                  <code>{entry.signature}</code>
                 </li>
               ))
             )}
