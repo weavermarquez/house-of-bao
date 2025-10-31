@@ -1,11 +1,6 @@
 import { describe, it, expect } from "vitest";
 import fc from "fast-check";
-import {
-  enfoldRoundSquare,
-  enfoldSquareRound,
-  isClarifyApplicable,
-  clarify,
-} from "../inversion";
+import { enfold, isClarifyApplicable, clarify } from "../inversion";
 import {
   canonicalSignature,
   round,
@@ -89,11 +84,11 @@ describe("Inversion Axiom (Property)", () => {
       );
     });
 
-    it("property: clarify(enfoldRoundSquare(form)) yields clones of the original form", () => {
+    it("property: clarify(enfold('frame', form)) yields clones of the original form", () => {
       fc.assert(
         fc.property(formNodeArb, (raw) => {
           const original = materializeFormNode(raw);
-          const wrapped = enfoldRoundSquare(original);
+          const wrapped = enfold("frame", original);
 
           expect(isClarifyApplicable(wrapped)).toBe(true);
 
@@ -116,11 +111,11 @@ describe("Inversion Axiom (Property)", () => {
       );
     });
 
-    it("property: clarify(enfoldSquareRound(form)) yields clones of the original form", () => {
+    it("property: clarify(enfold('mark', form)) yields clones of the original form", () => {
       fc.assert(
         fc.property(formNodeArb, (raw) => {
           const original = materializeFormNode(raw);
-          const wrapped = enfoldSquareRound(original);
+          const wrapped = enfold("mark", original);
 
           expect(isClarifyApplicable(wrapped)).toBe(true);
 

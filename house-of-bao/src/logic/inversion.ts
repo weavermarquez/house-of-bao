@@ -1,4 +1,11 @@
-import { type Form, noop, deepClone, type BoundaryType } from "./Form";
+import {
+  type Form,
+  noop,
+  round,
+  square,
+  deepClone,
+  type BoundaryType,
+} from "./Form";
 
 /**
  * Applies Clarify (Inversion axiom, removal direction): ([A]) = A or [(A)] = A
@@ -44,44 +51,12 @@ export function isClarifyApplicable(form: Form): boolean {
   return invertibleChild(form) !== null;
 }
 
-/**
- * Applies Enfold (Inversion axiom, addition direction): A = ([A]) or A = [(A)]
- * Adds paired boundaries around the form.
- */
-function wrapWithPair(
-  form: Form,
-  outer: BoundaryType,
-  inner: BoundaryType,
-): Form {
-  const innerWrapper = {
-    id: crypto.randomUUID(),
-    boundary: inner,
-    children: new Set<Form>([deepClone(form)]),
-  };
-  return {
-    id: crypto.randomUUID(),
-    boundary: outer,
-    children: new Set<Form>([innerWrapper]),
-  };
-}
-
-/**
- * Adds round outer/square inner boundaries: ([form]).
- */
-export function enfoldRoundSquare(form: Form): Form {
-  return wrapWithPair(form, "round", "square");
-}
-
-/**
- * Adds square outer/round inner boundaries: [(form)].
- */
-export function enfoldSquareRound(form: Form): Form {
-  return wrapWithPair(form, "square", "round");
-}
-
-/**
- * Default enfold (round outer, square inner) for backward compatibility.
- */
-export function enfold(form: Form): Form {
-  return enfoldRoundSquare(form);
+export function enfold(variant: "frame" | "mark", ...forms: Form[]): Form {
+  const clonedForms = forms.map(deepClone);
+  if (variant === "mark") {
+    return square(round(...clonedForms));
+  } else {
+    // (variant === "frame")
+    return round(square(...clonedForms));
+  }
 }

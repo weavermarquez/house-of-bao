@@ -1,12 +1,6 @@
 import { describe, it, expect } from "vitest";
 import fc from "fast-check";
-import {
-  enfold,
-  enfoldRoundSquare,
-  enfoldSquareRound,
-  isClarifyApplicable,
-  clarify,
-} from "../inversion";
+import { enfold, isClarifyApplicable, clarify } from "../inversion";
 import {
   canonicalSignature,
   round,
@@ -224,10 +218,24 @@ describe("Inversion Axiom", () => {
     });
   });
 
-  describe("enfoldRoundSquare", () => {
+  describe("enfold('frame')", () => {
+    it("enfolds void -> ([])", () => {
+      const result = enfold("frame");
+
+      expect(result.boundary).toBe("round");
+      expect(result.children.size).toBe(1);
+
+      const inner = [...result.children][0];
+      expect(inner.boundary).toBe("square");
+      expect(inner.children.size).toBe(0);
+
+      const innermost = [...inner.children][0];
+      expect(innermost).not.toBeDefined();
+    });
+
     it("enfolds () -> [(())]", () => {
       const form = round();
-      const result = enfoldRoundSquare(form);
+      const result = enfold("frame", form);
 
       expect(result.boundary).toBe("round");
       expect(result.children.size).toBe(1);
@@ -243,7 +251,7 @@ describe("Inversion Axiom", () => {
 
     it("enfolds A = [()<>] -> ([ A ])", () => {
       const form = square(round(), angle());
-      const result = enfoldRoundSquare(form);
+      const result = enfold("frame", form);
 
       expect(result.boundary).toBe("round");
       expect(result.children.size).toBe(1);
@@ -259,7 +267,7 @@ describe("Inversion Axiom", () => {
 
     it("creates new IDs for all levels", () => {
       const original = round();
-      const result = enfoldRoundSquare(original);
+      const result = enfold("frame", original);
 
       expect(result.id).not.toBe(original.id);
 
@@ -271,10 +279,39 @@ describe("Inversion Axiom", () => {
     });
   });
 
-  describe("enfoldSquareRound", () => {
+  describe("enfold('mark')", () => {
+    it("enfolds void -> [()]", () => {
+      const result = enfold("mark");
+
+      expect(result.boundary).toBe("square");
+      expect(result.children.size).toBe(1);
+
+      const inner = [...result.children][0];
+      expect(inner.boundary).toBe("round");
+      expect(inner.children.size).toBe(0);
+
+      const innermost = [...inner.children][0];
+      expect(innermost).not.toBeDefined();
+    });
+
+    it("enfolds explicit void -> [()]", () => {
+      const forest: Form[] = [];
+      const result = enfold("mark", ...forest);
+
+      expect(result.boundary).toBe("square");
+      expect(result.children.size).toBe(1);
+
+      const inner = [...result.children][0];
+      expect(inner.boundary).toBe("round");
+      expect(inner.children.size).toBe(0);
+
+      const innermost = [...inner.children][0];
+      expect(innermost).not.toBeDefined();
+    });
+
     it("enfolds [] -> [([])]", () => {
       const form = square();
-      const result = enfoldSquareRound(form);
+      const result = enfold("mark", form);
 
       expect(result.boundary).toBe("square");
       expect(result.children.size).toBe(1);
@@ -290,7 +327,7 @@ describe("Inversion Axiom", () => {
 
     it("creates new IDs for all levels", () => {
       const original = round();
-      const result = enfoldSquareRound(original);
+      const result = enfold("mark", original);
 
       expect(result.id).not.toBe(original.id);
 
@@ -305,8 +342,8 @@ describe("Inversion Axiom", () => {
   describe("enfold", () => {
     it("alias matches round-square variant (example)", () => {
       const form = angle();
-      const roundSquare = enfoldRoundSquare(form);
-      const alias = enfold(form);
+      const roundSquare = enfold("frame", form);
+      const alias = enfold("frame", form);
 
       expect(alias.boundary).toBe(roundSquare.boundary);
       expect([...alias.children][0].boundary).toBe(
@@ -318,8 +355,8 @@ describe("Inversion Axiom", () => {
       fc.assert(
         fc.property(formNodeArb, (raw) => {
           const form = materializeFormNode(raw);
-          const roundSquare = enfoldRoundSquare(form);
-          const alias = enfold(form);
+          const roundSquare = enfold("frame", form);
+          const alias = enfold("frame", form);
 
           expect(canonicalSignature(alias)).toBe(
             canonicalSignature(roundSquare),
