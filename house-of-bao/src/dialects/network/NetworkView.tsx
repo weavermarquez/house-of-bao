@@ -109,7 +109,7 @@ const expandBounds = (graph: NetworkGraph, padding = 4) => {
 const extendSegment = (
   from: { x: number; y: number },
   to: { x: number; y: number },
-  extension = 0.3,
+  extension = 0.75,
 ) => {
   const dx = to.x - from.x;
   const dy = to.y - from.y;
@@ -169,7 +169,7 @@ export function NetworkView({
       .map((node) => ({
         id: `${node.id}-dangling`,
         from: node,
-        to: { x: node.x, y: node.y + 1.8 },
+        to: { x: node.x, y: node.y + 2.4 },
       }));
   }, [graph, outgoingCounts]);
 
