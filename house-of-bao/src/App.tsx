@@ -8,6 +8,7 @@ import {
   canonicalSignatureForest,
   type Form,
 } from "./logic/Form";
+import { NetworkView } from "./dialects/network";
 
 type NodeView = {
   id: string;
@@ -15,6 +16,36 @@ type NodeView = {
   signature: string;
   depth: number;
 };
+
+type LegendShape = "round" | "square" | "angle";
+
+type LegendItem = {
+  shape: LegendShape;
+  color: string;
+  title: string;
+  description: string;
+};
+
+const LEGEND_ITEMS: LegendItem[] = [
+  {
+    shape: "round",
+    color: "#fde68a",
+    title: "Round boundary",
+    description: "Quantity / iteration context",
+  },
+  {
+    shape: "square",
+    color: "#bfdbfe",
+    title: "Square boundary",
+    description: "Collection / grouping context",
+  },
+  {
+    shape: "angle",
+    color: "#e9d5ff",
+    title: "Angle boundary",
+    description: "Reflection / inversion context",
+  },
+];
 
 function flattenForms(forms: Form[]): NodeView[] {
   const result: NodeView[] = [];
@@ -36,6 +67,49 @@ function flattenForms(forms: Form[]): NodeView[] {
   }
 
   return result;
+}
+
+function LegendIcon({ shape, color }: { shape: LegendShape; color: string }) {
+  switch (shape) {
+    case "square":
+      return (
+        <svg width={20} height={20} className="legend-icon">
+          <rect x={4} y={4} width={12} height={12} rx={2} ry={2} fill={color} />
+        </svg>
+      );
+    case "angle":
+      return (
+        <svg width={20} height={20} className="legend-icon">
+          <polygon points="10,2 18,10 10,18 2,10" fill={color} />
+        </svg>
+      );
+    case "round":
+    default:
+      return (
+        <svg width={20} height={20} className="legend-icon">
+          <circle cx={10} cy={10} r={8} fill={color} />
+        </svg>
+      );
+  }
+}
+
+function LegendPanel() {
+  return (
+    <div className="legend-panel">
+      <span className="legend-title">Legend</span>
+      <div className="legend-grid">
+        {LEGEND_ITEMS.map((item) => (
+          <div key={item.title} className="legend-item">
+            <LegendIcon shape={item.shape} color={item.color} />
+            <div className="legend-text">
+              <span className="legend-label">{item.title}</span>
+              <span className="legend-description">{item.description}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 const selectViewState = (state: GameState) => ({
@@ -89,210 +163,234 @@ function App() {
     });
 
     const remaining: Array<{ id: string; signature: string }> = [];
-    goalForms.forEach((form) => {
-      const signature = canonicalSignature(form);
+    goalForms.forEach((goalForm) => {
+      const signature = canonicalSignature(goalForm);
       const available = currentCounts.get(signature) ?? 0;
       if (available > 0) {
         currentCounts.set(signature, available - 1);
       } else {
-        remaining.push({ id: form.id, signature });
+        remaining.push({ id: goalForm.id, signature });
       }
     });
 
     return remaining;
   }, [goalForms, currentForms]);
 
+  const selectedDetails = useMemo(() => {
+    const lookup = new Map(nodeViews.map((node) => [node.id, node]));
+    return selectedNodeIds
+      .map((id) => lookup.get(id))
+      .filter((entry): entry is NodeView => entry !== undefined);
+  }, [nodeViews, selectedNodeIds]);
+
   const firstSelected = selectedNodeIds[0];
 
   return (
-    <div className="app">
-      <header>
-        <h1>House of Bao — Text Sandbox</h1>
-        <div className="status">
-          <span>Level:</span>
-          <select
-            value={level?.id ?? levels[0].id}
-            onChange={(event) => {
-              const next = levels.find(
-                (entry) => entry.id === event.target.value,
-              );
-              if (next) {
-                loadLevel(next);
-              }
-            }}
-          >
-            {levels.map((entry) => (
-              <option key={entry.id} value={entry.id}>
-                {entry.id}: {entry.name}
-              </option>
-            ))}
-          </select>
-          <span className={`badge ${status}`}>{status}</span>
-        </div>
-        <div className="controls">
-          <button onClick={() => undo()} disabled={historyCounts.past === 0}>
-            Undo
-          </button>
-          <button onClick={() => redo()} disabled={historyCounts.future === 0}>
-            Redo
-          </button>
-          <button onClick={() => resetLevel()} disabled={!level}>
-            Reset
-          </button>
-        </div>
-      </header>
+    <div className="app-shell">
+      <div className="app-card">
+        <header className="app-header">
+          <div className="header-copy">
+            <h1>House of Bao</h1>
+            <p>Network Dialect Sandbox</p>
+          </div>
+          <div className="header-controls">
+            <label className="level-select">
+              <span>Level</span>
+              <select
+                value={level?.id ?? levels[0].id}
+                onChange={(event) => {
+                  const next = levels.find(
+                    (entry) => entry.id === event.target.value,
+                  );
+                  if (next) {
+                    loadLevel(next);
+                  }
+                }}
+              >
+                {levels.map((entry) => (
+                  <option key={entry.id} value={entry.id}>
+                    {entry.id}: {entry.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <span className={`status-pill ${status}`}>{status}</span>
+            <div className="history-controls">
+              <button onClick={() => undo()} disabled={historyCounts.past === 0}>
+                Undo
+              </button>
+              <button
+                onClick={() => redo()}
+                disabled={historyCounts.future === 0}
+              >
+                Redo
+              </button>
+              <button onClick={() => resetLevel()} disabled={!level}>
+                Reset
+              </button>
+            </div>
+          </div>
+        </header>
 
-      <main>
-        <section className="panel">
-          <h2>Current Form</h2>
-          <div className="list">
-            {nodeViews.length === 0 ? (
-              <p className="empty">void</p>
-            ) : (
-              nodeViews.map((node) => (
+        <div className="app-main">
+          <div className="graph-panel">
+            <NetworkView
+              forms={currentForms}
+              selectedIds={selectionSet}
+              onToggleNode={(id) => toggleSelection(id)}
+              onBackgroundClick={() => clearSelection()}
+            />
+            <LegendPanel />
+          </div>
+          <aside className="side-panel">
+            <section className="info-card">
+              <h2>Goal Signature</h2>
+              {goalProgress.length === 0 ? (
+                <p className="goal-complete">Goal satisfied — nice work!</p>
+              ) : (
+                <ul className="goal-list">
+                  {goalProgress.map((entry) => (
+                    <li key={entry.id}>
+                      <code>{entry.signature}</code>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+
+            <section className="info-card">
+              <div className="section-heading">
+                <h2>Selection</h2>
+                <span className="selection-count">
+                  {selectedNodeIds.length} node
+                  {selectedNodeIds.length === 1 ? "" : "s"}
+                </span>
+              </div>
+              {selectedDetails.length === 0 ? (
+                <p className="empty-note">Tap a node to select it</p>
+              ) : (
+                <ul className="selection-list">
+                  {selectedDetails.map((node) => (
+                    <li key={node.id}>
+                      <span className="selection-boundary">{node.boundary}</span>
+                      <code>{node.signature}</code>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <button
+                type="button"
+                className="ghost"
+                onClick={() => clearSelection()}
+                disabled={selectedNodeIds.length === 0}
+              >
+                Clear Selection
+              </button>
+            </section>
+
+            <section className="info-card">
+              <h2>Axiom Actions</h2>
+              <div className="action-grid">
                 <button
-                  key={node.id}
                   type="button"
-                  className={`node ${selectionSet.has(node.id) ? "selected" : ""}`}
-                  onClick={() => toggleSelection(node.id)}
+                  onClick={() => {
+                    if (firstSelected) {
+                      applyOperation({
+                        type: "clarify",
+                        targetId: firstSelected,
+                      });
+                    }
+                  }}
+                  disabled={!firstSelected}
                 >
-                  <span
-                    className="depth"
-                    style={{ marginLeft: node.depth * 12 }}
-                  >
-                    {node.boundary}
-                  </span>
-                  <code className="signature">{node.signature}</code>
+                  Clarify
                 </button>
-              ))
-            )}
-          </div>
-        </section>
-
-        <section className="panel">
-          <h2>Goal Signature</h2>
-          <ul className="goal-list">
-            {goalProgress.length === 0 ? (
-              <li>Goal satisfied</li>
-            ) : (
-              goalProgress.map((entry) => (
-                <li key={entry.id}>
-                  <code>{entry.signature}</code>
-                </li>
-              ))
-            )}
-          </ul>
-
-          <div className="actions">
-            <h3>Axiom Actions</h3>
-            <div className="action-row">
-              <button
-                type="button"
-                onClick={() => {
-                  if (firstSelected) {
+                <button
+                  type="button"
+                  onClick={() => {
                     applyOperation({
-                      type: "clarify",
-                      targetId: firstSelected,
-                    });
-                  }
-                }}
-                disabled={!firstSelected}
-              >
-                Clarify
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  applyOperation({
-                    type: "enfold",
-                    targetIds: selectedNodeIds,
-                    variant: "frame",
-                  });
-                }}
-                disabled={status === "idle"}
-              >
-                Enfold Frame ([])
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  applyOperation({
-                    type: "enfold",
-                    targetIds: selectedNodeIds,
-                    variant: "mark",
-                  });
-                }}
-                disabled={status === "idle"}
-              >
-                Enfold Mark ([()])
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  applyOperation({
-                    type: "disperse",
-                    contentIds: selectedNodeIds,
-                  });
-                }}
-                disabled={selectedNodeIds.length === 0}
-              >
-                Disperse
-              </button>
-            </div>
-            <div className="action-row">
-              <button
-                type="button"
-                onClick={() => {
-                  if (selectedNodeIds.length >= 2) {
-                    applyOperation({
-                      type: "collect",
+                      type: "enfold",
                       targetIds: selectedNodeIds,
+                      variant: "frame",
                     });
-                  }
-                }}
-                disabled={selectedNodeIds.length < 2}
-              >
-                Collect
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  if (selectedNodeIds.length >= 1) {
+                  }}
+                  disabled={status === "idle"}
+                >
+                  Enfold Frame
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
                     applyOperation({
-                      type: "cancel",
+                      type: "enfold",
                       targetIds: selectedNodeIds,
+                      variant: "mark",
                     });
-                  }
-                }}
-                disabled={selectedNodeIds.length === 0}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  applyOperation({
-                    type: "create",
-                    parentId: null,
-                    templateIds:
-                      selectedNodeIds.length > 0 ? selectedNodeIds : undefined,
-                  });
-                }}
-              >
-                Create Pair
-              </button>
-            </div>
-            <button
-              type="button"
-              className="secondary"
-              onClick={() => clearSelection()}
-              disabled={selectedNodeIds.length === 0}
-            >
-              Clear Selection
-            </button>
-          </div>
-        </section>
-      </main>
+                  }}
+                  disabled={status === "idle"}
+                >
+                  Enfold Mark
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    applyOperation({
+                      type: "disperse",
+                      contentIds: selectedNodeIds,
+                    });
+                  }}
+                  disabled={selectedNodeIds.length === 0}
+                >
+                  Disperse
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (selectedNodeIds.length >= 2) {
+                      applyOperation({
+                        type: "collect",
+                        targetIds: selectedNodeIds,
+                      });
+                    }
+                  }}
+                  disabled={selectedNodeIds.length < 2}
+                >
+                  Collect
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (selectedNodeIds.length >= 1) {
+                      applyOperation({
+                        type: "cancel",
+                        targetIds: selectedNodeIds,
+                      });
+                    }
+                  }}
+                  disabled={selectedNodeIds.length === 0}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    applyOperation({
+                      type: "create",
+                      parentId: null,
+                      templateIds:
+                        selectedNodeIds.length > 0
+                          ? selectedNodeIds
+                          : undefined,
+                    });
+                  }}
+                >
+                  Create Pair
+                </button>
+              </div>
+            </section>
+          </aside>
+        </div>
+      </div>
     </div>
   );
 }
