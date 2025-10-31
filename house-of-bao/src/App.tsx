@@ -9,6 +9,7 @@ import {
   type Form,
 } from "./logic/Form";
 import { NetworkView, ROOT_NODE_ID } from "./dialects/network";
+import { ContainerSandbox } from "./dialects/BoundingSandbox";
 
 type NodeView = {
   id: string;
@@ -257,28 +258,38 @@ function App() {
 
         <div className="app-main">
           <div className="graph-panel">
-            <NetworkView
-              forms={currentForms}
-              selectedIds={selectionSet}
-              selectedParentId={selectedParentId}
-              onToggleNode={(id) => toggleSelection(id)}
-              onSelectParent={(id) => {
-                if (
-                  selectedParentId === id ||
-                  (selectedParentId === null && id === null) ||
-                  (selectedParentId === ROOT_NODE_ID && id === null)
-                ) {
+            <div className="network-region">
+              <NetworkView
+                className="network-region-viewport"
+                forms={currentForms}
+                selectedIds={selectionSet}
+                selectedParentId={selectedParentId}
+                onToggleNode={(id) => toggleSelection(id)}
+                onSelectParent={(id) => {
+                  if (
+                    selectedParentId === id ||
+                    (selectedParentId === null && id === null) ||
+                    (selectedParentId === ROOT_NODE_ID && id === null)
+                  ) {
+                    clearParentSelection();
+                  } else {
+                    selectParent(id ?? ROOT_NODE_ID);
+                  }
+                }}
+                onBackgroundClick={() => {
+                  clearSelection();
                   clearParentSelection();
-                } else {
-                  selectParent(id ?? ROOT_NODE_ID);
-                }
-              }}
-              onBackgroundClick={() => {
-                clearSelection();
-                clearParentSelection();
-              }}
-            />
-            <LegendPanel />
+                }}
+              />
+              <LegendPanel />
+            </div>
+            <section className="sandbox-panel">
+              <div className="sandbox-heading">
+                <h2>Bounding Box Sandbox</h2>
+                <p>Touch and drag to explore soft container boundaries.</p>
+              </div>
+              <ContainerSandbox />
+            </section>
           </div>
           <aside className="side-panel">
             <section className="info-card">
