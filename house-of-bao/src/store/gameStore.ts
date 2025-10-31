@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { type Form, deepClone, canonicalSignatureForest } from "../logic/Form";
 import { clarify, enfold } from "../logic/inversion";
-import { disperse, type DisperseOptions, collect } from "../logic/arrangement";
+import { disperse, collect } from "../logic/arrangement";
 import { cancel, create as createReflection } from "../logic/reflection";
 import { checkWinCondition } from "../logic/win";
 import { type LevelDefinition, type AxiomType } from "../levels/types";
@@ -31,7 +31,7 @@ export type GameOperation =
   | { type: "cancel"; targetIds: string[] }
   | { type: "create"; parentId: string | null; templateIds?: string[] };
 
-type GameState = {
+export type GameState = {
   level: LevelDefinition | null;
   currentForms: Form[];
   goalForms: Form[];
@@ -395,24 +395,25 @@ export const useGameStore = create<GameState>((set, get) => ({
           return;
         }
         const templateIds = operation.templateIds ?? [];
-        let templateLocations: Map<string, LocatedNode> | null = null;
-        let templates: Form[] = [];
+        const templates: Form[] = [];
+        let inferredParent: string | null = null;
+
         if (templateIds.length > 0) {
-          templateLocations = locateNodes(
+          const templateLocations = locateNodes(
             state.currentForms,
             new Set(templateIds),
           );
-          templates = templateIds
-            .map((id) => templateLocations.get(id))
-            .filter((entry): entry is LocatedNode => Boolean(entry))
-            .map((entry) => deepClone(entry.node));
+          templateIds.forEach((id) => {
+            const match = templateLocations.get(id);
+            if (match) {
+              templates.push(deepClone(match.node));
+              inferredParent ??= match.parent?.id ?? null;
+            }
+          });
         }
+
         const created = createReflection(...templates);
-        const parentId =
-          operation.parentId ??
-          (templateIds.length > 0
-            ? (templateLocations?.get(templateIds[0])?.parent?.id ?? null)
-            : null);
+        const parentId = operation.parentId ?? inferredParent ?? null;
 
         nextForms = addChild(state.currentForms, parentId, created);
         break;

@@ -5,7 +5,7 @@ export type RawFormNode =
   | { kind: "atom"; label: string }
   | { kind: "round" | "square" | "angle"; children: RawFormNode[] };
 
-const rawLetrec = fc.letrec<RawFormNode>((tie: any) => ({
+const rawLetrec = fc.letrec<{ node: RawFormNode }>((tie) => ({
   node: fc.oneof(
     fc.record({
       kind: fc.constant("atom"),
@@ -18,7 +18,7 @@ const rawLetrec = fc.letrec<RawFormNode>((tie: any) => ({
   ),
 }));
 
-const structuralLetrec = fc.letrec<RawFormNode>((tie: any) => ({
+const structuralLetrec = fc.letrec<{ node: RawFormNode }>((tie) => ({
   node: fc.record({
     kind: fc.constantFrom("round", "square", "angle"),
     children: fc.array(tie("node"), { minLength: 0, maxLength: 3 }),

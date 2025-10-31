@@ -383,7 +383,6 @@ describe("game store operations", () => {
 
     loadTestLevel(level);
     const before = useGameStore.getState().currentForms;
-    const beforeSignatures = canonicalSignatureForest(before);
 
     useGameStore
       .getState()
