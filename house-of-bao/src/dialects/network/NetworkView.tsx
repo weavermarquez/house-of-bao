@@ -35,8 +35,8 @@ const getNodeFill = (node: NetworkNode): string => {
 };
 
 const formatNodeLabel = (node: NetworkNode): string | undefined => {
-  if (node.type === "root") {
-    return "root";
+  if (node.type === "atom") {
+    return (node.label ?? "").trim();
   }
   if (!node.label) {
     return undefined;

@@ -137,7 +137,7 @@ export const rawLevels: RawLevelDefinition[] = [
             children: [
               {
                 boundary: "atom",
-                label: "alpha",
+                label: "A",
               },
             ],
           },
@@ -147,7 +147,7 @@ export const rawLevels: RawLevelDefinition[] = [
     goal: [
       {
         boundary: "atom",
-        label: "alpha",
+        label: "A",
       },
     ],
   },
@@ -163,18 +163,18 @@ export const rawLevels: RawLevelDefinition[] = [
         children: [
           {
             boundary: "atom",
-            label: "alpha",
+            label: "A",
           },
           {
             boundary: "square",
             children: [
               {
                 boundary: "atom",
-                label: "beta",
+                label: "B",
               },
               {
                 boundary: "atom",
-                label: "gamma",
+                label: "D",
               },
             ],
           },
@@ -187,14 +187,14 @@ export const rawLevels: RawLevelDefinition[] = [
         children: [
           {
             boundary: "atom",
-            label: "alpha",
+            label: "A",
           },
           {
             boundary: "square",
             children: [
               {
                 boundary: "atom",
-                label: "beta",
+                label: "B",
               },
             ],
           },
@@ -205,14 +205,14 @@ export const rawLevels: RawLevelDefinition[] = [
         children: [
           {
             boundary: "atom",
-            label: "alpha",
+            label: "A",
           },
           {
             boundary: "square",
             children: [
               {
                 boundary: "atom",
-                label: "gamma",
+                label: "D",
               },
             ],
           },
