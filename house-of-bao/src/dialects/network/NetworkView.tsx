@@ -17,6 +17,7 @@ const EDGE_WIDTH = 1.4;
 const EDGE_OPACITY = 0.55;
 const EDGE_STROKE_PARENT = "#38bdf8";
 const ROOT_RADIUS = 1.2;
+const ROOT_ANCHOR_OFFSET = 10;
 
 const getNodeFill = (node: NetworkNode): string => {
   switch (node.type) {
@@ -130,6 +131,7 @@ export function NetworkView({
     () => new Map(graph.nodes.map((node) => [node.id, node] as const)),
     [graph],
   );
+  const rootAnchorY = bounds.minY - ROOT_ANCHOR_OFFSET;
 
   const selection = selectedIds ?? new Set<string>();
   const parentSelection = selectedParentId ?? null;
@@ -169,9 +171,7 @@ export function NetworkView({
           const to = nodeMap.get(edge.to);
           if (!from || !to) return null;
           const effectiveFrom =
-            edge.from === ROOT_NODE_ID
-              ? { ...from, y: bounds.minY }
-              : from;
+            edge.from === ROOT_NODE_ID ? { ...from, y: rootAnchorY } : from;
           const { x1, y1, x2, y2 } = extendSegment(effectiveFrom, to, 0.35);
           const isParentEdge =
             parentSelection !== null && edge.from === parentSelection;
@@ -250,18 +250,15 @@ export function NetworkView({
           const fill = getNodeFill(node);
           const label = formatNodeLabel(node);
           const isSelected = selection.has(node.id);
-          const isParent = parentSelection !== null && node.id === parentSelection;
+          const isParent =
+            parentSelection !== null && node.id === parentSelection;
           const stroke = isSelected
             ? NODE_STROKE_SELECTED
             : isParent
               ? NODE_STROKE_PARENT
               : NODE_STROKE;
           const strokeWidth =
-            node.type === "root"
-              ? 0.08
-              : isSelected || isParent
-                ? 0.14
-                : 0.1;
+            node.type === "root" ? 0.08 : isSelected || isParent ? 0.14 : 0.1;
 
           const handleClick = (event: MouseEvent<SVGElement>) => {
             event.stopPropagation();
@@ -321,7 +318,11 @@ export function NetworkView({
             case "atom":
             default:
               return (
-                <g key={node.id} onClick={handleClick} style={{ cursor: "pointer" }}>
+                <g
+                  key={node.id}
+                  onClick={handleClick}
+                  style={{ cursor: "pointer" }}
+                >
                   <circle
                     cx={node.x}
                     cy={node.y}
