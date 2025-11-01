@@ -267,6 +267,60 @@ describe("game store operations", () => {
     );
   });
 
+  it("collect respects targeted square selection context", () => {
+    const makeContextSquare = () => square(atom("ctx1"), atom("ctx2"));
+    const frameA = round(makeContextSquare(), square(atom("payloadA")));
+    const frameB = round(makeContextSquare(), square(atom("payloadB")));
+    const level: LevelDefinition = {
+      id: "test-collect-targeted-square",
+      name: "Collect Targeted Square",
+      start: [frameA, frameB],
+      goal: [],
+      difficulty: 1,
+      allowedAxioms: ["arrangement"],
+    };
+
+    loadTestLevel(level);
+
+    const store = useGameStore.getState();
+    const [first, second] = store.currentForms;
+    const targetSquare = [...first.children].find(
+      (child) => child.boundary === "square" && child.children.size === 1,
+    );
+    expect(targetSquare).toBeDefined();
+
+    store.applyOperation({
+      type: "collect",
+      targetIds: [first.id, second.id, targetSquare!.id],
+    });
+
+    const { currentForms: after } = useGameStore.getState();
+    expect(after).toHaveLength(1);
+    const [combined] = after;
+    const squares = [...combined.children].filter(
+      (child) => child.boundary === "square",
+    );
+    expect(squares).toHaveLength(2);
+
+    const squareLabelSets = squares.map(
+      (squareNode) =>
+        new Set([...squareNode.children].map((child) => child.label ?? "")),
+    );
+
+    expect(
+      squareLabelSets.some(
+        (labels) =>
+          labels.size === 2 && labels.has("ctx1") && labels.has("ctx2"),
+      ),
+    ).toBe(true);
+    expect(
+      squareLabelSets.some(
+        (labels) =>
+          labels.size === 2 && labels.has("payloadA") && labels.has("payloadB"),
+      ),
+    ).toBe(true);
+  });
+
   it("cancel matches reflection cancel behaviour for a base-reflection pair", () => {
     const base = atom("z");
     const reflection = reflectionCreate(base)[1];
