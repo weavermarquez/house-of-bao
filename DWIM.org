@@ -1,0 +1,65 @@
+#+title: Dwim
+
+* DWIM: Do What I Mean
+I am brainstorming a "do what I mean" approach to infer what a users' actions should be in cases where commands are sent but the selection /may/ be underspecified.
+
+
+* <2025-11-01 Sat> Demo Day
+I am noticing order-dependent behaviour of the case where multiple selections are selected.
+
+Inversion:
+- Clarify
+  - Both Parent and Child should be valid candidates for clarification in cases where there is no ambiguity.
+  - If there is ambiguity, it means a selected element are both parent and child for two separate invertible pairs.
+  - If a selected element is an atom or a form where clarify does not apply, find the nearest element nearby (i.e. below a certain threshold of distance, probably 1 length) where it does.
+  - 
+- Enfold
+  - There is an inherent ambiguity as to where enfold should result in a frame or mark.
+  - Both results are /interchangable/ with each other until there are additional modifications.
+  - I am thinking that any sequence of void-equivalent form creations should be undoable within one step, maybe?
+    
+- Disperse
+- Collect
+
+** In level-01 first-unwrap:
+say A-B-C is an alternating round(square(round)), where A is the parent and C is the innermost.
+ C should have been a valid target to clarify B and C. Also, B was also a valid target but this did not execute because C failed.
+
+11) select [A, B, C] then press clarify. This will succeed, true positive? There existed a clarifiable pair - though it was ambiguous as to which one. For better UX I will eventually want to switch to a DWIM approach, or in the game engine approach we will make it so that the interaction model eliminates ambiguity as to which one should be the clarified pair.
+12) select [A, C, B] then press clarify. This will succeed, true positive? Same as 11.
+   
+13) select [B, A, C] then press clarify. This will succeed, true positive? Same as 11
+14) select [B, C, A] then press clarify. This will succeed, true positive? Same as 11
+15) select [C, A, B] then press clarify. This will FAIL, false negative. Same as 10.
+16) select [C, B, A] then press clarify. This will FAIL, false negative. Same as 10.
+   
+
+** then in level-06 Alpha-Unwrap,
+instead of round(square(round)) it is round(square(atom)). So A is the round, B is the square, C is the atom.
+
+Atoms are largely exempt from axiomatic operations until they are hydrated, so ideally in a DWIM approach we should apply certain operations to the nearest applicable candidate.
+
+
+1) select nothing. True negative. Player cannot press clarify - we fixed this just now.
+   
+2) select A then press clarify. This will succeed, true positive.
+3) select B then press clarify. This will FAIL, false negative. B was the child of an invertible pair and there was no ambiguity. It should succeed. 
+4) select C then press clarify. This will FAIL, false negative. DWIM should infer that clarify should apply to the nearest available pair.
+   
+5) select A then C then press clarify. This will succeed, true positive. Although C is an atom, A is the parent of an invertible pair.
+6) select C then A then press clarify. This will FAIL, false negative. Although C is an atom, A is the parent of an invertible pair.
+
+7) select A then B then press clarify. This will succeed, true positive
+8) select B then A then press clarify. This will FAIL, false negative. Both B and A were elements of an invertible pair.
+
+9) select B then C then press clarify. This will FAIL, false negative. B was the child element of an invertible pair.
+10) select C then B then press clarify. This will FAIL, two false negatives. C should have been a valid target to clarify B and C. Also, B was also a valid target but this did not execute because C failed.
+
+11) select [A, B, C] then press clarify. This will succeed, true positive? There existed a clarifiable pair - though it was ambiguous as to which one. For better UX I will eventually want to switch to a DWIM approach, or in the game engine approach we will make it so that the interaction model eliminates ambiguity as to which one should be the clarified pair.
+12) select [A, C, B] then press clarify. This will succeed, true positive? Same as 11.
+   
+13) select [B, A, C] then press clarify. This will succeed, true positive? Same as 11
+14) select [B, C, A] then press clarify. This will succeed, true positive? Same as 11
+15) select [C, A, B] then press clarify. This will FAIL, false negative. Same as 10.
+16) select [C, B, A] then press clarify. This will FAIL, false negative. Same as 10.
+
