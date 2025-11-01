@@ -1,0 +1,56 @@
+# Aesthetic Direction: Bounding Box Dialect
+
+## Overview
+House of Bao merges the organic, soft, and culinary essence of "dumpling" with the geometric, functional, and minimalist principles of Bauhaus. The reconciliation creates a playful yet disciplined visual language where mathematical forms manifest as cute, geometric dumplings with subtle softness.
+
+## Design Language
+
+### Color Palette
+- **Primary Colors** (Boundaries): Vibrant for distinction
+  - Round: (soft yellow, evokes sky). Embossed?
+  - Square: (bold blue, geometric contrast) Debossed?
+  - Angle: (warm purple, angular energy)
+- **Secondary Colors**: Supporting tones
+  - Teal: (for edges, connections)
+  - Light Teal: (for empty units, subtle presence)
+- **Accent Colors**: Interaction and feedback
+  - Off-white: (highlights, selections)
+  - Dark Blue: (text, deep focus)
+- **Background**: (light grey-blue, clean canvas)
+- **Approach**: Muted background with vibrant primaries creates focus on mathematical forms, while soft secondary tones maintain dumpling warmth.
+
+### Typography
+- **Primary Font**: Futura or similar geometric sans-serif (Bauhaus influence)
+  - Clean, modular letterforms
+  - Excellent readability for game UI
+- **Secondary Font**: A slightly rounded sans-serif for body text (introduces subtle dumpling softness)
+- **Hierarchy**: Bold weights for headings, regular for body, light for hints
+
+### Shapes and Geometry
+- **Rounds**: Soft, dumpling-like circular forms with gentle curves
+- **Squares**: Stark, geometric squares with sharp corners and clean lines
+- **Angles**: Diamond/triangle shapes with precise angles, minimal decoration
+- **Overall**: Geometric precision meets organic warmth through color and subtle rounding
+
+## Animation & Interaction
+- **Timing**: Snappy and functional (200-500ms transitions) with bouncy elements
+  - Form transformations: 300-500ms ease-out with subtle overshoot
+  - Selections: 150ms spring animation
+  - Wins: 1500ms celebration with gentle scaling
+- **Feel**: Functional movements with dumpling playfulness - nodes "bounce" slightly when placed, edges flow like dough being stretched
+- **Feedback**: Hover glows, selection pulses, illegal move shakes maintain Bauhaus clarity while adding tactile warmth
+
+## Visual Assets
+- **Dumpling Characters**: 64x64px sprites
+  - Round: Circular body, simple dot eyes, curved smile
+  - Square: Square body, straight-line features, angular eyebrows
+  - Angle: Diamond body, sharp eyes, geometric mouth
+- **Style**: Geometric but cute, minimalist but expressive
+
+## Implementation Guidelines
+- Maintain high contrast for accessibility
+- Ensure animations don't hinder gameplay flow
+- Use color coding consistently across dialects
+- Test on various screen sizes for responsive dumpling scaling
+
+This aesthetic balances mathematical precision with culinary charm, creating an engaging puzzle experience that feels both intellectual and approachable.

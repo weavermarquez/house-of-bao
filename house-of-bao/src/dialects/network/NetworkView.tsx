@@ -16,33 +16,8 @@ const EDGE_STROKE = "#475569";
 const EDGE_WIDTH = 1.4;
 const EDGE_OPACITY = 0.55;
 const EDGE_STROKE_PARENT = "#38bdf8";
-
-const greekMap: Record<string, string> = {
-  alpha: "α",
-  beta: "β",
-  gamma: "γ",
-  delta: "δ",
-  epsilon: "ε",
-  zeta: "ζ",
-  eta: "η",
-  theta: "θ",
-  iota: "ι",
-  kappa: "κ",
-  lambda: "λ",
-  mu: "μ",
-  nu: "ν",
-  xi: "ξ",
-  omicron: "ο",
-  pi: "π",
-  rho: "ρ",
-  sigma: "σ",
-  tau: "τ",
-  upsilon: "υ",
-  phi: "φ",
-  chi: "χ",
-  psi: "ψ",
-  omega: "ω",
-};
+const ROOT_RADIUS = 1.2;
+const ROOT_ANCHOR_OFFSET = 10;
 
 const getNodeFill = (node: NetworkNode): string => {
   switch (node.type) {
@@ -61,21 +36,13 @@ const getNodeFill = (node: NetworkNode): string => {
 };
 
 const formatNodeLabel = (node: NetworkNode): string | undefined => {
-  if (node.type === "root") {
-    return "root";
+  if (node.type === "atom") {
+    return (node.label ?? "").trim();
   }
   if (!node.label) {
     return undefined;
   }
-  const raw = node.label.trim();
-  if (node.type === "atom") {
-    const lower = raw.toLowerCase();
-    if (lower in greekMap) {
-      return greekMap[lower];
-    }
-    return raw.charAt(0).toUpperCase() + raw.slice(1);
-  }
-  return undefined;
+  return node.label.trim();
 };
 
 const expandBounds = (graph: NetworkGraph, padding = 4) => {
@@ -145,11 +112,26 @@ export function NetworkView({
   className,
 }: NetworkViewProps) {
   const graph = useMemo(() => buildNetworkGraph(forms as Form[]), [forms]);
-  const bounds = useMemo(() => expandBounds(graph), [graph]);
+  const bounds = useMemo(() => {
+    const base = expandBounds(graph);
+    const rootNode = graph.nodes.find((node) => node.id === ROOT_NODE_ID);
+    if (!rootNode) {
+      return base;
+    }
+    const minY = rootNode.y;
+    const height = Math.max(base.maxY - minY, ROOT_RADIUS * 2);
+    return {
+      ...base,
+      minY,
+      maxY: minY + height,
+      height,
+    };
+  }, [graph]);
   const nodeMap = useMemo(
     () => new Map(graph.nodes.map((node) => [node.id, node] as const)),
     [graph],
   );
+  const rootAnchorY = bounds.minY - ROOT_ANCHOR_OFFSET;
 
   const selection = selectedIds ?? new Set<string>();
   const parentSelection = selectedParentId ?? null;
@@ -188,35 +170,47 @@ export function NetworkView({
           const from = nodeMap.get(edge.from);
           const to = nodeMap.get(edge.to);
           if (!from || !to) return null;
-          const { x1, y1, x2, y2 } = extendSegment(from, to, 0.35);
+          const effectiveFrom =
+            edge.from === ROOT_NODE_ID ? { ...from, y: rootAnchorY } : from;
+          const { x1, y1, x2, y2 } = extendSegment(effectiveFrom, to, 0.35);
           const isParentEdge =
             parentSelection !== null && edge.from === parentSelection;
+          const isRootEdge = edge.from === ROOT_NODE_ID;
+          const opacity = isRootEdge ? EDGE_OPACITY * 0.5 : EDGE_OPACITY;
           return (
-            <g key={edge.id} style={{ cursor: "pointer" }}>
+            <g
+              key={edge.id}
+              style={{ cursor: isRootEdge ? "default" : "pointer" }}
+            >
               <line
                 x1={x1}
                 y1={y1}
                 x2={x2}
                 y2={y2}
-                stroke={isParentEdge ? EDGE_STROKE_PARENT : EDGE_STROKE}
+                stroke={
+                  isParentEdge && !isRootEdge ? EDGE_STROKE_PARENT : EDGE_STROKE
+                }
                 strokeWidth={EDGE_WIDTH}
                 strokeLinecap="round"
-                strokeOpacity={EDGE_OPACITY}
+                strokeOpacity={opacity}
               />
-              <line
-                x1={x1}
-                y1={y1}
-                x2={x2}
-                y2={y2}
-                stroke="transparent"
-                strokeWidth={0.9}
-                strokeLinecap="round"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  const parentId = edge.from === ROOT_NODE_ID ? null : edge.from;
-                  onSelectParent?.(parentId);
-                }}
-              />
+              {isRootEdge ? null : (
+                <line
+                  x1={x1}
+                  y1={y1}
+                  x2={x2}
+                  y2={y2}
+                  stroke="transparent"
+                  strokeWidth={0.9}
+                  strokeLinecap="round"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    const parentId =
+                      edge.from === ROOT_NODE_ID ? null : edge.from;
+                    onSelectParent?.(parentId);
+                  }}
+                />
+              )}
             </g>
           );
         })}
@@ -256,18 +250,15 @@ export function NetworkView({
           const fill = getNodeFill(node);
           const label = formatNodeLabel(node);
           const isSelected = selection.has(node.id);
-          const isParent = parentSelection !== null && node.id === parentSelection;
+          const isParent =
+            parentSelection !== null && node.id === parentSelection;
           const stroke = isSelected
             ? NODE_STROKE_SELECTED
             : isParent
               ? NODE_STROKE_PARENT
               : NODE_STROKE;
           const strokeWidth =
-            node.type === "root"
-              ? 0.08
-              : isSelected || isParent
-                ? 0.14
-                : 0.1;
+            node.type === "root" ? 0.08 : isSelected || isParent ? 0.14 : 0.1;
 
           const handleClick = (event: MouseEvent<SVGElement>) => {
             event.stopPropagation();
@@ -280,29 +271,7 @@ export function NetworkView({
 
           switch (node.type) {
             case "root":
-              return (
-                <g key={node.id} onClick={handleClick} style={{ cursor: "pointer" }}>
-                  <circle
-                    cx={node.x}
-                    cy={node.y}
-                    r={1.2}
-                    stroke={stroke}
-                    strokeWidth={strokeWidth}
-                    fill={fill}
-                  />
-                  <text
-                    x={node.x}
-                    y={node.y}
-                    textAnchor="middle"
-                    dominantBaseline="middle"
-                    fontSize={0.85}
-                    fill={NODE_STROKE}
-                    fontFamily='"Noto Serif Display", serif'
-                  >
-                    root
-                  </text>
-                </g>
-              );
+              return null;
             case "round":
               return (
                 <circle
@@ -349,7 +318,11 @@ export function NetworkView({
             case "atom":
             default:
               return (
-                <g key={node.id} onClick={handleClick} style={{ cursor: "pointer" }}>
+                <g
+                  key={node.id}
+                  onClick={handleClick}
+                  style={{ cursor: "pointer" }}
+                >
                   <circle
                     cx={node.x}
                     cy={node.y}

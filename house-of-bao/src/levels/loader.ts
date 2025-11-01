@@ -8,7 +8,11 @@ import {
 
 function instantiateForm(node: RawFormNode): Form {
   const children = node.children?.map(instantiateForm) ?? [];
-  return createForm(node.boundary, ...children);
+  const form = createForm(node.boundary, ...children);
+  if (node.label !== undefined) {
+    form.label = node.label;
+  }
+  return form;
 }
 
 export function hydrateLevel(raw: RawLevelDefinition): LevelDefinition {

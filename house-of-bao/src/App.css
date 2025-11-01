@@ -264,25 +264,43 @@ button:disabled {
   font-weight: 600;
 }
 
-.goal-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
+.goal-preview {
+  position: relative;
+  border-radius: 1rem;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  background: linear-gradient(160deg, rgba(248, 250, 252, 0.95), rgba(226, 232, 240, 0.75));
+  padding: 0.75rem;
   display: flex;
-  flex-direction: column;
-  gap: 0.45rem;
+  align-items: center;
+  justify-content: center;
+  min-height: 180px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
 }
 
-.goal-list li {
-  padding: 0.4rem 0.55rem;
-  border-radius: 0.65rem;
-  background: rgba(15, 23, 42, 0.04);
-  font-size: 0.85rem;
+.goal-network-container {
+  width: 100%;
+  height: 180px;
+  pointer-events: none;
 }
 
-.goal-list code {
-  font-family: "Fira Code", "SFMono-Regular", ui-monospace, monospace;
-  font-size: 0.78rem;
+.goal-network-container .network-view-svg {
+  filter: drop-shadow(0 8px 16px rgba(15, 23, 42, 0.1));
+}
+
+.goal-status {
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-weight: 600;
+  color: #1d4ed8;
+  background: rgba(96, 165, 250, 0.18);
+}
+
+.goal-status-complete {
+  color: #15803d;
+  background: rgba(74, 222, 128, 0.3);
 }
 
 .section-heading {
