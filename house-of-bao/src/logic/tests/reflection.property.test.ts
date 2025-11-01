@@ -2,11 +2,27 @@ import { describe, it, expect } from "vitest";
 import fc from "fast-check";
 import { isCancelApplicable, cancel, create } from "../reflection";
 import {
+  type Form,
   canonicalSignature,
-  collectFormIds,
+  canonicalSignatureForest,
   collectFormForestIds,
 } from "../Form";
 import { formNodeArb, materializeFormNode } from "./formArbitraries";
+
+function countSignatureOccurrences(forms: Form[], target: string): number {
+  let count = 0;
+  const stack: Form[] = [...forms];
+  while (stack.length > 0) {
+    const node = stack.pop()!;
+    if (canonicalSignature(node) === target) {
+      count += 1;
+    }
+    node.children.forEach((child) => {
+      stack.push(child);
+    });
+  }
+  return count;
+}
 
 describe("Reflection Axiom", () => {
   describe("isReflectionApplicable / cancelReflection", () => {
@@ -33,15 +49,23 @@ describe("Reflection Axiom", () => {
           const [baseClone, reflectionClone] = create(base);
           const forest = [context, baseClone, reflectionClone];
 
+          const baseSignature = canonicalSignature(base);
+          const beforeCount = countSignatureOccurrences(forest, baseSignature);
+          expect(beforeCount).toBeGreaterThanOrEqual(2);
+
           const result = cancel(forest);
-          expect(result).toHaveLength(1);
+          expect(countSignatureOccurrences(result, baseSignature)).toBe(
+            beforeCount - 2,
+          );
 
-          const [contextClone] = result;
-          const expectedSignature = canonicalSignature(context);
-          expect(canonicalSignature(contextClone)).toBe(expectedSignature);
-
-          const originalIds = collectFormIds(context, expectedSignature);
-          const cloneIds = collectFormForestIds(result, [expectedSignature]);
+          const originalIds = collectFormForestIds(
+            forest,
+            canonicalSignatureForest(forest),
+          );
+          const cloneIds = collectFormForestIds(
+            result,
+            canonicalSignatureForest(result),
+          );
           originalIds.forEach((id) => {
             expect(cloneIds.has(id)).toBe(false);
           });

@@ -202,12 +202,6 @@ function applySiblingOperation(
   });
 }
 
-function firstChild(form: Form): Form | null {
-  const iterator = form.children.values();
-  const first = iterator.next();
-  return first.done ? null : (first.value as Form);
-}
-
 function ensureCancelPairs(forest: Form[], targetIds: string[]): string[] {
   const uniqueIds = [...new Set(targetIds)];
   if (uniqueIds.length === 0) {
@@ -246,17 +240,30 @@ function ensureCancelPairs(forest: Form[], targetIds: string[]): string[] {
     }
 
     if (form.boundary === "angle") {
-      const inner = firstChild(form);
-      if (inner) {
-        const innerSignature = canonicalSignature(inner);
+      const children = [...form.children];
+      children.forEach((child) => {
+        const innerSignature = canonicalSignature(child);
         const angles = anglesByInnerSignature.get(innerSignature);
         if (angles) {
           angles.push(form);
         } else {
           anglesByInnerSignature.set(innerSignature, [form]);
         }
-      }
+      });
     }
+  });
+
+  // Deduplicate angle references per signature to avoid redundant lookups.
+  anglesByInnerSignature.forEach((forms, signature) => {
+    const seen = new Set<string>();
+    const uniqueAngles = forms.filter((form) => {
+      if (seen.has(form.id)) {
+        return false;
+      }
+      seen.add(form.id);
+      return true;
+    });
+    anglesByInnerSignature.set(signature, uniqueAngles);
   });
 
   const augmented = new Set(uniqueIds);
@@ -268,15 +275,17 @@ function ensureCancelPairs(forest: Form[], targetIds: string[]): string[] {
     }
 
     if (form.boundary === "angle") {
-      const inner = firstChild(form);
-      if (!inner) {
-        return;
-      }
-      const innerSignature = canonicalSignature(inner);
-      const candidates = baseBySignature.get(innerSignature) ?? [];
-      const partner = candidates.find((candidate) => candidate.id !== form.id);
-      if (partner) {
-        augmented.add(partner.id);
+      const children = [...form.children];
+      for (const child of children) {
+        const innerSignature = canonicalSignature(child);
+        const candidates = baseBySignature.get(innerSignature) ?? [];
+        const partner = candidates.find(
+          (candidate) => candidate.id !== form.id,
+        );
+        if (partner) {
+          augmented.add(partner.id);
+          break;
+        }
       }
     } else {
       const signature = canonicalSignature(form);
@@ -476,10 +485,92 @@ export const useGameStore = create<GameState>((set, get) => ({
         if (!isAllowed(allowed, "arrangement")) {
           return;
         }
+        const uniqueTargets = [...new Set(operation.targetIds)];
+        if (uniqueTargets.length === 0) {
+          return;
+        }
+
+        const locations = locateNodes(
+          state.currentForms,
+          new Set(uniqueTargets),
+        );
+
+        const frameIds = uniqueTargets.filter((id) => {
+          const match = locations.get(id);
+          return match?.node.boundary === "round";
+        });
+
+        if (frameIds.length === 0) {
+          return;
+        }
+
+        const squareHint = uniqueTargets
+          .map((id) => locations.get(id))
+          .find((entry): entry is LocatedNode => {
+            return entry !== undefined && entry.node.boundary === "square";
+          });
+
+        const hintParentId = squareHint?.parent?.id ?? null;
+        const hintSquareSignature = squareHint
+          ? canonicalSignature(squareHint.node)
+          : null;
+
+        const collectTargetIds =
+          hintParentId && frameIds.includes(hintParentId)
+            ? [hintParentId, ...frameIds.filter((id) => id !== hintParentId)]
+            : frameIds;
+
         nextForms = applySiblingOperation(
           state.currentForms,
-          operation.targetIds,
-          (forms) => collect(forms.map((entry) => deepClone(entry))),
+          collectTargetIds,
+          (forms) => {
+            const clones = forms.map((entry) => deepClone(entry));
+            if (!hintParentId || !hintSquareSignature) {
+              return collect(clones);
+            }
+
+            const templateIndex = forms.findIndex(
+              (form) => form.id === hintParentId,
+            );
+            if (templateIndex === -1) {
+              return collect(clones);
+            }
+
+            const templateClone = clones[templateIndex];
+            const originalChildren = [...templateClone.children];
+            const squareClones = originalChildren.filter(
+              (child) => child.boundary === "square",
+            );
+            if (squareClones.length === 0) {
+              return collect(clones);
+            }
+
+            const targetSquareClone = squareClones.find(
+              (child) => canonicalSignature(child) === hintSquareSignature,
+            );
+            if (!targetSquareClone) {
+              return collect(clones);
+            }
+
+            const orderedSquares = [
+              targetSquareClone,
+              ...squareClones.filter((square) => square !== targetSquareClone),
+            ];
+
+            let squareCursor = 0;
+            const reorderedChildren = originalChildren.map((child) => {
+              if (child.boundary !== "square") {
+                return child;
+              }
+              const replacement =
+                orderedSquares[squareCursor] ?? targetSquareClone;
+              squareCursor += 1;
+              return replacement;
+            });
+            templateClone.children = new Set(reorderedChildren);
+
+            return collect(clones);
+          },
         );
         break;
       }

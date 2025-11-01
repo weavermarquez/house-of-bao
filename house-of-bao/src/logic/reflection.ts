@@ -9,16 +9,8 @@ import {
 type ReflectionPair = {
   baseIndex: number;
   reflectionIndex: number;
+  reflectionChildIndex: number;
 };
-
-function firstChild(form: Form): Form | null {
-  if (form.children.size !== 1) {
-    return null;
-  }
-
-  const iterator = form.children.values().next();
-  return iterator.done ? null : (iterator.value as Form);
-}
 
 function findReflectionPair(forms: Form[]): ReflectionPair | null {
   if (forms.length < 2) {
@@ -26,25 +18,28 @@ function findReflectionPair(forms: Form[]): ReflectionPair | null {
   }
 
   const canonicalCache = forms.map((form) => canonicalSignature(form));
-  const reflectionsBySignature = new Map<string, number[]>();
+  const reflectionsBySignature = new Map<
+    string,
+    Array<{ angleIndex: number; childIndex: number }>
+  >();
 
   forms.forEach((form, index) => {
     if (form.boundary !== "angle") {
       return;
     }
 
-    const inner = firstChild(form);
-    if (!inner) {
-      return;
-    }
-
-    const innerSignature = canonicalSignature(inner);
-    const existing = reflectionsBySignature.get(innerSignature);
-    if (existing) {
-      existing.push(index);
-    } else {
-      reflectionsBySignature.set(innerSignature, [index]);
-    }
+    const children = [...form.children];
+    children.forEach((child, childIndex) => {
+      const innerSignature = canonicalSignature(child);
+      const existing = reflectionsBySignature.get(innerSignature);
+      if (existing) {
+        existing.push({ angleIndex: index, childIndex });
+      } else {
+        reflectionsBySignature.set(innerSignature, [
+          { angleIndex: index, childIndex },
+        ]);
+      }
+    });
   });
 
   for (let baseIndex = 0; baseIndex < forms.length; baseIndex += 1) {
@@ -54,9 +49,15 @@ function findReflectionPair(forms: Form[]): ReflectionPair | null {
       continue;
     }
 
-    const reflectionIndex = candidates.find((index) => index !== baseIndex);
-    if (reflectionIndex !== undefined) {
-      return { baseIndex, reflectionIndex };
+    const match = candidates.find(
+      ({ angleIndex }) => angleIndex !== baseIndex,
+    );
+    if (match) {
+      return {
+        baseIndex,
+        reflectionIndex: match.angleIndex,
+        reflectionChildIndex: match.childIndex,
+      };
     }
   }
 
@@ -85,8 +86,32 @@ export function cancel(forms: Form[]): Form[] {
     return noopForest(survivors);
   }
 
-  const survivors = forms.filter((_, index) => {
-    return index !== pair.baseIndex && index !== pair.reflectionIndex;
+  const survivors: Form[] = [];
+  forms.forEach((form, index) => {
+    if (index === pair.baseIndex) {
+      return;
+    }
+
+    if (index === pair.reflectionIndex) {
+      const children = [...form.children];
+      const remainingChildren = children.filter(
+        (_, childIndex) => childIndex !== pair.reflectionChildIndex,
+      );
+
+      if (remainingChildren.length === 0) {
+        return;
+      }
+
+      survivors.push({
+        id: form.id,
+        boundary: form.boundary,
+        label: form.label,
+        children: new Set<Form>(remainingChildren),
+      });
+      return;
+    }
+
+    survivors.push(form);
   });
 
   if (survivors.length === 0) {

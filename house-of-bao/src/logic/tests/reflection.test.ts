@@ -3,6 +3,7 @@ import fc from "fast-check";
 import { isCancelApplicable, cancel, create } from "../reflection";
 import {
   canonicalSignature,
+  canonicalSignatureForest,
   collectFormIds,
   collectFormForestIds,
   round,
@@ -21,6 +22,21 @@ function expectNoSharedIds(result: Form[], originals: Set<string>): void {
   });
 }
 
+function countSignatureOccurrences(forms: Form[], target: string): number {
+  let count = 0;
+  const stack: Form[] = [...forms];
+  while (stack.length > 0) {
+    const node = stack.pop()!;
+    if (canonicalSignature(node) === target) {
+      count += 1;
+    }
+    node.children.forEach((child) => {
+      stack.push(child);
+    });
+  }
+  return count;
+}
+
 describe("Reflection Axiom", () => {
   describe("isCancelApplicable / cancel", () => {
     it("detects and cancels a simple (() <()>) pair", () => {
@@ -29,6 +45,14 @@ describe("Reflection Axiom", () => {
 
       expect(isCancelApplicable(pair)).toBe(true);
       expect(cancel(pair)).toEqual([]);
+    });
+
+    it("detects pairs when the reflection holds additional context", () => {
+      const base = round();
+      const [baseClone, reflection] = create(base);
+      reflection.children.add(square(atom("ctx")));
+
+      expect(isCancelApplicable([baseClone, reflection])).toBe(true);
     });
 
     it("returns clones of survivors when extra context remains", () => {
@@ -78,6 +102,23 @@ describe("Reflection Axiom", () => {
       );
     });
 
+    it("cancels when angle contains additional children and preserves the remainder", () => {
+      const base = round();
+      const [baseClone, reflection] = create(base);
+      const extra = square(atom("ctx"));
+      reflection.children.add(extra);
+
+      const result = cancel([baseClone, reflection]);
+
+      expect(result).toHaveLength(1);
+      const [remaining] = result;
+      expect(remaining.boundary).toBe("angle");
+      const remainingChildren = [...remaining.children];
+      expect(remainingChildren).toHaveLength(1);
+      const [child] = remainingChildren;
+      expect(canonicalSignature(child)).toBe(canonicalSignature(extra));
+    });
+
     it("property: survivors retain structure with fresh ids", () => {
       fc.assert(
         fc.property(formNodeArb, formNodeArb, (pairRaw, contextRaw) => {
@@ -94,15 +135,23 @@ describe("Reflection Axiom", () => {
           const [baseClone, reflectionClone] = create(base);
           const forest = [context, baseClone, reflectionClone];
 
+          const baseSignature = canonicalSignature(base);
+          const beforeCount = countSignatureOccurrences(forest, baseSignature);
+          expect(beforeCount).toBeGreaterThanOrEqual(2);
+
           const result = cancel(forest);
-          expect(result).toHaveLength(1);
+          expect(countSignatureOccurrences(result, baseSignature)).toBe(
+            beforeCount - 2,
+          );
 
-          const [contextClone] = result;
-          const expectedSignature = canonicalSignature(context);
-          expect(canonicalSignature(contextClone)).toBe(expectedSignature);
-
-          const originalIds = collectFormIds(context, expectedSignature);
-          const cloneIds = collectFormForestIds(result, [expectedSignature]);
+          const originalIds = collectFormForestIds(
+            forest,
+            canonicalSignatureForest(forest),
+          );
+          const cloneIds = collectFormForestIds(
+            result,
+            canonicalSignatureForest(result),
+          );
           originalIds.forEach((id) => {
             expect(cloneIds.has(id)).toBe(false);
           });

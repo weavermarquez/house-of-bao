@@ -17,7 +17,7 @@ const EDGE_WIDTH = 1.4;
 const EDGE_OPACITY = 0.55;
 const EDGE_STROKE_PARENT = "#38bdf8";
 const ROOT_RADIUS = 1.2;
-const ROOT_ANCHOR_OFFSET = 10;
+const ROOT_ANCHOR_OFFSET = 50;
 
 const getNodeFill = (node: NetworkNode): string => {
   switch (node.type) {
