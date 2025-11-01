@@ -4,11 +4,7 @@ import "./App.css";
 import { levels } from "./levels";
 import { type AxiomType } from "./levels/types";
 import { useGameStore, type GameState } from "./store/gameStore";
-import {
-  canonicalSignature,
-  canonicalSignatureForest,
-  type Form,
-} from "./logic/Form";
+import { canonicalSignature, type Form } from "./logic/Form";
 import { NetworkView, ROOT_NODE_ID } from "./dialects/network";
 
 type NodeView = {
@@ -181,26 +177,6 @@ function App() {
   const showArrangementActions = allowsAxiom("arrangement");
   const showReflectionActions = allowsAxiom("reflection");
 
-  const goalProgress = useMemo(() => {
-    const currentCounts = new Map<string, number>();
-    canonicalSignatureForest(currentForms).forEach((signature) => {
-      currentCounts.set(signature, (currentCounts.get(signature) ?? 0) + 1);
-    });
-
-    const remaining: Array<{ id: string; signature: string }> = [];
-    goalForms.forEach((goalForm) => {
-      const signature = canonicalSignature(goalForm);
-      const available = currentCounts.get(signature) ?? 0;
-      if (available > 0) {
-        currentCounts.set(signature, available - 1);
-      } else {
-        remaining.push({ id: goalForm.id, signature });
-      }
-    });
-
-    return remaining;
-  }, [goalForms, currentForms]);
-
   const selectedDetails = useMemo(() => {
     const lookup = new Map(nodeViews.map((node) => [node.id, node]));
     return selectedNodeIds
@@ -295,18 +271,25 @@ function App() {
           </div>
           <aside className="side-panel">
             <section className="info-card">
-              <h2>Goal Signature</h2>
-              {goalProgress.length === 0 ? (
+              <div className="section-heading">
+                <h2>Goal State</h2>
+                <span
+                  className={`goal-status ${
+                    status === "won" ? "goal-status-complete" : ""
+                  }`}
+                >
+                  {status === "won" ? "Complete" : "In Progress"}
+                </span>
+              </div>
+              <div className="goal-preview">
+                <NetworkView
+                  forms={goalForms}
+                  className="goal-network-container"
+                />
+              </div>
+              {status === "won" ? (
                 <p className="goal-complete">Goal satisfied — nice work!</p>
-              ) : (
-                <ul className="goal-list">
-                  {goalProgress.map((entry) => (
-                    <li key={entry.id}>
-                      <code>{entry.signature}</code>
-                    </li>
-                  ))}
-                </ul>
-              )}
+              ) : null}
             </section>
 
             <section className="info-card">
