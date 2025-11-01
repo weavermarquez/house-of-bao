@@ -91,6 +91,7 @@ function LegendIcon({ shape, color }: { shape: LegendShape; color: string }) {
 }
 
 function LegendPanel() {
+  return;
   return (
     <div className="legend-panel">
       <span className="legend-title">Legend</span>
@@ -141,8 +142,7 @@ function App() {
     status,
     selectedNodeIds,
     selectedParentId,
-  } =
-    useGameStore(useShallow(selectViewState));
+  } = useGameStore(useShallow(selectViewState));
   const loadLevel = useGameStore(selectLoadLevel);
   const resetLevel = useGameStore(selectResetLevel);
   const applyOperation = useGameStore(selectApplyOperation);
@@ -166,7 +166,7 @@ function App() {
     [selectedNodeIds],
   );
   const allowedAxioms = level?.allowedAxioms;
-  const allowsAxiom = useMemo<((type: AxiomType) => boolean)>(() => {
+  const allowsAxiom = useMemo<(type: AxiomType) => boolean>(() => {
     if (!allowedAxioms || allowedAxioms.length === 0) {
       return () => true;
     }
@@ -227,7 +227,10 @@ function App() {
             </label>
             <span className={`status-pill ${status}`}>{status}</span>
             <div className="history-controls">
-              <button onClick={() => undo()} disabled={historyCounts.past === 0}>
+              <button
+                onClick={() => undo()}
+                disabled={historyCounts.past === 0}
+              >
                 Undo
               </button>
               <button
@@ -306,7 +309,9 @@ function App() {
                 <ul className="selection-list">
                   {selectedDetails.map((node) => (
                     <li key={node.id}>
-                      <span className="selection-boundary">{node.boundary}</span>
+                      <span className="selection-boundary">
+                        {node.boundary}
+                      </span>
                       <code>{node.signature}</code>
                     </li>
                   ))}
@@ -329,7 +334,9 @@ function App() {
                     <span className="parent-root">root (forest)</span>
                   ) : parentDetail ? (
                     <>
-                      <span className="selection-boundary">{parentDetail.boundary}</span>
+                      <span className="selection-boundary">
+                        {parentDetail.boundary}
+                      </span>
                       <code>{parentDetail.signature}</code>
                     </>
                   ) : (
