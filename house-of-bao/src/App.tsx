@@ -261,6 +261,7 @@ function App() {
               forms={currentForms}
               selectedIds={selectionSet}
               selectedParentId={selectedParentId}
+              className="network-view-container"
               onToggleNode={(id) => toggleSelection(id)}
               onSelectParent={(id) => {
                 if (
