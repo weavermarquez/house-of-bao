@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { useGameStore } from "./gameStore";
-import { round, square, atom } from "../logic";
-import { canonicalSignatureForest, deepClone } from "../logic/Form";
+import { round, square, angle, atom } from "../logic";
+import { canonicalSignatureForest, canonicalSignature, deepClone } from "../logic/Form";
 import { clarify } from "../logic/inversion";
 import { collect as arrangementCollect } from "../logic/arrangement";
 import {
@@ -364,6 +364,36 @@ describe("game store operations", () => {
     expect(canonicalSignatureForest(after)).toEqual(
       canonicalSignatureForest(expectedForest),
     );
+  });
+
+  it("cancel preserves angle context when reflection holds additional children", () => {
+    const base = round();
+    const reflection = angle(round(), square(atom("ctx")));
+    const level: LevelDefinition = {
+      id: "test-cancel-angle-context",
+      name: "Cancel With Angle Context",
+      start: [base, reflection],
+      goal: [],
+      difficulty: 2,
+      allowedAxioms: ["reflection"],
+    };
+
+    loadTestLevel(level);
+
+    const store = useGameStore.getState();
+    const [baseNode, reflectionNode] = store.currentForms;
+
+    store.applyOperation({
+      type: "cancel",
+      targetIds: [baseNode.id, reflectionNode.id],
+    });
+
+    const { currentForms: after } = useGameStore.getState();
+    expect(after).toHaveLength(1);
+    const [remaining] = after;
+    expect(remaining.boundary).toBe("angle");
+    const expected = angle(square(atom("ctx")));
+    expect(canonicalSignature(remaining)).toBe(canonicalSignature(expected));
   });
 
   it("create adds reflections alongside templates under the parent", () => {

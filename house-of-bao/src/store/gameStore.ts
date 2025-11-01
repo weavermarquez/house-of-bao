@@ -202,12 +202,6 @@ function applySiblingOperation(
   });
 }
 
-function firstChild(form: Form): Form | null {
-  const iterator = form.children.values();
-  const first = iterator.next();
-  return first.done ? null : (first.value as Form);
-}
-
 function ensureCancelPairs(forest: Form[], targetIds: string[]): string[] {
   const uniqueIds = [...new Set(targetIds)];
   if (uniqueIds.length === 0) {
@@ -246,17 +240,30 @@ function ensureCancelPairs(forest: Form[], targetIds: string[]): string[] {
     }
 
     if (form.boundary === "angle") {
-      const inner = firstChild(form);
-      if (inner) {
-        const innerSignature = canonicalSignature(inner);
+      const children = [...form.children];
+      children.forEach((child) => {
+        const innerSignature = canonicalSignature(child);
         const angles = anglesByInnerSignature.get(innerSignature);
         if (angles) {
           angles.push(form);
         } else {
           anglesByInnerSignature.set(innerSignature, [form]);
         }
-      }
+      });
     }
+  });
+
+  // Deduplicate angle references per signature to avoid redundant lookups.
+  anglesByInnerSignature.forEach((forms, signature) => {
+    const seen = new Set<string>();
+    const uniqueAngles = forms.filter((form) => {
+      if (seen.has(form.id)) {
+        return false;
+      }
+      seen.add(form.id);
+      return true;
+    });
+    anglesByInnerSignature.set(signature, uniqueAngles);
   });
 
   const augmented = new Set(uniqueIds);
@@ -268,15 +275,17 @@ function ensureCancelPairs(forest: Form[], targetIds: string[]): string[] {
     }
 
     if (form.boundary === "angle") {
-      const inner = firstChild(form);
-      if (!inner) {
-        return;
-      }
-      const innerSignature = canonicalSignature(inner);
-      const candidates = baseBySignature.get(innerSignature) ?? [];
-      const partner = candidates.find((candidate) => candidate.id !== form.id);
-      if (partner) {
-        augmented.add(partner.id);
+      const children = [...form.children];
+      for (const child of children) {
+        const innerSignature = canonicalSignature(child);
+        const candidates = baseBySignature.get(innerSignature) ?? [];
+        const partner = candidates.find(
+          (candidate) => candidate.id !== form.id,
+        );
+        if (partner) {
+          augmented.add(partner.id);
+          break;
+        }
       }
     } else {
       const signature = canonicalSignature(form);

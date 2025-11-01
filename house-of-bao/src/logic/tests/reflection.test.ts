@@ -31,6 +31,14 @@ describe("Reflection Axiom", () => {
       expect(cancel(pair)).toEqual([]);
     });
 
+    it("detects pairs when the reflection holds additional context", () => {
+      const base = round();
+      const [baseClone, reflection] = create(base);
+      reflection.children.add(square(atom("ctx")));
+
+      expect(isCancelApplicable([baseClone, reflection])).toBe(true);
+    });
+
     it("returns clones of survivors when extra context remains", () => {
       const base = square(round(atom("x")));
       const [baseClone, reflection] = create(base);
@@ -76,6 +84,23 @@ describe("Reflection Axiom", () => {
           expect(cancel(pair)).toEqual([]);
         }),
       );
+    });
+
+    it("cancels when angle contains additional children and preserves the remainder", () => {
+      const base = round();
+      const [baseClone, reflection] = create(base);
+      const extra = square(atom("ctx"));
+      reflection.children.add(extra);
+
+      const result = cancel([baseClone, reflection]);
+
+      expect(result).toHaveLength(1);
+      const [remaining] = result;
+      expect(remaining.boundary).toBe("angle");
+      const remainingChildren = [...remaining.children];
+      expect(remainingChildren).toHaveLength(1);
+      const [child] = remainingChildren;
+      expect(canonicalSignature(child)).toBe(canonicalSignature(extra));
     });
 
     it("property: survivors retain structure with fresh ids", () => {
