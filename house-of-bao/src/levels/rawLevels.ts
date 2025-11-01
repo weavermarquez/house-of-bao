@@ -233,11 +233,10 @@ export const rawLevels: RawLevelDefinition[] = [
       { boundary: "round", children: [] },
       {
         boundary: "angle",
-        children: [{ boundary: "round", children: [] }],
-      },
-      {
-        boundary: "angle",
-        children: [{ boundary: "round", children: [] }],
+        children: [
+          { boundary: "round", children: [] },
+          { boundary: "round", children: [] },
+        ],
       },
     ],
     goal: [
