@@ -2,6 +2,7 @@ import { useEffect, useMemo } from "react";
 import { useShallow } from "zustand/shallow";
 import "./App.css";
 import { levels } from "./levels";
+import { type AxiomType } from "./levels/types";
 import { useGameStore, type GameState } from "./store/gameStore";
 import {
   canonicalSignature,
@@ -168,6 +169,17 @@ function App() {
     () => new Set(selectedNodeIds),
     [selectedNodeIds],
   );
+  const allowedAxioms = level?.allowedAxioms;
+  const allowsAxiom = useMemo<((type: AxiomType) => boolean)>(() => {
+    if (!allowedAxioms || allowedAxioms.length === 0) {
+      return () => true;
+    }
+    const allowedSet = new Set(allowedAxioms);
+    return (type) => allowedSet.has(type);
+  }, [allowedAxioms]);
+  const showInversionActions = allowsAxiom("inversion");
+  const showArrangementActions = allowsAxiom("arrangement");
+  const showReflectionActions = allowsAxiom("reflection");
 
   const goalProgress = useMemo(() => {
     const currentCounts = new Map<string, number>();
@@ -355,104 +367,116 @@ function App() {
             <section className="info-card">
               <h2>Axiom Actions</h2>
               <div className="action-grid">
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (firstSelected) {
-                      applyOperation({
-                        type: "clarify",
-                        targetId: firstSelected,
-                      });
-                    }
-                  }}
-                  disabled={!firstSelected}
-                >
-                  Clarify
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    applyOperation({
-                      type: "enfold",
-                      targetIds: selectedNodeIds,
-                      variant: "frame",
-                      parentId: parentIdForOps,
-                    });
-                  }}
-                  disabled={status === "idle"}
-                >
-                  Enfold Frame
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    applyOperation({
-                      type: "enfold",
-                      targetIds: selectedNodeIds,
-                      variant: "mark",
-                      parentId: parentIdForOps,
-                    });
-                  }}
-                  disabled={status === "idle"}
-                >
-                  Enfold Mark
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    applyOperation({
-                      type: "disperse",
-                      contentIds: selectedNodeIds,
-                      frameId: parentIdForOps ?? undefined,
-                    });
-                  }}
-                  disabled={selectedNodeIds.length === 0}
-                >
-                  Disperse
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (selectedNodeIds.length >= 2) {
-                      applyOperation({
-                        type: "collect",
-                        targetIds: selectedNodeIds,
-                      });
-                    }
-                  }}
-                  disabled={selectedNodeIds.length < 2}
-                >
-                  Collect
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (selectedNodeIds.length >= 1) {
-                      applyOperation({
-                        type: "cancel",
-                        targetIds: selectedNodeIds,
-                      });
-                    }
-                  }}
-                  disabled={selectedNodeIds.length === 0}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    applyOperation({
-                      type: "create",
-                      parentId: parentIdForOps,
-                      templateIds:
-                        selectedNodeIds.length > 0
-                          ? selectedNodeIds
-                          : undefined,
-                    });
-                  }}
-                >
-                  Create Pair
-                </button>
+                {showInversionActions && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (firstSelected) {
+                          applyOperation({
+                            type: "clarify",
+                            targetId: firstSelected,
+                          });
+                        }
+                      }}
+                      disabled={!firstSelected}
+                    >
+                      Clarify
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        applyOperation({
+                          type: "enfold",
+                          targetIds: selectedNodeIds,
+                          variant: "frame",
+                          parentId: parentIdForOps,
+                        });
+                      }}
+                      disabled={status === "idle"}
+                    >
+                      Enfold Frame
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        applyOperation({
+                          type: "enfold",
+                          targetIds: selectedNodeIds,
+                          variant: "mark",
+                          parentId: parentIdForOps,
+                        });
+                      }}
+                      disabled={status === "idle"}
+                    >
+                      Enfold Mark
+                    </button>
+                  </>
+                )}
+                {showArrangementActions && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        applyOperation({
+                          type: "disperse",
+                          contentIds: selectedNodeIds,
+                          frameId: parentIdForOps ?? undefined,
+                        });
+                      }}
+                      disabled={selectedNodeIds.length === 0}
+                    >
+                      Disperse
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (selectedNodeIds.length >= 2) {
+                          applyOperation({
+                            type: "collect",
+                            targetIds: selectedNodeIds,
+                          });
+                        }
+                      }}
+                      disabled={selectedNodeIds.length < 2}
+                    >
+                      Collect
+                    </button>
+                  </>
+                )}
+                {showReflectionActions && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (selectedNodeIds.length >= 1) {
+                          applyOperation({
+                            type: "cancel",
+                            targetIds: selectedNodeIds,
+                          });
+                        }
+                      }}
+                      disabled={selectedNodeIds.length === 0}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        applyOperation({
+                          type: "create",
+                          parentId: parentIdForOps,
+                          templateIds:
+                            selectedNodeIds.length > 0
+                              ? selectedNodeIds
+                              : undefined,
+                        });
+                      }}
+                    >
+                      Create Pair
+                    </button>
+                  </>
+                )}
               </div>
             </section>
           </aside>
