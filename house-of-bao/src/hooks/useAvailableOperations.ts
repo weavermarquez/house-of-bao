@@ -321,7 +321,7 @@ function allowsAxiom(
 
 function indexForms(forest: Form[]): Map<string, IndexedEntry> {
   const index = new Map<string, IndexedEntry>();
-  const stack = forest.map((node) => ({ node, parentId: null }));
+  const stack: Array<IndexedEntry> = forest.map((node) => ({ node, parentId: null }));
 
   while (stack.length > 0) {
     const current = stack.pop()!;

@@ -15,17 +15,14 @@ const OPERATION_READY_COPY: Record<OperationKey, string> = {
 const AXIOM_METADATA = {
   inversion: {
     label: "Inversion",
-    reminder: "round ↔ square",
     glyph: InversionGlyph,
   },
   arrangement: {
     label: "Arrangement",
-    reminder: "frames ↔ squares",
     glyph: ArrangementGlyph,
   },
   reflection: {
     label: "Reflection",
-    reminder: "angle ↔ mirror",
     glyph: ReflectionGlyph,
   },
 } as const;
@@ -95,9 +92,6 @@ export function AxiomActionPanel({
             <div className="axiom-group-heading">
               <div className="axiom-heading-copy">
                 <span>{AXIOM_METADATA.inversion.label}</span>
-                <span className="axiom-group-reminder">
-                  {AXIOM_METADATA.inversion.reminder}
-                </span>
               </div>
               <div className="axiom-group-visual">
                 <AXIOM_METADATA.inversion.glyph />
@@ -170,9 +164,6 @@ export function AxiomActionPanel({
             <div className="axiom-group-heading">
               <div className="axiom-heading-copy">
                 <span>{AXIOM_METADATA.arrangement.label}</span>
-                <span className="axiom-group-reminder">
-                  {AXIOM_METADATA.arrangement.reminder}
-                </span>
               </div>
               <div className="axiom-group-visual">
                 <AXIOM_METADATA.arrangement.glyph />
@@ -222,9 +213,6 @@ export function AxiomActionPanel({
             <div className="axiom-group-heading">
               <div className="axiom-heading-copy">
                 <span>{AXIOM_METADATA.reflection.label}</span>
-                <span className="axiom-group-reminder">
-                  {AXIOM_METADATA.reflection.reminder}
-                </span>
               </div>
               <div className="axiom-group-visual">
                 <AXIOM_METADATA.reflection.glyph />
@@ -277,31 +265,111 @@ export function AxiomActionPanel({
 }
 
 function InversionGlyph() {
+  const roundFill = "#fde68a";
+  const roundStroke = "#b45309";
+  const squareFill = "#bfdbfe";
+  const squareStroke = "#1d4ed8";
   return (
-    <svg width={56} height={34} viewBox="0 0 56 34" aria-hidden>
-      <circle cx={12} cy={17} r={12} fill="#fde68a" stroke="#b45309" strokeWidth={1.5} />
-      <rect x={28} y={5} width={18} height={24} rx={3} fill="#bfdbfe" stroke="#1d4ed8" strokeWidth={1.5} />
+    <svg width={76} height={40} viewBox="0 0 76 40" aria-hidden>
+      <rect
+        x={4}
+        y={6}
+        width={28}
+        height={28}
+        rx={4}
+        fill={squareFill}
+        stroke={squareStroke}
+        strokeWidth={2}
+      />
+      <circle cx={18} cy={20} r={9} fill={roundFill} stroke={roundStroke} strokeWidth={2} />
+      <circle
+        cx={52}
+        cy={20}
+        r={14}
+        fill={roundFill}
+        stroke={roundStroke}
+        strokeWidth={2}
+      />
+      <rect
+        x={44}
+        y={12}
+        width={16}
+        height={16}
+        rx={3}
+        fill={squareFill}
+        stroke={squareStroke}
+        strokeWidth={2}
+      />
     </svg>
   );
 }
 
 function ArrangementGlyph() {
+  const roundFill = "#fde68a";
+  const roundStroke = "#b45309";
+  const squareFill = "#bfdbfe";
+  const squareStroke = "#1d4ed8";
+  const contentFill = "#fcd34d";
   return (
-    <svg width={56} height={34} viewBox="0 0 56 34" aria-hidden>
-      <circle cx={14} cy={17} r={13} fill="#e0f2fe" stroke="#0284c7" strokeWidth={1.5} />
-      <rect x={7} y={10} width={14} height={14} rx={2} fill="#cbd5f5" stroke="#475569" strokeWidth={1.2} />
-      <circle cx={40} cy={17} r={13} fill="#e0f2fe" stroke="#0284c7" strokeWidth={1.5} />
-      <rect x={33} y={10} width={14} height={14} rx={2} fill="#fef3c7" stroke="#c2410c" strokeWidth={1.2} />
+    <svg width={120} height={42} viewBox="0 0 120 42" aria-hidden>
+      <circle cx={24} cy={21} r={18} fill={roundFill} stroke={roundStroke} strokeWidth={2} />
+      <rect
+        x={12}
+        y={11}
+        width={24}
+        height={20}
+        rx={4}
+        fill={squareFill}
+        stroke={squareStroke}
+        strokeWidth={1.8}
+      />
+      <circle cx={24} cy={16} r={3} fill={contentFill} stroke={roundStroke} strokeWidth={1} />
+      <circle cx={24} cy={26} r={3} fill={contentFill} stroke={roundStroke} strokeWidth={1} />
+      <circle cx={70} cy={14} r={4} fill={contentFill} stroke={roundStroke} strokeWidth={1} />
+      <circle cx={94} cy={14} r={4} fill={contentFill} stroke={roundStroke} strokeWidth={1} />
+      <circle cx={70} cy={28} r={4} fill={contentFill} stroke={roundStroke} strokeWidth={1} />
+      <circle cx={94} cy={28} r={4} fill={contentFill} stroke={roundStroke} strokeWidth={1} />
+      <circle cx={70} cy={21} r={13} fill={roundFill} stroke={roundStroke} strokeWidth={1.6} />
+      <rect
+        x={62}
+        y={15}
+        width={16}
+        height={12}
+        rx={3}
+        fill={squareFill}
+        stroke={squareStroke}
+        strokeWidth={1.4}
+      />
+      <circle cx={94} cy={21} r={13} fill={roundFill} stroke={roundStroke} strokeWidth={1.6} />
+      <rect
+        x={86}
+        y={15}
+        width={16}
+        height={12}
+        rx={3}
+        fill={squareFill}
+        stroke={squareStroke}
+        strokeWidth={1.4}
+      />
     </svg>
   );
 }
 
 function ReflectionGlyph() {
+  const angleFill = "#e9d5ff";
+  const angleStroke = "#7c3aed";
+  const roundFill = "#fde68a";
+  const roundStroke = "#b45309";
   return (
-    <svg width={56} height={34} viewBox="0 0 56 34" aria-hidden>
-      <polygon points="8,4 28,17 8,30" fill="#ede9fe" stroke="#7c3aed" strokeWidth={1.5} />
-      <circle cx={40} cy={17} r={10} fill="#fef9c3" stroke="#eab308" strokeWidth={1.5} />
-      <path d="M40 7 L48 17 L40 27" fill="#a5b4fc" stroke="#4338ca" strokeWidth={1.2} />
+    <svg width={100} height={42} viewBox="0 0 100 42" aria-hidden>
+      <circle cx={24} cy={21} r={12} fill={roundFill} stroke={roundStroke} strokeWidth={2} />
+      <polygon
+        points="64,7 90,21 64,35"
+        fill={angleFill}
+        stroke={angleStroke}
+        strokeWidth={2}
+      />
+      <circle cx={76} cy={21} r={6} fill={roundFill} stroke={roundStroke} strokeWidth={1.4} />
     </svg>
   );
 }
