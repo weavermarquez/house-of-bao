@@ -563,10 +563,12 @@ button:disabled {
 }
 
 .footer-links a {
+  display: inline;
   font-size: 0.85rem;
   color: #1d4ed8;
   text-decoration: none;
   transition: color 0.2s ease;
+  width: fit-content;
 }
 
 .footer-links a:hover {
