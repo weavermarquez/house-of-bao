@@ -1,10 +1,10 @@
 import type { Form } from "../logic/Form";
 
 const BOUNDARY_STYLES = {
-  round: { fill: "#fde68a", stroke: "#b45309" },
-  square: { fill: "#bfdbfe", stroke: "#1d4ed8" },
-  angle: { fill: "#e9d5ff", stroke: "#7c3aed" },
-  atom: { fill: "#fecdd3", stroke: "#be123c" },
+  round: { fill: "#fde68a", stroke: "#b45309", stripe: "#f97316" },
+  square: { fill: "#bfdbfe", stroke: "#1d4ed8", stripe: "#2563eb" },
+  angle: { fill: "#e9d5ff", stroke: "#7c3aed", stripe: "#9333ea" },
+  atom: { fill: "#fecdd3", stroke: "#be123c", stripe: "#db2777" },
 };
 
 const CHILD_POSITIONS = [
@@ -33,21 +33,24 @@ export function FormPreview({ form, highlight }: FormPreviewProps) {
       className="selection-form-preview"
       aria-hidden
     >
-      {renderBoundaryShape(form.boundary, style)}
+      <defs>
+        {highlight ? (
+          <pattern
+            id={`preview-stripes-${form.id}`}
+            width={6}
+            height={6}
+            patternUnits="userSpaceOnUse"
+            patternTransform="rotate(45)"
+          >
+            <rect width={6} height={6} fill={style.fill} />
+            <rect width={3} height={6} fill={style.stripe} />
+          </pattern>
+        ) : null}
+      </defs>
+      {renderBoundaryShape(form.boundary, style, highlight ? `url(#preview-stripes-${form.id})` : style.fill)}
       {children.map((child, index) => (
         <g key={child.id}>{renderChildIcon(child.boundary, index)}</g>
       ))}
-      {highlight ? (
-        <text
-          x={64}
-          y={10}
-          fontSize={14}
-          fontWeight={700}
-          fill="#dc2626"
-        >
-          *
-        </text>
-      ) : null}
     </svg>
   );
 }
@@ -55,6 +58,7 @@ export function FormPreview({ form, highlight }: FormPreviewProps) {
 function renderBoundaryShape(
   boundary: Form["boundary"],
   style: { fill: string; stroke: string },
+  fillOverride?: string,
 ) {
   switch (boundary) {
     case "square":
@@ -65,7 +69,7 @@ function renderBoundaryShape(
           width={52}
           height={32}
           rx={6}
-          fill={style.fill}
+          fill={fillOverride ?? style.fill}
           stroke={style.stroke}
           strokeWidth={2}
         />
@@ -74,7 +78,7 @@ function renderBoundaryShape(
       return (
         <polygon
           points="20,6 64,24 20,42"
-          fill={style.fill}
+          fill={fillOverride ?? style.fill}
           stroke={style.stroke}
           strokeWidth={2}
         />
@@ -85,7 +89,7 @@ function renderBoundaryShape(
           cx={40}
           cy={24}
           r={10}
-          fill={style.fill}
+          fill={fillOverride ?? style.fill}
           stroke={style.stroke}
           strokeWidth={2}
         />
@@ -97,7 +101,7 @@ function renderBoundaryShape(
           cx={40}
           cy={24}
           r={20}
-          fill={style.fill}
+          fill={fillOverride ?? style.fill}
           stroke={style.stroke}
           strokeWidth={2}
         />
