@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { useShallow } from "zustand/shallow";
 import "./App.css";
 import { levels } from "./levels";
@@ -6,10 +6,7 @@ import { type AxiomType } from "./levels/types";
 import { useGameStore, type GameState } from "./store/gameStore";
 import { canonicalSignature, type Form } from "./logic/Form";
 import { NetworkView, ROOT_NODE_ID } from "./dialects/network";
-import {
-  useAvailableOperations,
-  type OperationKey,
-} from "./hooks/useAvailableOperations";
+import { AxiomActionPanel } from "./components/AxiomActionPanel";
 
 type NodeView = {
   id: string;
@@ -138,15 +135,6 @@ const selectHistoryCounts = (state: GameState) => ({
   future: state.history.future.length,
 });
 
-const OPERATION_READY_COPY: Record<OperationKey, string> = {
-  clarify: "Clarify removes a round/square wrapper from the selected form.",
-  enfoldFrame: "Enfold Frame wraps siblings with a round-square shell.",
-  enfoldMark: "Enfold Mark wraps siblings with a square-round shell.",
-  disperse: "Disperse splits square contents into separate frames.",
-  collect: "Collect merges matching frames back together.",
-  cancel: "Cancel removes a form and its reflection (or empty angle).",
-  create: "Create Pair spawns a template + reflection at the chosen parent.",
-};
 
 function App() {
   const {
@@ -167,24 +155,6 @@ function App() {
   const undo = useGameStore(selectUndo);
   const redo = useGameStore(selectRedo);
   const historyCounts = useGameStore(useShallow(selectHistoryCounts));
-  const operationAvailability = useAvailableOperations();
-  const [focusedOperation, setFocusedOperation] = useState<OperationKey | null>(
-    null,
-  );
-  const getOperationTooltip = (key: OperationKey) =>
-    operationAvailability[key].available
-      ? undefined
-      : operationAvailability[key].reason ?? undefined;
-  const getOperationMessage = (key: OperationKey): string => {
-    const entry = operationAvailability[key];
-    if (!entry.available) {
-      return entry.reason ?? "Action unavailable.";
-    }
-    return OPERATION_READY_COPY[key];
-  };
-  const actionMessage = focusedOperation
-    ? getOperationMessage(focusedOperation)
-    : "Hover or focus an action to learn what it does.";
 
   useEffect(() => {
     if (!level) {
@@ -386,202 +356,15 @@ function App() {
               </div>
             </section>
 
-            <section className="info-card">
-              <h2>Axiom Actions</h2>
-              <div className="action-grid">
-                {showInversionActions && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (
-                          !operationAvailability.clarify.available ||
-                          !firstSelected
-                        ) {
-                          return;
-                        }
-                        applyOperation({
-                          type: "clarify",
-                          targetId: firstSelected,
-                        });
-                      }}
-                      disabled={!operationAvailability.clarify.available}
-                      title={getOperationTooltip("clarify")}
-                      onMouseEnter={() => setFocusedOperation("clarify")}
-                      onFocus={() => setFocusedOperation("clarify")}
-                      onMouseLeave={() => setFocusedOperation(null)}
-                      onBlur={() => setFocusedOperation((current) =>
-                        current === "clarify" ? null : current,
-                      )}
-                    >
-                      Clarify
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (!operationAvailability.enfoldFrame.available) {
-                          return;
-                        }
-                        applyOperation({
-                          type: "enfold",
-                          targetIds: selectedNodeIds,
-                          variant: "frame",
-                          parentId: parentIdForOps,
-                        });
-                      }}
-                      disabled={!operationAvailability.enfoldFrame.available}
-                      title={getOperationTooltip("enfoldFrame")}
-                      onMouseEnter={() => setFocusedOperation("enfoldFrame")}
-                      onFocus={() => setFocusedOperation("enfoldFrame")}
-                      onMouseLeave={() => setFocusedOperation(null)}
-                      onBlur={() =>
-                        setFocusedOperation((current) =>
-                          current === "enfoldFrame" ? null : current,
-                        )
-                      }
-                    >
-                      Enfold Frame
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (!operationAvailability.enfoldMark.available) {
-                          return;
-                        }
-                        applyOperation({
-                          type: "enfold",
-                          targetIds: selectedNodeIds,
-                          variant: "mark",
-                          parentId: parentIdForOps,
-                        });
-                      }}
-                      disabled={!operationAvailability.enfoldMark.available}
-                      title={getOperationTooltip("enfoldMark")}
-                      onMouseEnter={() => setFocusedOperation("enfoldMark")}
-                      onFocus={() => setFocusedOperation("enfoldMark")}
-                      onMouseLeave={() => setFocusedOperation(null)}
-                      onBlur={() =>
-                        setFocusedOperation((current) =>
-                          current === "enfoldMark" ? null : current,
-                        )
-                      }
-                    >
-                      Enfold Mark
-                    </button>
-                  </>
-                )}
-                {showArrangementActions && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (!operationAvailability.disperse.available) {
-                          return;
-                        }
-                        applyOperation({
-                          type: "disperse",
-                          contentIds: selectedNodeIds,
-                          frameId: parentIdForOps ?? undefined,
-                        });
-                      }}
-                      disabled={!operationAvailability.disperse.available}
-                      title={getOperationTooltip("disperse")}
-                      onMouseEnter={() => setFocusedOperation("disperse")}
-                      onFocus={() => setFocusedOperation("disperse")}
-                      onMouseLeave={() => setFocusedOperation(null)}
-                      onBlur={() =>
-                        setFocusedOperation((current) =>
-                          current === "disperse" ? null : current,
-                        )
-                      }
-                    >
-                      Disperse
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (!operationAvailability.collect.available) {
-                          return;
-                        }
-                        applyOperation({
-                          type: "collect",
-                          targetIds: selectedNodeIds,
-                        });
-                      }}
-                      disabled={!operationAvailability.collect.available}
-                      title={getOperationTooltip("collect")}
-                      onMouseEnter={() => setFocusedOperation("collect")}
-                      onFocus={() => setFocusedOperation("collect")}
-                      onMouseLeave={() => setFocusedOperation(null)}
-                      onBlur={() =>
-                        setFocusedOperation((current) =>
-                          current === "collect" ? null : current,
-                        )
-                      }
-                    >
-                      Collect
-                    </button>
-                  </>
-                )}
-                {showReflectionActions && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (!operationAvailability.cancel.available) {
-                          return;
-                        }
-                        applyOperation({
-                          type: "cancel",
-                          targetIds: selectedNodeIds,
-                        });
-                      }}
-                      disabled={!operationAvailability.cancel.available}
-                      title={getOperationTooltip("cancel")}
-                      onMouseEnter={() => setFocusedOperation("cancel")}
-                      onFocus={() => setFocusedOperation("cancel")}
-                      onMouseLeave={() => setFocusedOperation(null)}
-                      onBlur={() =>
-                        setFocusedOperation((current) =>
-                          current === "cancel" ? null : current,
-                        )
-                      }
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (!operationAvailability.create.available) {
-                          return;
-                        }
-                        applyOperation({
-                          type: "create",
-                          parentId: parentIdForOps,
-                          templateIds:
-                            selectedNodeIds.length > 0
-                              ? selectedNodeIds
-                              : undefined,
-                        });
-                      }}
-                      disabled={!operationAvailability.create.available}
-                      title={getOperationTooltip("create")}
-                      onMouseEnter={() => setFocusedOperation("create")}
-                      onFocus={() => setFocusedOperation("create")}
-                      onMouseLeave={() => setFocusedOperation(null)}
-                      onBlur={() =>
-                        setFocusedOperation((current) =>
-                          current === "create" ? null : current,
-                        )
-                      }
-                    >
-                      Create Pair
-                    </button>
-                  </>
-                )}
-              </div>
-              <p className="action-feedback">{actionMessage}</p>
-            </section>
+            <AxiomActionPanel
+              showInversionActions={showInversionActions}
+              showArrangementActions={showArrangementActions}
+              showReflectionActions={showReflectionActions}
+              selectedNodeIds={selectedNodeIds}
+              firstSelected={firstSelected}
+              parentIdForOps={parentIdForOps}
+              applyOperation={applyOperation}
+            />
           </aside>
         </div>
       </div>
