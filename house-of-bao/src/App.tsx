@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, type ReactNode } from "react";
 import { useShallow } from "zustand/shallow";
 import "./App.css";
 import { levels } from "./levels";
@@ -9,6 +9,9 @@ import { NetworkView, ROOT_NODE_ID } from "./dialects/network";
 import { AxiomActionPanel } from "./components/AxiomActionPanel";
 import { FormPreview } from "./components/FormPreview";
 import { Footer } from "./components/Footer";
+import { useIsMobile } from "./hooks/useIsMobile";
+import { MobileActionPanel } from "./components/MobileActionPanel";
+import { MobileInfoDrawer } from "./components/MobileInfoDrawer";
 
 type LegendShape = "round" | "square" | "angle";
 
@@ -119,6 +122,23 @@ const selectHistoryCounts = (state: GameState) => ({
   future: state.history.future.length,
 });
 
+type MobileShellProps = {
+  header: ReactNode;
+  main: ReactNode;
+  infoDrawer: ReactNode;
+  actionPanel: ReactNode;
+};
+
+function MobileShell({ header, main, infoDrawer, actionPanel }: MobileShellProps) {
+  return (
+    <div className="mobile-shell">
+      {header}
+      {main}
+      {infoDrawer}
+      {actionPanel}
+    </div>
+  );
+}
 
 function App() {
   const {
@@ -139,6 +159,7 @@ function App() {
   const undo = useGameStore(selectUndo);
   const redo = useGameStore(selectRedo);
   const historyCounts = useGameStore(useShallow(selectHistoryCounts));
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (!level) {
@@ -181,83 +202,121 @@ function App() {
   const parentIdForOps =
     selectedParentId === ROOT_NODE_ID ? null : selectedParentId;
 
+  const header = (
+    <header className="app-header">
+      <div className="header-copy">
+        <h1>House of Bao</h1>
+        <p>Network Dialect Sandbox</p>
+      </div>
+      <div className="header-controls">
+        <label className="level-select">
+          <span>Level</span>
+          <select
+            value={level?.id ?? levels[0].id}
+            onChange={(event) => {
+              const next = levels.find((entry) => entry.id === event.target.value);
+              if (next) {
+                loadLevel(next);
+              }
+            }}
+          >
+            {levels.map((entry) => (
+              <option key={entry.id} value={entry.id}>
+                {entry.id}: {entry.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <span className={`status-pill ${status}`}>{status}</span>
+        <div className="history-controls">
+          <button onClick={() => undo()} disabled={historyCounts.past === 0}>
+            Undo
+          </button>
+          <button onClick={() => redo()} disabled={historyCounts.future === 0}>
+            Redo
+          </button>
+          <button onClick={() => resetLevel()} disabled={!level}>
+            Reset
+          </button>
+        </div>
+      </div>
+    </header>
+  );
+
+  const graphContent = (
+    <>
+      <NetworkView
+        forms={currentForms}
+        selectedIds={selectionSet}
+        selectedParentId={selectedParentId}
+        className="network-view-container"
+        onToggleNode={(id) => toggleSelection(id)}
+        onSelectParent={(id) => {
+          if (
+            selectedParentId === id ||
+            (selectedParentId === null && id === null) ||
+            (selectedParentId === ROOT_NODE_ID && id === null)
+          ) {
+            clearParentSelection();
+          } else {
+            selectParent(id ?? ROOT_NODE_ID);
+          }
+        }}
+        onBackgroundClick={() => {
+          clearSelection();
+          clearParentSelection();
+        }}
+      />
+      <LegendPanel />
+    </>
+  );
+
+  if (isMobile) {
+    return (
+      <div className="app-shell">
+        <MobileShell
+          header={header}
+          main={
+            <main className="mobile-main">
+              <div className="graph-panel mobile-graph-panel">{graphContent}</div>
+            </main>
+          }
+          infoDrawer={
+            <MobileInfoDrawer
+              status={status}
+              goalForms={goalForms}
+              selectedNodeIds={selectedNodeIds}
+              selectedDetails={selectedDetails}
+              onClearSelection={() => clearSelection()}
+              parentDetail={parentDetail}
+              selectedParentId={selectedParentId}
+              onClearParent={() => clearParentSelection()}
+            />
+          }
+          actionPanel={
+            <MobileActionPanel
+              showInversionActions={showInversionActions}
+              showArrangementActions={showArrangementActions}
+              showReflectionActions={showReflectionActions}
+              selectedNodeIds={selectedNodeIds}
+              firstSelected={firstSelected}
+              parentIdForOps={parentIdForOps}
+              applyOperation={applyOperation}
+            />
+          }
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="app-shell">
       <div className="app-card">
-        <header className="app-header">
-          <div className="header-copy">
-            <h1>House of Bao</h1>
-            <p>Network Dialect Sandbox</p>
-          </div>
-          <div className="header-controls">
-            <label className="level-select">
-              <span>Level</span>
-              <select
-                value={level?.id ?? levels[0].id}
-                onChange={(event) => {
-                  const next = levels.find(
-                    (entry) => entry.id === event.target.value,
-                  );
-                  if (next) {
-                    loadLevel(next);
-                  }
-                }}
-              >
-                {levels.map((entry) => (
-                  <option key={entry.id} value={entry.id}>
-                    {entry.id}: {entry.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <span className={`status-pill ${status}`}>{status}</span>
-            <div className="history-controls">
-              <button
-                onClick={() => undo()}
-                disabled={historyCounts.past === 0}
-              >
-                Undo
-              </button>
-              <button
-                onClick={() => redo()}
-                disabled={historyCounts.future === 0}
-              >
-                Redo
-              </button>
-              <button onClick={() => resetLevel()} disabled={!level}>
-                Reset
-              </button>
-            </div>
-          </div>
-        </header>
+        {header}
 
         <div className="app-main">
           <div className="play-column">
-            <div className="graph-panel">
-              <NetworkView
-                forms={currentForms}
-                selectedIds={selectionSet}
-                selectedParentId={selectedParentId}
-                className="network-view-container"
-                onToggleNode={(id) => toggleSelection(id)}
-                onSelectParent={(id) => {
-                  if (
-                    selectedParentId === id ||
-                    (selectedParentId === null && id === null) ||
-                    (selectedParentId === ROOT_NODE_ID && id === null)
-                  ) {
-                    clearParentSelection();
-                  } else {
-                    selectParent(id ?? ROOT_NODE_ID);
-                  }
-                }}
-                onBackgroundClick={() => {
-                  clearSelection();
-                  clearParentSelection();
-                }}
-              />
-              <LegendPanel />
-            </div>
+            <div className="graph-panel">{graphContent}</div>
             <AxiomActionPanel
               showInversionActions={showInversionActions}
               showArrangementActions={showArrangementActions}

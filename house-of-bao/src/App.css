@@ -526,6 +526,109 @@ button:disabled {
   }
 }
 
+@media (max-width: 768px) {
+  #root {
+    padding: 0;
+  }
+
+  .app-shell {
+    align-items: stretch;
+  }
+
+  .app-card {
+    padding: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    border: none;
+  }
+
+  .mobile-shell {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    width: 100%;
+    gap: 1rem;
+    padding: 1rem;
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+    box-sizing: border-box;
+    background: linear-gradient(180deg, rgba(15, 23, 42, 0.12), transparent 25%);
+  }
+
+  .mobile-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .mobile-graph-panel {
+    flex: 1;
+    min-height: 0;
+    padding: 1rem;
+    border-radius: 16px;
+    height: auto;
+  }
+
+  .mobile-graph-panel .network-view-container {
+    height: 100%;
+  }
+
+  .graph-panel {
+    height: auto;
+  }
+
+  .mobile-info-drawer {
+    width: 100%;
+    background: rgba(248, 250, 252, 0.96);
+    border-radius: 20px 20px 0 0;
+    box-shadow: 0 -14px 32px rgba(15, 23, 42, 0.18);
+    padding: 1.25rem;
+    padding-left: calc(1.25rem + env(safe-area-inset-left));
+    padding-right: calc(1.25rem + env(safe-area-inset-right));
+    padding-bottom: calc(1.25rem + env(safe-area-inset-bottom));
+    max-height: min(45vh, 420px);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .mobile-info-drawer .info-card {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+  }
+
+  .mobile-action-panel {
+    position: sticky;
+    bottom: 0;
+    width: 100%;
+    margin-top: -0.5rem;
+    background: rgba(255, 255, 255, 0.98);
+    border-radius: 24px 24px 0 0;
+    box-shadow: 0 -18px 36px rgba(15, 23, 42, 0.22);
+    padding: 1.5rem;
+    padding-left: calc(1.5rem + env(safe-area-inset-left));
+    padding-right: calc(1.5rem + env(safe-area-inset-right));
+    padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));
+  }
+
+  .mobile-action-panel .info-card {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+  }
+
+  .side-panel,
+  .app-footer {
+    display: none;
+  }
+}
+
 /* Footer Styles */
 .app-footer {
   margin-top: 1.5rem;
