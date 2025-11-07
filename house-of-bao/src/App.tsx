@@ -76,7 +76,6 @@ function LegendIcon({ shape, color }: { shape: LegendShape; color: string }) {
 }
 
 function LegendPanel() {
-  return;
   return (
     <div className="legend-panel">
       <span className="legend-title">Legend</span>
