@@ -1,0 +1,793 @@
+#+title: Playtests
+
+* Build 1
+** Playtest 1
+:PROPERTIES:
+:player: Karina
+:date: [2025-11-01 Sat]
+:END:
+
+*** Notes while I watched
+1. UI Definitely needs to go bye-bye!
+2. Attempted to disperse on Square of a Frame.
+3. yay? but too simple to convey much useful information
+4. Clarify needs
+   The gradient seems notable to the player.
+5. Doesn't understand why /cancel/ is valid on selection of only =o= without both =o=, =<o>=
+6. Yay.
+7. Wants to disperse on the square.
+   Confused on how/why Disperse duplicates context.
+8. =4-2= :: Tried to cancel on the <o*o*>* but confused why it expected only parent.
+   Asked, /why/ did they cancel?
+9. =4x2= :: a little overwhelming?
+   Trying to read how multiplication arises from this shape.
+   Clarify didn't work; it should be disabled when user selects invalid parent (()[])*
+
+   Dispersal leads to too many extra circles that it feels wrong?
+   - still confusced on what the actions mean. 
+
+   Trying to click to see what actions are available on various selections. Expects more accurate narrowing.
+   /Collect/ was NOT sufficiently covered in the tutorial examples!! 
+   Collect is the one with most selections: it needs minmum of 2 or 3 containers selected.
+
+   Confusion on use of /Cancel/ hoping it would /clarify/. 
+
+   Now attempting to randomly click on objects until /collect/ appears.
+   - [ ] Remove Reflection Axiom for level =4x2=
+
+   Confusion led to forgetting what the rules do.
+
+*** Transcript :ARCHIVE:
+#+begin_quote
+00:00 All right, here we go. Uh, I'm going to pretend like it's my first time seeing this again. Or should cuz to like cuz
+00:07 here's what I did. I was like, "Huh? What do I can click on this?" What? What is that? That's the button.
+00:13 It's like Oh, I can toggle this. This is weird. I don't understand what Wait, why can't I select this also?
+00:21 Oh, okay. Uh, was not immediately clear what it does. Just like, oh, I can
+00:27 select this. Cool. And then I later realized like, oh, uh, I have actions,
+00:33 but like what am I supposed to do? Oh, here's my goal state. Um,
+00:38 from what I remember seeing this before, I was like, well, isn't it something like this is the same as this with this
+00:46 in the way or something. So then I said like, uh, then I eventually realized I
+00:52 could come down here and clarify like, oh, okay, that makes sense. Uh, goal
+00:58 satisfied. Nice work. Um I still kind of missed. I was like, "Wait, is that the goal state?" Yes, it is. One complete.
+01:04 Goal satisfied. All right. Uh next next level. Um
+01:12 uh uh Oh. Okay. Split the context. How am I supposed to
+01:19 um Well, I probably don't want to do anything with this because it's like these two are the same here.
+01:27 Um But this maybe I want to split it into the two. I
+01:32 I literally cannot collect. But I don't understand why I even have two options here.
+01:41 Um just pressur this. Oh, wait. Really?
+01:47 I was going to do this. What does this do? Oh,
+01:55 interesting. I don't know why that doesn't work when it's an option.
+02:02 But then I can do this disperse. I'm not sure why that works, but sure.
+02:09 Um, create and cancel. Oh, wait. Reset. Oh, create pair. Okay.
+02:17 Oh, that's it. Oh, just to create Oh, I can create infinite pairs.
+02:24 Can I cancel them? I can't. Interesting. Void sandwich. Uh,
+02:30 goal state. That's not in progress loading. That is just like, all right.
+02:36 Clarify void sandwich infold frame.
+02:42 Hold on. This is capture stop. Okay. Capture cursor. Uh, infold frame. Oh no,
+02:51 now there's two of them. I clicked infold frame on the square and I got two squares and two circles. Enfold frame.
+02:58 Oh no, the undo is very nice. Clarify. Oh. Huh.
+03:06 Let's clarify. Infold frame. Infold mark. See, this is the first time I'm seeing these options. So now I want to
+03:12 see what they do. Infold mark on the circle gives me a reverse circle.
+03:19 Oh wow. Okay. mirror collapse.
+03:27 Um, I'm just paranoid that I'm not recording, but I am recording. I'm checking it like every 5 seconds.
+03:35 Create create pair. Oh, wow. That's crazy. Uh, create pair here.
+03:44 Wait, why am I So, before I could cancel this. Oh,
+03:50 really? Can I cancel just wait I can cancel any element of this
+03:57 but not if it's past the angle I can cancel the angle or I can cancel
+04:04 the individual thing and the angle goes with it. That's uh interesting. I keep seeing uh this like if I create a pair I
+04:14 see like these lines converge towards like a single root and that's the thing that feels kind of like what where does
+04:21 that come from? Like why can't I see the root? Um
+04:26 like if these are all just supposed to be part of like one parent object, I would like to see the parent object even
+04:31 if it means it's just like a theoretical like nothingness like the void. Um, and
+04:38 maybe that would make having an empty state a bit clearer for having like a void state of like it is literally just
+04:44 the void cuz you can only see the void. Maybe like a black hole or something.
+04:50 I don't know. Adam um alpha unwrap clarify.
+04:57 No, in full in full frame. Nope, that's that's not what I wanted. Uh,
+05:03 wait a second. So, I have this I can clarify the circle and the square. Yeah. And then I just All right.
+05:11 Uh I don't think I totally understand why these actions are called the way they are or what the axioms represent.
+05:21 Um hang on. Sorry. I just like got a call.
+05:43 Okay. Uh, split the square.
+05:54 Split the square. Collect
+06:02 Uh, I'm trying to have Oh, I'm trying to split B and D from each other. Disperse.
+06:11 No, disperse from Wait, disperse the D.
+06:19 Oh. Huh. Why is that? Wait, can I do that with B as well? Then I get two. Oh,
+06:27 and it's still correct even though the result is backwards. Oh, that's cool. A little bit of redundancy is nice.
+06:34 Okay. Subtract four minus 2.
+06:44 Uh, create cancel this.
+06:51 Oh, cancel this. Oh, okay. Okay, now I'm starting to see how this plays into I I like this one.
+06:58 It It feels more like So, if I cancel this, then I'm getting rid of like one
+07:04 of the aspects or one of its aspects or something or sorry, one of its circles.
+07:10 Um, I can't cancel the circle directly, but I can cancel the angle that holds on to different pieces and that just like
+07:17 remains as an angle with all of its like subpieces and then it balances out on the other side. I like that. That's
+07:25 interesting. Uh, multiply 4 by two.
+07:30 Clarify. Uh, wait.
+07:37 Oh, there's so many more options now. Oh, no. Uh, disperse.
+07:43 [Laughter] Um,
+07:53 and fold frame. No. Uh, wait. Can I clarify? No.
+08:03 Just was it because I'm selecting multiple things?
+08:10 Uh, maybe maybe disperse is what I want. It just feels like I get way too many
+08:16 objects as a result. 1 2 3 4 5 6 7 8 9 10. But I only need
+08:23 eight. Um,
+08:35 uh, I want to clarify. Wait. Oh, I can select multiple of them and
+08:42 then I can start to collect. No, cancel, clarify,
+08:48 disperse, create pair. Oh, multiply 4 by two is
+08:54 the one that is not obvious to me um
+09:00 in this state because before it was like subtraction that made sense, but multiplication
+09:07 I don't know. Wait, unless I go back to like the first unwrap where it was just like one by one by one. I could clarify
+09:13 it and that was fine because it was like balanced on both sides. But I had to disperse
+09:19 from the round to get two squares. So if I go back to multiply, can I
+09:27 choose one and disperse that to then get
+09:33 uh oh wait. Oh, and then I can clarify
+09:38 uh one by one by one. And then can I clarify these squares?
+09:45 No. Do I have to disperse all of them individually?
+09:50 One, two, three, four, five, six, seven, eight.
+09:56 Disperse. No. Collect.
+10:01 Okay, good to know. the the I finally used the clear selection button. Disperse. Do I have to disperse each of
+10:08 these individually? It feels weird because I would have assumed that I could select all of them
+10:14 and then disperse them. Uh and then I can select all of these to
+10:20 clarify them, right? Uh I think I just clicked the background and that cleared my selection. That
+10:26 didn't feel good. Oh. Uh oh. Wait. Can I only clarify one at a time?
+10:39 We're almost there. Okay, I did it. I multiplied four by
+10:44 two. Let's go divide four by two.
+10:50 Um, so if I try to like cancel, that doesn't
+10:56 work because there's like this square in the way. Some kind of visual indication here might be nice to show like this
+11:02 isn't working because the square is like unresolved or something.
+11:08 Uh I can't clarify that but I can disperse this, right? Can't I?
+11:16 Or is it? Oh, it's only when uh
+11:21 it's only when it's uh like a circle square circle. Um
+11:29 clarify clarify
+11:35 clarify 4 by two. Uh I've just created Wait, is the board
+11:41 worse than it was before? I don't know. Maybe. Oh, wait. Maybe I It might be nice to be able to undo from a reset.
+11:49 Um how did I do this before? Disperse.
+12:01 Uh, dis what the heck? Disperse.
+12:09 Disper. Oh, right. Um,
+12:14 I cannot cancel. Wait, can I cancel this?
+12:20 Or rather, can I
+12:26 I just feel like I don't know which verts work with which items except for
+12:31 just having to sort of brute force my way through each of them.
+12:36 Uh divide 4 by two.
+12:43 Like maybe I was on to something with this. Um,
+13:06 [Music] then how am I going to get rid of this?
+13:24 clarify or clarify here.
+13:30 Can't cancel either, right? The angles need something else on the other end to balance them to to cancel out. So, this
+13:37 won't work. Okay, I am feeling a little lost on division,
+13:45 so I might just I don't want to skip it. But if I skip it, yeah,
+13:50 we're back here. It's not going to get any easier, unfortunately. It's not going to get any easier or
+13:56 explore a different problem. Divide 4 by two.
+14:07 But also great effort. Thank you. You want to continue? Uh
+14:13 yeah. Let me see what else is in here. Simplify two / 4. Oh wait, this is just
+14:20 asking me to simplify it. Um
+14:26 like can I disperse this and then
+14:34 Oh no. Created an octopus.
+14:45 Um square square I can probably do and square root
+14:53 of four. Oh, how did I I did I did subtraction. That was fine. But so the
+14:59 angles with the squares feels like the part where I'm lost. Uh and that's just that's just division.
+15:11 Uh but like anything that's got the square in it that feels like I can just disperse it.
+15:18 Oh wait. Uh no. I have to Oh, wait. Clarify. Uh,
+15:25 wouldn't I have to unfold the frame? Oh, wait. No, sorry. Infold the mark.
+15:34 Clarify. Oh, I'm just back to where I started.
+15:45 Mark, no. Because I'm just looking for like balances, I guess.
+16:08 Uh yeah, just to say clarify for all of this.
+16:14 Wait. Oh, because it's like a pair. Oh, and then it's like a pair. Uh, wait.
+16:22 Have I been doing this wrong the whole time? And then I can disperse this.
+16:27 Can I disperse all of these? Just cuz there's so much clicking. I wonder if
+16:36 I'm not like that accurate all the time.
+16:42 Select. I it feels weird that I can only do it one at a time, which I I can see
+16:48 how the code for that would be a bit tiresome because then it's got to like
+16:53 look ahead in time to see what the consequences of doing those actions would be. But I would hope that it
+16:59 exists in a capacity that it can be sort of like step agnostic or
+17:05 like if it's all doing the same kind of action then whether or not it is valid makes it possible to iterate through
+17:11 everything in the selection. Um I agree.
+17:17 Uh we're almost Oh my god, there's so many. Wait, can I just do clarify here?
+17:23 No. Can I do clarify here? Yes.
+17:34 [Music] This is there's so there's got to be a better way to cl to click this thing on
+17:40 the left side of the screen and then click clarify on the right side of the screen and then repeat it um one two
+17:48 three four five six seven eight nine 10 11 12 like I don't know like 20 times.
+17:56 Oh dear. Because I can see this being really cool when you do it like in in sequence
+18:03 because then that would make it nice and fun just like oh I just cleared all of those at once like a Tetris line or
+18:09 something.
+18:18 Yeah, we're still running. We're still good. We're still We're still running. Yeah, we're good. I'm so paranoid this.
+18:24 Of course it works. I'm seeing it. I'm watching it work right now. All right,
+18:38 there. Goal satisfied. Nice work. Square root four to the power of two.
+18:43 Uh, I think I'm going to call it here because I didn't understand division, so
+18:49 I'm not going to understand square roots. But yeah. Yes. All right. Fantastic.
+18:55 Uh, do you have any questions for me right off the bat
+19:01 to peek into what's in my mind? Yes. So, well, I I actually was not
+19:08 thinking about uh what to ask there, but um
+19:22 thank you so much Yeah, I'm sorry. Don't apologize. This is No, this is the
+19:28 proc this is the process. Like this is all like it just um I can see a really
+19:35 good potential for it. Um hold up. Where is I just need like a solid
+19:41 thing to write on and then I can sort of give the initial thought of
+19:49 where I would see this going. Um,
+19:54 solid piece of cardboard.
+20:01 Not J's drawing tablet.
+20:07 This work? Not really. Um, open the box. This box would surrounded
+20:16 by cardboard boxes.
+20:21 Um, okay. Uh, so I was thinking,
+20:28 uh, I don't know. Have you done any like sketches of like the UI? Uh, the
+20:34 You have? Okay. So, maybe I won't go too too ham or crazy. Oh, no. Please. I'm open to it because
+20:41 like uh I I still need to like there's a lot that I need to figure out
+20:48 for sure. Yeah. And please share like your crazy ideas
+20:56 cuz I think that would be awesome.
+21:02 All right. Um
+21:07 I am uh thinking so in my mind this game does
+21:12 not need physics for the animations. it. To me, this feels like a game that
+21:18 needs to run on like really minimal hardware, but looks really good and
+21:24 flows really well. Um, there's a couple really good simple puzzle games that
+21:30 have this sort of like aesthetic of like the simplicity like you have currently, but they really play it with just like
+21:37 lots of good motion tweening and sort of uh animating properties over time to
+21:43 make them have the appearance of like physics or something interesting or cool. I know you wanted to have it like
+21:50 about like um like the food
+21:55 And maybe the physics would play a part in that, like having the inside slush around and stuff, but I think for
+22:02 something that's meant to be a very simple puzzle game that it is probably in your best vested interest to like
+22:08 keep it as simple as possible um in terms of like how it's implemented
+22:14 so that like the focus can just remain on it being uh like it can still feel
+22:20 handcrafted, but to do that through art rather than through technicality or to
+22:26 do that through like the technical art rather than like introducing other components that add their own
+22:32 complications even if it's only visual. I don't know that was that was a side
+22:37 thought just because you mentioned um I was think sorry that was a weird rant to
+22:42 start it off with. Um, I was imagining having something like these axiom
+22:48 actions be like if you select something then there's like a popup bar that shows
+22:54 you all the actions you can take on that specific element and then that would be
+23:00 a lot easier to like click on something and then click clear and then it goes away in terms of like clarifying
+23:06 something uh like here and then click cl uh clear or clarify and then it goes away. Um or
+23:14 in the case of like the void sandwich like same with u this and clarifying it from there. Um
+23:23 and then also even like you could use that icon, you could use icons, you could use text. Um,
+23:33 but uh just to be able to make it feel like clicking on stuff to select it and then
+23:39 choosing an action feels natural. And then also what actually comes up in the
+23:44 tool tip then becomes dependent on the context and also like what is there. And then any options that will not do
+23:50 anything will like still exist if they're meant for later parts of the puzzle, but will be grayed out. And
+23:57 maybe that uh clicking on it could explain why that move isn't possible.
+24:03 Like you cannot uh clarify this because uh or hang on you cannot cancel this
+24:10 because this is not like a cancelable object. Oh, it is a cancelable object. Okay, whatever.
+24:16 Uh but here like in the multiplication like if I'm trying to clarify it can be like you cannot clarify this yet. Uh the
+24:26 string needs to be like round square round before it can be clarified with
+24:32 only one parent and only one child. uh or something like that or it only
+24:37 needs to have like one connection to its parent and then that just being a way to sort of like intuit it the rules by like
+24:44 experimenting and seeing like if I select this and then I try to do this action but I can't then the game tells
+24:49 me why I can't do it and that drives me towards like figuring out which actions I can take
+24:56 some something kind of like I don't know playing a mind sweeper game where the game is telling you when you make a
+25:01 wrong move and like why that move won't work or why that move is like unsafe, I guess, something like that. Um,
+25:10 and I think that would help make it less front-loaded with tutorials because I
+25:16 think this is a lot to explain to somebody who has never done this before, but at least in a way where it
+25:22 encourages you to just interact and touch with it and to work with the content than it would explain it more as
+25:28 you go rather than all at once from the from the get-go. Then like the front
+25:33 loading could just be um click on something and then uh
+25:40 try out one of the actions that it gives you like uh let's uh let's disperse
+25:46 this. Uh wait, right. Yeah. And then let's simp uh simplify this
+25:54 or but it doesn't let you simplify it. Okay, that's fine. Yeah. So that's
+25:60 essentially and uh I I'll send you a picture of sort of what I'm imagining, but
+26:05 absolutely I think uh it's a really good idea and I think it's really cute and uh it's not
+26:13 like super crazy hard. It's just like conceptually a really interesting idea and that there's no like uh there's not
+26:21 yet a point of like I don't know different colored objects or different
+26:26 like textured objects that need to belong in different parts of different things. Like I guess that's kind of like
+26:32 what the alpha and beta and stuff would be is like moving these objects from
+26:37 like one string to the other could be interesting as well.
+26:42 Um I will need outside perspective on puzzles
+26:49 to make for sure. Mhm. Because I'm coming at it from a very
+26:56 particular angle of it of it being very specifically used to teach arithmetic
+27:04 and algebra. Yeah. Oh. So like as an educational game
+27:11 both like it it should be a game first and foremost but
+27:17 I think that like well these axioms are well these rules are sufficient for K
+27:24 to2 math like just those three and um I think that's
+27:32 incredibly powerful. The goal of this game generally is to uh just drive
+27:38 awareness of that fact to like also encourage people to like play around
+27:44 with them and to like get an intuition from exposure through exposure
+27:51 and then be able to use it in their day-to-day life for for performing math essentially.
+27:57 Uh that's like what I'm hoping in the end game. But like at the same time, I
+28:03 also just do want this to be I I just do think that the the rules themselves are in themselves honestly kind of pretty
+28:10 fun. Yeah. Uh and they don't have to be interpreted in the algebraic or or like arithmetic
+28:17 perspective. The rules are just actually their own thing. And algebra is like conventional
+28:24 math is really just one interpretation of the containers and the rules
+28:29 actually. Yeah. So, it would be great to
+28:38 have a way to Yeah. reinvision like what these mean
+28:47 and what we could do with them for making puzzles because like
+28:54 uh it's I know that there's an extreme wealth of
+29:02 puzzle examples if I'm coming from the convention like it's a new notation for
+29:08 math type of perspective. Yeah. because it's literally like 12 years of curriculum. Like there's so
+29:14 much material to work from surely that like some of them should at least be good for puzzle puzzles for
+29:21 sure. Um but like just the rules in themselves I
+29:29 think there's also a rich space for that too. Um especially because
+29:36 these this is like a pattern system. It is not dependent on
+29:43 the specific visualization actually.
+29:52 So I like the idea of like trying to introduce new mechanics as well. I've been puzzling about like how would that
+29:58 even work when Oh like introducing your own concepts to
+30:03 this as well. Yeah. Like I don't I don't know how that will work. I don't know what sort of
+30:09 concepts I would introduce here. Um what I would even want to introduce.
+30:14 Yeah. Cuz like on one hand I do like I know that these three rules are sufficient to
+30:23 cover a very wide range of problems and approaches
+30:28 uh because you know it's literally the the math curriculum. Mhm. But on the other hand, I also
+30:34 imagine that people would want novelty in new mechanics as well. And I'm like,
+30:41 I'm not sure how or even a what
+30:48 I would do there. Yeah, I think something that would be
+30:55 cool is so I'm continuing this recording because I also found this like post talk
+31:02 really useful. Um the idea of like stuff that would make no sense conventionally
+31:09 uh or maybe there's a simpler way to do it but something like say one of these
+31:14 cir Hang on. So yeah, say one of these circles um is like the first part of two
+31:21 halves and this circle is like the second part of two halves. And the goal is to get them to share a space with
+31:26 each other so that they become like a new piece. And perhaps like these two circles when combined turn into a
+31:33 square. And then that allows you to do something that conventionally you wouldn't be able
+31:38 to do using this iconic arithmetic because like these symbols are like they
+31:44 cannot be changed but they can be like added removed and sort of worked around by like unfolding and uh I I guess if
+31:52 maybe maybe that doesn't quite make perfect sense but uh
+31:59 I think the mechanics of what you would add is essentially just taking an alpha
+32:05 and giving it some additional condition like you're essentially setting custom conditions every time with each level.
+32:12 Uh the goal is not per se to like create a void and the goal is not to like
+32:18 completely simplify everything. Um I think that would actually be a good
+32:24 question to ask yourself is like what do I want people to aim to achieve is like
+32:29 do I want them to be able to demonstrate they understand the concepts? Yes, probably. Do you want to make sure that
+32:35 like they always come out to the most simplified form of like the problem as given perhaps? No.
+32:41 Um, no. Or Okay. I I want to have more priority than
+32:46 that. I think like uh cuz what is considered simplified
+32:52 depends on the notation as well. Okay. Yeah. So yeah, I think this is
+32:57 pretty good. like uh in my mind just setting a different goal state isn't is
+33:03 its own kind of like mechanical introduction and every sort of iteration
+33:08 of trying to take this initial idea and then turn it into like how do I get this into this using like a new method or a
+33:15 new action might be sort of like the thing that requires that feels like it's
+33:20 a new idea because you're not just like okay uh do this dispersion sorry do this
+33:27 disperse thing again, but do it on five elements instead of two. That doesn't feel like a new idea. And uh it it's
+33:35 because the potential like space of
+33:40 possibility, the possibility space of this is not very broad, but it's very
+33:46 interesting despite the fact that it has uh all of these different actions that you can take. like it's about teaching
+33:54 people how to use iconic arithmetic but also highlighting how it is kind of fun to work with it like conceptually it
+34:00 doesn't have to be made an interesting challenge on top of that it's it's like
+34:06 uh if navigating a 3D maze uh is supposed to be considered like a
+34:14 fun game in of itself uh like that is supposed to be considered a challenge is like learning
+34:20 how to navigate a 3D world like using a keyboard, then uh that's not a very
+34:26 interesting idea from the get-go. So, it kind of requires like another idea to be
+34:32 put on top of it. like um Steven's uh sausage roll
+34:40 uh for example is a really fun and interesting game because it
+34:47 creates all of these consequences of you like moving around like just trying to move around is not simple in the first
+34:55 place. It's convoluted to get around with like this fork that takes up the same amount of space that you do and
+35:02 then to navigate around the world in a way that doesn't like completely block you off uh from entering certain zones.
+35:09 And then on top of that, you have the additional challenge of like moving and rolling these sausages without having
+35:16 them drop into the water and onto grills. And so it feels like it's not to burn them and not to burn them. So, it feels like
+35:22 it's a two-dimensional sort of problem of not just you have to cook them, but well, like you have to move sufficiently
+35:31 to get around as well. And these two problems like interconnect in so many different interesting ways.
+35:38 Uh, this just kind of has one dimension to it in my mind. It's just understanding how the system works and
+35:45 that you're not necessarily like using this to combine it with like a a tertiary system of like atoms or
+35:51 elements or I'm thinking like Opus Magnum or Space Cam like Zacttronics
+35:57 games that focus on sort of the construction of more complicated elements using smaller simpler elements.
+36:04 But the main uh like part of the problem is learning how chemistry works and how
+36:09 to combine particles. But the other half is just like how to build the machine that gets it all together. Um, so this
+36:16 doesn't need a second half to it. This I think more the most important thing for
+36:22 this game is just to take literally this and to gradate it a little bit more. So,
+36:27 it might not be the most enticing puzzle game, but it's a really good idea that I think deserves like the spotlight and is
+36:34 in of itself, despite being one-dimensional, far more valuable than
+36:40 like, I don't know, another match three game or
+36:46 um a game that's like trying to poke at a puzzle intrigue of some sort. uh like
+36:52 a mobile game about matching colors of spools of thread and stuff except you can't see the entire board. And it
+36:59 encourages you to like make microtransactions so that you can cheat back at the game when the game cheats at
+37:04 you because it doesn't give you the entire in uh all the information. This
+37:10 game gives you all the information and all the tools to solve it. So, it's much more like solitaire. And I think games
+37:16 like Solitaire are inherently interesting despite having just kind of
+37:21 like one level of depth to it, but that level of depth is kind of hard to foresee
+37:28 without mastery of the toolkit that you're given. So yeah, that's that's my big rant. I think
+37:33 you're I think you made a new solitaire and I love it and I think you should make a really good solitire game.
+37:43 Any any closing thoughts?
+37:50 Uh, I'd like you to also see another visual dialect of this as well that I
+37:56 uh sketched out real quick. Oh, okay. Chatty G.
+38:05 Uh, you see my screen here? Yeah. Yeah. This one here.
+38:11 Um, is it visible? Yes, it Yeah.
+38:17 Okay. So, this is another visual what's called a visual dialect of the system as well.
+38:23 So, uh I don't know if I ever showed you this uh here iconic.
+38:32 Let me go find it.
+38:40 There are many visual dialects from the same system that and I think the design space for
+38:47 this is actually quite large possibly. Yeah.
+38:54 At least in terms of visuals and interactions. Okay. Okay. But in terms of like rules,
+39:01 yeah, it does like I am not sure where it is where this game lies in between 1D
+39:07 and like between solitire and Steve Sashro because like for sure it does not
+39:14 uh it does not have like as much interaction. Mhm. But at the same time, I have to wonder
+39:21 like if I were to introduce things like for example systems of equations or like
+39:27 functions for example or even uh recursion as well
+39:34 like how it would interact there. Uh one other thing that I would like to try is
+39:41 like allowing people at some point to introduce their own types of uh containers.
+39:49 that have their own sort of like behaviors as well. I think that would be interesting.
+39:55 Yeah. Oh, what about Oh, okay. What if another
+40:02 axiom is like moves taken? Like if a
+40:08 problem is too easy to solve, what if after a certain number of moves
+40:13 uh a new element is added onto a certain piece? And so then it's like you can't
+40:19 solve this the way that you would intentionally. it like impedes your progress and requires like additional
+40:25 forethought in a way to work with those other elements because like the state of
+40:30 the board is changed in a way that the player can anticipate but does not have
+40:36 the same full control over I guess
+40:41 I don't know that would be interesting I really have no idea what sort of rules
+40:47 that would have but like at the same time since this is a game
+40:53 like it doesn't have to be logically or I guess it doesn't have to be like super logically sound or anything.
+40:58 It just has to work enough like it doesn't have to be super
+41:04 rigorous or anything. Uh so yeah the
+41:11 so as you see here multiply four times two. Oh, also can I can I stop the
+41:17 recording or uh Yeah, please feel free to if you'd like. Yeah. Oh, wait. One last thought. Uh
+41:24 rooms blocks. Uh 3D platformer. Uh yeah, 3D platformer.
+41:30 2D 2D rooms. Doom Doom with this with the rooms. I don't know. That's it.
+41:37 Possibly.
+#+end_quote
+
+** Playtest 2
+:PROPERTIES:
+:player: Ember
+:date: [2025-11-01 Sat]
+:END:
+*** Notes while I watched
+
+This time mostly quotes.
+
+1. Aww yeah
+2. mhm
+3. create?
+4. confused on whether a 'void goal' is loading or just nothing
+5. the edges reaching beyond the top of the screen is intriguing. But why can't I see what it's attached to? I'd like to see the parent object (a void node) and to see the void, maybe a black hole?
+6. straightforward. But why are the axioms called that, and what do they represent?
+7. hmm. disperse? redundancy is nice.
+8. nice. interesting eureka!
+9. =4x2= too many options. not obvious to me.
+   Oops, dispersed too much (to eight pairs of empty frames)
+   Clearing the selection by accidentally clicking the background doesn't feel good.
+10. =4/2= Visual indication would be nice of how /cancel/ won't work.
+    val: >_> too much jump in difficulty from =4x2= to =4/2= for sure. collect & enfold (esp. the difference between Mark and Frame) was NOT explained well at all in previous levels.
+
+    <skip>
+11. Created an octopus, lol
+12. If only we could clear /all/ eight pairs at the same time. That would feel *satisfying*, like a Tetris. To be able to multiselect many pairs and to clarify them all at once.
+
+<end>
+*** Where Ember Sees This Going
+
+This game doesn't need physics? It think it'd be great if it could run on absolutely minimal hardware.
+Simplicity! Good /animation/ physics or tweening instead. For a simple game like this it's best to keep it as simple as possible.
+
+Imagining Axiom Actions: pop-up bar of all actions on each specific elements availabl ethere.
+
+Use Icons and Text?
+Click then select menu is context dependent, and limits the choices. Good.
+
+Error tooltips would be great as to why an action won't work or is unsafe.
+It'll help the game be less front-loaded with tutorials, too.
+
+: The Gameplay Loop: Click -> see available actions -> try an action
+
+**** Idea: What sort of new mechanics would even be possible?
+
+Say 1/2 of these circles are one part of two halves.
+And when combined they do something new to the game? the JA system?
+
+e.g. take /A/ and give it custom conditions.
+- goal states can be not necessarily /void/ or /simplify/
+- new types of goal states are itself a mechanic.
+- new ideas or actions?
+
+**** "I don't know if the possibility space is that broad? But it is /interesting/."
+Stephens Sausage Roll is interesting because just moving around is not simple, with a fork the same size as you.
+And combined with the water, sausages, and grill, it's a challenge to get around. It's a 2-dimensional problem.
+
+House of Bao is just one dimension at the moment because it's mostly about the JA system.
+It doesn't need a second half?
+It is a very good idea that deserves the spotlight.
+
+Games like Solitaire are interesting at one dimension. You should make a very good solitaire!
+
+A new axiom: moves taken?
+- what if after X moves you add a new piece that would require new forethought?
+  - this would involve making new distinctions in types of boundaries, which is scawy...
+
+*** Transcript :ARCHIVE:
+#+begin_quote
+00:00 Thank you so much. Great. Awesome. And
+00:05 yeah, just feel free to like explore
+00:06 with the UI and try to play with the
+00:09 tools.
+00:11 Uh we have a track ball or
+00:15 such
+00:20 network dialect sandbox. I don't know
+00:25 what that means.
+00:34 I want to click the gold goal state
+00:46 to select it.
+00:51 I have the desire to read through
+00:53 everything on the page.
+01:07 My eye goes to the blue square that's
+01:10 highlighted
+01:14 square.
+01:20 You see that two nodes are highlighted.
+01:26 Okay, nice.
+01:38 I don't want to clear the selection. I
+01:40 want to get rid of this.
+01:57 First
+01:59 clarify. Wow.
+02:03 Yay.
+02:11 The context.
+02:15 So I really want to click and drag
+02:20 disperse.
+02:31 No disperse.
+02:43 I want to add a square.
+02:49 What if
+02:56 One more
+03:03 dispersions
+03:14 available.
+03:19 disperse them or I can collect them.
+03:24 Well, I want to collect
+03:31 I don't want to collect two circles.
+03:38 You can't collect one thing. That makes
+03:40 sense.
+03:51 I'm clicking the word randomly as just
+03:54 an
+04:08 I want to understand why that did that.
+04:22 I just
+04:26 that definitely needs to be improved for
+04:28 sure.
+04:32 Do it again. Oh, I see. Undo.
+04:38 How did I do it?
+04:43 Oh, I see.
+04:49 I click disperse.
+04:53 Disperse
+04:55 two.
+05:06 The thought in my head is that the nodes
+05:08 were already dispersed.
+05:16 I hate
+05:26 something.
+05:46 What I remember
+05:48 was
+06:02 I want to know if
+06:05 these two connected
+06:07 Why does
+06:10 why does clarifying one of them get rid
+06:12 of
+06:14 the square?
+06:20 Maybe because the gradient is lighter
+06:23 here and darker here. That means that
+06:25 the circle is
+06:42 Okay, my
+06:44 I've seen the word mirror before
+06:47 somewhere.
+07:06 There's nothing.
+07:17 Okay. I don't understand why.
+07:28 I want to know what
+07:31 I see that
+07:52 thing. What is it?
+08:01 How did I cancel it?
+08:16 Cancel.
+08:51 Okay, this is the parent.
+09:13 This was this virus.
+09:17 First
+09:40 disperse.
+09:60 get two blue squares
+10:04 and I get an extra
+10:13 stays
+10:15 square. I got an extra.
+10:22 So, what was that
+10:31 blue squares
+10:33 by dispersing
+10:35 child?
+10:40 confused.
+10:45 So trapped
+11:03 already.
+11:06 I can cancel them.
+11:10 cancel.
+11:21 Oh, that's Wait, what? That's right.
+11:38 cancel.
+11:46 Okay. So, how went from
+11:50 four
+11:53 things
+11:54 to two things?
+11:59 Don't know where this
+12:04 multip
+12:09 I have three things. I have four things.
+12:11 I have two things.
+12:14 Eight things.
+12:25 Right
+12:33 now I'm just looking at the visual
+12:36 image.
+12:42 One central thing
+12:50 because I know the word multiply. That's
+12:53 why I'm trying to figure it out.
+12:56 how this diagram relates to
+12:58 multiplication.
+13:10 Now just
+13:13 wonder
+13:21 I don't want to clarify because that
+13:23 gets rid of stuff.
+13:46 I really want to figure this.
+13:53 What if I disperse these?
+14:08 I see so many extra circles. I don't
+14:10 know how they go.
+14:22 I want the two to do something to the
+14:25 four.
+14:31 I don't know what
+14:34 I don't know what the options mean.
+14:40 I don't want to cancel anything.
+14:46 Can I duplicate this by creating
+14:50 a clip? Oh yeah.
+15:16 You notice that certain options appear
+15:20 to me when I click on something.
+15:26 I've already tried most of the options.
+15:31 What if it is getting ready?
+15:38 Oh, what if I
+15:42 go back in time and see if I learned
+15:45 anything?
+15:58 More squares, but I want more circles.
+16:04 just about getting rid of stuff.
+16:13 This looks promising because
+16:17 you start with one and you arrive at
+16:19 two. I wonder how I did the disperse
+16:22 thing.
+16:24 I do it and I disperse.
+16:28 But you also get a copy of the blue
+16:29 square. So it's still not what I want. I
+16:33 wonder if I can get a copy of the blue
+16:35 square.
+16:44 Okay. Now we just cancel.
+16:50 No,
+16:57 I was thinking I can incorporate
+17:01 subtraction into multiplication
+17:07 bed mass.
+17:22 Okay. Multiplication is about addition.
+17:24 Which one of these were about addition?
+17:28 Well, there was subtraction.
+17:31 I don't see addition.
+17:41 I'm going to try to collect
+17:47 If I
+17:49 disperse and then I collect
+17:54 disperse
+17:57 and I'm just
+17:59 right now I just want to solve it. So
+18:02 I'm no longer thinking through my steps
+18:07 clicking on squares until shows up and
+18:11 it's not showing up.
+18:19 I don't remember.
+18:21 Oh, that's a lot.
+18:30 It really seems like It's so simple.
+18:36 I can't do it
+18:44 for five more minutes.
+18:48 Awesome.
+18:52 It needs a lot of improvements.
+19:00 They
+19:05 See you.
+19:10 Okay, brain time.
+19:19 Four things and you have two things.
+19:22 And I already know what multiplication
+19:24 means.
+19:37 copies of I wonder if I should ignore
+19:40 the fact that I know what
+19:47 I want to get rid of.
+20:07 I got to see the first time.
+20:22  yeah. natural.
+20:24 I'm just a natural.
+20:27 Yeah, I was happy.
+20:28 Have you deployed it?
+20:30 Uh uh it's in production,
+20:33 but yeah.
+20:34 Okay. I want to see it. That's
+20:36 Oh, okay. I was putting my
+20:40 Awesome. Thank you so much.
+20:44 Thank you for
+20:46 entertaining me. I wanted to figure it
+20:48 out. Yeah, this does need a lot of work
+20:50 for sure, but um would you like to see
+20:54 the solution for this as well? It's like
+20:57 it needs a lot. So like I I definitely
+20:59 need a lot more scaffolding for this for
+21:02 sure. And additionally too like uh I was
+21:05 I was a little careless about that. Um
+21:08 in terms of uh especially um I noticed
+21:11 that I did not actually cover collect in
+21:12 any of these levels here. So that was my
+21:15 mistake there too. But uh in this case
+21:17 collect is not uh used. Instead it is
+21:20 disperse here. So uh I agree that
+21:24 disperse when you select this should
+21:26 make it work like should make it work.
+21:29 There's no reason why I shouldn't. Uh I
+21:32 just didn't did not implement that yet.
+21:34 But we disperse this.
+21:36 Yeah.
+21:37 So we uh this is the shape of four* 2.
+21:41 So we see one two four in one of the
+21:42 squares and one two in the other square.
+21:45 So this so just like this itself is the
+21:48 shape of multiplication here. So when we
+21:51 disperse this we get
+21:54 4 * 1 and four * 1 here. Oh,
+22:01 and then since um
+22:05 two rounds next to each other is just
+22:07 like addition,
+22:09 we can um we're going to have to clarify
+22:13 here and get rid of these two pairs. I
+22:16 also agree that uh like
+22:19 trying clarifying on the child should
+22:22 work as well. I think uh that is
+22:25 definitely my next step here. So once we
+22:28 clarify these we can also see a similar
+22:31 pattern here where we can also clarify
+22:32 this
+22:34 and cl
+22:41 and does cancel remove things.
+22:44 Uh I also did not effectively cover
+22:47 cancel in this case as well. So that's
+22:49 definitely something I need to uh
+22:51 something I need to change. But in this
+22:54 case here um
+22:57 for cancel let's try this shape here
+22:60 cancel uh I need to make it clear as to
+23:02 like which which uh buttons here relate
+23:05 to another as well because uh that
+23:08 that's bad these three these first three
+23:10 relate to another these two relate to
+23:12 another and then these two uh so kensel
+23:15 is very specifically uh for in the case
+23:19 of the the per the purple angle brackets
+23:22 it's here. So say that we have a shape
+23:26 and we have a shape next to it as well.
+23:30 We can cancel those two out. So it's
+23:32 similar to a subtraction here. So this
+23:35 one and this one we can cancel
+23:38 as you got rid of one of this and one of
+23:40 this. Um this purple
+23:44 means inversion.
+23:46 So this is kind of I need to do better
+23:49 in like showing that this is an inverted
+23:53 or like taken away type of action.
+23:57 So
+23:59 so when we cancel here
+24:02 and yeah actually
+24:06 cancelelling like this should also work
+24:08 as well. Uh but
+24:11 since we have this next to another copy
+24:15 of itself, but that other copy is inside
+24:18 the inversion container, then they
+24:23 annihilate leaving just the two that did
+24:27 not
+24:28 because they're next to each other and
+24:29 because one is the inversion.
+24:31 Yeah, they don't have to necessarily be
+24:33 directly next to each other, but they do
+24:35 need to be on the same level.
+24:37 Oh.
+24:39 So there we go.
+24:43 I'm looking forward to continuing
+24:45 linking to play this.
+24:46 Thank you. I'm going to work on uh
+24:49 making sure that there are all the
+24:52 concepts are covered. Um this interface
+24:55 is very temporary actually. So ideally I
+24:58 would like to be able to have something
+24:60 much more similar to uh
+25:06 something like this that feels a lot
+25:08 more tactile.
+25:10 This is how the Incans used to do math
+25:12 and communicate across long distances as
+25:14 well by writing messages essentially or
+25:19 um or
+25:21 notations
+25:25 on ro.
+25:29 So they used this for language or
+25:31 stories and for like military
+25:33 information as well as counting. So
+25:38 for long distances they would send the
+25:40 rope.
+25:41 They would send the messenger with rope
+25:43 kind of like mail.
+25:48 Super neat.
+25:50 So I'd like to be able to get to like
+25:52 something like this at some point. Um,
+25:55 and just getting a lot more text
+25:58 physically
+25:59 uh
+25:59 or to emulate the look
+26:01 to emulate the look and or like the the
+26:04 tactility of it as well. So here um I
+26:09 like this uh I like that example I just
+26:12 saw here. I want to be able to, for
+26:14 example, when we see uh in fold, I would
+26:17 really like to be able to um make it
+26:20 kind of look like as if we're attaching
+26:24 a new
+26:26 new note onto here that is also then
+26:30 connected to here. I think that would be
+26:32 awesome.
+26:36 Or cutting a rope and then like
+26:38 attaching something in between there as
+26:40 well. There needs to be a lot more
+26:42 animation work in general in this
+26:45 system. But thank you so much.
+26:50 You're welcome.
+#+end_quote
+
