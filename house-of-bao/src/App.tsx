@@ -6,6 +6,10 @@ import { type AxiomType } from "./levels/types";
 import { useGameStore, type GameState } from "./store/gameStore";
 import { canonicalSignature, type Form } from "./logic/Form";
 import { NetworkView, ROOT_NODE_ID } from "./dialects/network";
+import {
+  useAvailableOperations,
+  type OperationKey,
+} from "./hooks/useAvailableOperations";
 
 type NodeView = {
   id: string;
@@ -153,6 +157,11 @@ function App() {
   const undo = useGameStore(selectUndo);
   const redo = useGameStore(selectRedo);
   const historyCounts = useGameStore(useShallow(selectHistoryCounts));
+  const operationAvailability = useAvailableOperations();
+  const getOperationTooltip = (key: OperationKey) =>
+    operationAvailability[key].available
+      ? undefined
+      : operationAvailability[key].reason ?? undefined;
 
   useEffect(() => {
     if (!level) {
@@ -362,20 +371,28 @@ function App() {
                     <button
                       type="button"
                       onClick={() => {
-                        if (firstSelected) {
-                          applyOperation({
-                            type: "clarify",
-                            targetId: firstSelected,
-                          });
+                        if (
+                          !operationAvailability.clarify.available ||
+                          !firstSelected
+                        ) {
+                          return;
                         }
+                        applyOperation({
+                          type: "clarify",
+                          targetId: firstSelected,
+                        });
                       }}
-                      disabled={!firstSelected}
+                      disabled={!operationAvailability.clarify.available}
+                      title={getOperationTooltip("clarify")}
                     >
                       Clarify
                     </button>
                     <button
                       type="button"
                       onClick={() => {
+                        if (!operationAvailability.enfoldFrame.available) {
+                          return;
+                        }
                         applyOperation({
                           type: "enfold",
                           targetIds: selectedNodeIds,
@@ -383,13 +400,17 @@ function App() {
                           parentId: parentIdForOps,
                         });
                       }}
-                      disabled={status === "idle"}
+                      disabled={!operationAvailability.enfoldFrame.available}
+                      title={getOperationTooltip("enfoldFrame")}
                     >
                       Enfold Frame
                     </button>
                     <button
                       type="button"
                       onClick={() => {
+                        if (!operationAvailability.enfoldMark.available) {
+                          return;
+                        }
                         applyOperation({
                           type: "enfold",
                           targetIds: selectedNodeIds,
@@ -397,7 +418,8 @@ function App() {
                           parentId: parentIdForOps,
                         });
                       }}
-                      disabled={status === "idle"}
+                      disabled={!operationAvailability.enfoldMark.available}
+                      title={getOperationTooltip("enfoldMark")}
                     >
                       Enfold Mark
                     </button>
@@ -408,27 +430,33 @@ function App() {
                     <button
                       type="button"
                       onClick={() => {
+                        if (!operationAvailability.disperse.available) {
+                          return;
+                        }
                         applyOperation({
                           type: "disperse",
                           contentIds: selectedNodeIds,
                           frameId: parentIdForOps ?? undefined,
                         });
                       }}
-                      disabled={selectedNodeIds.length === 0}
+                      disabled={!operationAvailability.disperse.available}
+                      title={getOperationTooltip("disperse")}
                     >
                       Disperse
                     </button>
                     <button
                       type="button"
                       onClick={() => {
-                        if (selectedNodeIds.length >= 2) {
-                          applyOperation({
-                            type: "collect",
-                            targetIds: selectedNodeIds,
-                          });
+                        if (!operationAvailability.collect.available) {
+                          return;
                         }
+                        applyOperation({
+                          type: "collect",
+                          targetIds: selectedNodeIds,
+                        });
                       }}
-                      disabled={selectedNodeIds.length < 2}
+                      disabled={!operationAvailability.collect.available}
+                      title={getOperationTooltip("collect")}
                     >
                       Collect
                     </button>
@@ -439,20 +467,25 @@ function App() {
                     <button
                       type="button"
                       onClick={() => {
-                        if (selectedNodeIds.length >= 1) {
-                          applyOperation({
-                            type: "cancel",
-                            targetIds: selectedNodeIds,
-                          });
+                        if (!operationAvailability.cancel.available) {
+                          return;
                         }
+                        applyOperation({
+                          type: "cancel",
+                          targetIds: selectedNodeIds,
+                        });
                       }}
-                      disabled={selectedNodeIds.length === 0}
+                      disabled={!operationAvailability.cancel.available}
+                      title={getOperationTooltip("cancel")}
                     >
                       Cancel
                     </button>
                     <button
                       type="button"
                       onClick={() => {
+                        if (!operationAvailability.create.available) {
+                          return;
+                        }
                         applyOperation({
                           type: "create",
                           parentId: parentIdForOps,
@@ -462,6 +495,8 @@ function App() {
                               : undefined,
                         });
                       }}
+                      disabled={!operationAvailability.create.available}
+                      title={getOperationTooltip("create")}
                     >
                       Create Pair
                     </button>
