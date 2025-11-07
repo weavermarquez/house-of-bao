@@ -7,13 +7,7 @@ import { useGameStore, type GameState } from "./store/gameStore";
 import { canonicalSignature, type Form } from "./logic/Form";
 import { NetworkView, ROOT_NODE_ID } from "./dialects/network";
 import { AxiomActionPanel } from "./components/AxiomActionPanel";
-
-type NodeView = {
-  id: string;
-  boundary: string;
-  signature: string;
-  depth: number;
-};
+import { FormPreview } from "./components/FormPreview";
 
 type LegendShape = "round" | "square" | "angle";
 
@@ -45,26 +39,15 @@ const LEGEND_ITEMS: LegendItem[] = [
   },
 ];
 
-function flattenForms(forms: Form[]): NodeView[] {
-  const result: NodeView[] = [];
-  const stack = forms.map((form) => ({ node: form, depth: 0 }));
-
+function indexForms(forms: Form[]): Map<string, Form> {
+  const map = new Map<string, Form>();
+  const stack = [...forms];
   while (stack.length > 0) {
-    const current = stack.pop()!;
-    result.push({
-      id: current.node.id,
-      boundary: current.node.boundary,
-      signature: canonicalSignature(current.node),
-      depth: current.depth,
-    });
-
-    const children = [...current.node.children];
-    for (let index = children.length - 1; index >= 0; index -= 1) {
-      stack.push({ node: children[index], depth: current.depth + 1 });
-    }
+    const node = stack.pop()!;
+    map.set(node.id, node);
+    node.children.forEach((child) => stack.push(child));
   }
-
-  return result;
+  return map;
 }
 
 function LegendIcon({ shape, color }: { shape: LegendShape; color: string }) {
@@ -162,7 +145,7 @@ function App() {
     }
   }, [level, loadLevel]);
 
-  const nodeViews = useMemo(() => flattenForms(currentForms), [currentForms]);
+  const formIndex = useMemo(() => indexForms(currentForms), [currentForms]);
   const selectionSet = useMemo(
     () => new Set(selectedNodeIds),
     [selectedNodeIds],
@@ -180,19 +163,18 @@ function App() {
   const showReflectionActions = allowsAxiom("reflection");
 
   const selectedDetails = useMemo(() => {
-    const lookup = new Map(nodeViews.map((node) => [node.id, node]));
     return selectedNodeIds
-      .map((id) => lookup.get(id))
-      .filter((entry): entry is NodeView => entry !== undefined);
-  }, [nodeViews, selectedNodeIds]);
+      .map((id) => formIndex.get(id))
+      .filter((form): form is Form => form !== undefined)
+      .map((form) => ({ form, signature: canonicalSignature(form) }));
+  }, [formIndex, selectedNodeIds]);
 
   const parentDetail = useMemo(() => {
-    if (!selectedParentId) {
+    if (!selectedParentId || selectedParentId === ROOT_NODE_ID) {
       return null;
     }
-    const lookup = new Map(nodeViews.map((node) => [node.id, node]));
-    return lookup.get(selectedParentId) ?? null;
-  }, [nodeViews, selectedParentId]);
+    return formIndex.get(selectedParentId) ?? null;
+  }, [formIndex, selectedParentId]);
 
   const firstSelected = selectedNodeIds[0];
   const parentIdForOps =
@@ -320,12 +302,9 @@ function App() {
                 <p className="empty-note">Tap a node to select it</p>
               ) : (
                 <ul className="selection-list">
-                  {selectedDetails.map((node) => (
-                    <li key={node.id}>
-                      <span className="selection-boundary">
-                        {node.boundary}
-                      </span>
-                      <code>{node.signature}</code>
+                  {selectedDetails.map(({ form }) => (
+                    <li key={form.id}>
+                      <FormPreview form={form} />
                     </li>
                   ))}
                 </ul>
@@ -346,12 +325,7 @@ function App() {
                   ) : selectedParentId === ROOT_NODE_ID ? (
                     <span className="parent-root">root (forest)</span>
                   ) : parentDetail ? (
-                    <>
-                      <span className="selection-boundary">
-                        {parentDetail.boundary}
-                      </span>
-                      <code>{parentDetail.signature}</code>
-                    </>
+                    <FormPreview form={parentDetail} highlight />
                   ) : (
                     <span className="parent-none">none</span>
                   )}
