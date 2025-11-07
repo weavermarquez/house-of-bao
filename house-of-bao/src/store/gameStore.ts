@@ -368,7 +368,7 @@ function disperseContent(forest: Form[], contentIds: string[]): Form[] | null {
   );
 }
 
-function formsEqual(left: Form[], right: Form[]): boolean {
+export function formsEqual(left: Form[], right: Form[]): boolean {
   if (left.length !== right.length) {
     return false;
   }
@@ -377,6 +377,190 @@ function formsEqual(left: Form[], right: Form[]): boolean {
   return leftSignatures.every(
     (signature, index) => signature === rightSignatures[index],
   );
+}
+
+export function previewOperation(
+  forest: Form[],
+  operation: GameOperation,
+  allowed?: AxiomType[],
+): Form[] | null {
+  let nextForms: Form[] | null = null;
+
+  switch (operation.type) {
+    case "clarify": {
+      if (!isAllowed(allowed, "inversion")) {
+        return null;
+      }
+      nextForms = applySingleTarget(forest, operation.targetId, (form) =>
+        clarify(form),
+      );
+      break;
+    }
+    case "enfold": {
+      if (!isAllowed(allowed, "inversion")) {
+        return null;
+      }
+      const variant = operation.variant ?? "frame";
+      const targetIds = [...new Set(operation.targetIds)];
+
+      if (targetIds.length === 0) {
+        const wrapper = enfold(variant);
+        nextForms = addChild(forest, operation.parentId ?? null, [wrapper]);
+      } else {
+        nextForms = applySiblingOperation(forest, targetIds, (nodes) => [
+          enfold(variant, ...nodes),
+        ]);
+      }
+      break;
+    }
+    case "disperse": {
+      if (!isAllowed(allowed, "arrangement")) {
+        return null;
+      }
+      if (operation.frameId) {
+        nextForms = applySingleTarget(forest, operation.frameId, (form) =>
+          disperse(form, {
+            squareId: operation.squareId,
+            contentIds: operation.contentIds,
+          }),
+        );
+      } else {
+        nextForms = disperseContent(forest, operation.contentIds);
+      }
+      break;
+    }
+    case "collect": {
+      if (!isAllowed(allowed, "arrangement")) {
+        return null;
+      }
+      const uniqueTargets = [...new Set(operation.targetIds)];
+      if (uniqueTargets.length === 0) {
+        return null;
+      }
+
+      const locations = locateNodes(forest, new Set(uniqueTargets));
+
+      const frameIds = uniqueTargets.filter((id) => {
+        const match = locations.get(id);
+        return match?.node.boundary === "round";
+      });
+
+      if (frameIds.length === 0) {
+        return null;
+      }
+
+      const squareHint = uniqueTargets
+        .map((id) => locations.get(id))
+        .find((entry): entry is LocatedNode => {
+          return entry !== undefined && entry.node.boundary === "square";
+        });
+
+      const hintParentId = squareHint?.parent?.id ?? null;
+      const hintSquareSignature = squareHint
+        ? canonicalSignature(squareHint.node)
+        : null;
+
+      const collectTargetIds =
+        hintParentId && frameIds.includes(hintParentId)
+          ? [hintParentId, ...frameIds.filter((id) => id !== hintParentId)]
+          : frameIds;
+
+      nextForms = applySiblingOperation(
+        forest,
+        collectTargetIds,
+        (forms) => {
+          const clones = forms.map((entry) => deepClone(entry));
+          if (!hintParentId || !hintSquareSignature) {
+            return collect(clones);
+          }
+
+          const templateIndex = forms.findIndex(
+            (form) => form.id === hintParentId,
+          );
+          if (templateIndex === -1) {
+            return collect(clones);
+          }
+
+          const templateClone = clones[templateIndex];
+          const originalChildren = [...templateClone.children];
+          const squareClones = originalChildren.filter(
+            (child) => child.boundary === "square",
+          );
+          if (squareClones.length === 0) {
+            return collect(clones);
+          }
+
+          const targetSquareClone = squareClones.find(
+            (child) => canonicalSignature(child) === hintSquareSignature,
+          );
+          if (!targetSquareClone) {
+            return collect(clones);
+          }
+
+          const orderedSquares = [
+            targetSquareClone,
+            ...squareClones.filter((square) => square !== targetSquareClone),
+          ];
+
+          let squareCursor = 0;
+          const reorderedChildren = originalChildren.map((child) => {
+            if (child.boundary !== "square") {
+              return child;
+            }
+            const replacement = orderedSquares[squareCursor] ?? targetSquareClone;
+            squareCursor += 1;
+            return replacement;
+          });
+          templateClone.children = new Set(reorderedChildren);
+
+          return collect(clones);
+        },
+      );
+      break;
+    }
+    case "cancel": {
+      if (!isAllowed(allowed, "reflection")) {
+        return null;
+      }
+      const augmentedIds = ensureCancelPairs(forest, operation.targetIds);
+      nextForms = applySiblingOperation(forest, augmentedIds, (forms) => {
+        if (!isCancelApplicable(forms)) {
+          return forms;
+        }
+        return cancel(forms.map((entry) => deepClone(entry)));
+      });
+      break;
+    }
+    case "create": {
+      if (!isAllowed(allowed, "reflection")) {
+        return null;
+      }
+      const templateIds = operation.templateIds ?? [];
+      const templates: Form[] = [];
+      let inferredParent: string | null = null;
+
+      if (templateIds.length > 0) {
+        const templateLocations = locateNodes(forest, new Set(templateIds));
+        templateIds.forEach((id) => {
+          const match = templateLocations.get(id);
+          if (match) {
+            templates.push(deepClone(match.node));
+            inferredParent ??= match.parent?.id ?? null;
+          }
+        });
+      }
+
+      const created = createReflection(...templates);
+      const parentId = operation.parentId ?? inferredParent ?? null;
+
+      nextForms = addChild(forest, parentId, created);
+      break;
+    }
+    default:
+      nextForms = null;
+  }
+
+  return nextForms;
 }
 
 export const useGameStore = create<GameState>((set, get) => ({
@@ -422,209 +606,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     }
 
     const allowed = state.level?.allowedAxioms;
-
-    let nextForms: Form[] | null = null;
-
-    switch (operation.type) {
-      case "clarify": {
-        if (!isAllowed(allowed, "inversion")) {
-          return;
-        }
-        nextForms = applySingleTarget(
-          state.currentForms,
-          operation.targetId,
-          (form) => clarify(form),
-        );
-        break;
-      }
-      case "enfold": {
-        if (!isAllowed(allowed, "inversion")) {
-          return;
-        }
-        const variant = operation.variant ?? "frame";
-        const targetIds = [...new Set(operation.targetIds)];
-
-        if (targetIds.length === 0) {
-          // Create a new wrapper form and add it to the specified parent or roots.
-          const wrapper = enfold(variant);
-          nextForms = addChild(state.currentForms, operation.parentId ?? null, [
-            wrapper,
-          ]);
-        } else {
-          // Wrap the target siblings in a new wrapper form.
-          nextForms = applySiblingOperation(
-            state.currentForms,
-            targetIds,
-            (nodes) => [enfold(variant, ...nodes)],
-          );
-        }
-        break;
-      }
-      case "disperse": {
-        if (!isAllowed(allowed, "arrangement")) {
-          return;
-        }
-        if (operation.frameId) {
-          // Distribute contentIds from squareId within frameId into separate frames.
-          nextForms = applySingleTarget(
-            state.currentForms,
-            operation.frameId,
-            (form) =>
-              disperse(form, {
-                squareId: operation.squareId,
-                contentIds: operation.contentIds,
-              }),
-          );
-        } else {
-          // Distribute contentIds from their current containing square into separate frames.
-          nextForms = disperseContent(state.currentForms, operation.contentIds);
-        }
-        break;
-      }
-      case "collect": {
-        if (!isAllowed(allowed, "arrangement")) {
-          return;
-        }
-        const uniqueTargets = [...new Set(operation.targetIds)];
-        if (uniqueTargets.length === 0) {
-          return;
-        }
-
-        const locations = locateNodes(
-          state.currentForms,
-          new Set(uniqueTargets),
-        );
-
-        const frameIds = uniqueTargets.filter((id) => {
-          const match = locations.get(id);
-          return match?.node.boundary === "round";
-        });
-
-        if (frameIds.length === 0) {
-          return;
-        }
-
-        const squareHint = uniqueTargets
-          .map((id) => locations.get(id))
-          .find((entry): entry is LocatedNode => {
-            return entry !== undefined && entry.node.boundary === "square";
-          });
-
-        const hintParentId = squareHint?.parent?.id ?? null;
-        const hintSquareSignature = squareHint
-          ? canonicalSignature(squareHint.node)
-          : null;
-
-        const collectTargetIds =
-          hintParentId && frameIds.includes(hintParentId)
-            ? [hintParentId, ...frameIds.filter((id) => id !== hintParentId)]
-            : frameIds;
-
-        nextForms = applySiblingOperation(
-          state.currentForms,
-          collectTargetIds,
-          (forms) => {
-            const clones = forms.map((entry) => deepClone(entry));
-            if (!hintParentId || !hintSquareSignature) {
-              return collect(clones);
-            }
-
-            const templateIndex = forms.findIndex(
-              (form) => form.id === hintParentId,
-            );
-            if (templateIndex === -1) {
-              return collect(clones);
-            }
-
-            const templateClone = clones[templateIndex];
-            const originalChildren = [...templateClone.children];
-            const squareClones = originalChildren.filter(
-              (child) => child.boundary === "square",
-            );
-            if (squareClones.length === 0) {
-              return collect(clones);
-            }
-
-            const targetSquareClone = squareClones.find(
-              (child) => canonicalSignature(child) === hintSquareSignature,
-            );
-            if (!targetSquareClone) {
-              return collect(clones);
-            }
-
-            const orderedSquares = [
-              targetSquareClone,
-              ...squareClones.filter((square) => square !== targetSquareClone),
-            ];
-
-            let squareCursor = 0;
-            const reorderedChildren = originalChildren.map((child) => {
-              if (child.boundary !== "square") {
-                return child;
-              }
-              const replacement =
-                orderedSquares[squareCursor] ?? targetSquareClone;
-              squareCursor += 1;
-              return replacement;
-            });
-            templateClone.children = new Set(reorderedChildren);
-
-            return collect(clones);
-          },
-        );
-        break;
-      }
-      case "cancel": {
-        if (!isAllowed(allowed, "reflection")) {
-          return;
-        }
-        const augmentedIds = ensureCancelPairs(
-          state.currentForms,
-          operation.targetIds,
-        );
-        nextForms = applySiblingOperation(
-          state.currentForms,
-          augmentedIds,
-          (forms) => {
-            if (!isCancelApplicable(forms)) {
-              return forms;
-            }
-            return cancel(forms.map((entry) => deepClone(entry)));
-          },
-        );
-        break;
-      }
-      case "create": {
-        if (!isAllowed(allowed, "reflection")) {
-          return;
-        }
-        const templateIds = operation.templateIds ?? [];
-        const templates: Form[] = [];
-        let inferredParent: string | null = null;
-
-        if (templateIds.length > 0) {
-          const templateLocations = locateNodes(
-            state.currentForms,
-            new Set(templateIds),
-          );
-          templateIds.forEach((id) => {
-            const match = templateLocations.get(id);
-            if (match) {
-              templates.push(deepClone(match.node));
-              inferredParent ??= match.parent?.id ?? null;
-            }
-          });
-        }
-
-        const created = createReflection(...templates);
-        const parentId = operation.parentId ?? inferredParent ?? null;
-
-        nextForms = addChild(state.currentForms, parentId, created);
-        break;
-      }
-      default:
-        nextForms = null;
-    }
+    const nextForms = previewOperation(state.currentForms, operation, allowed);
 
     if (!nextForms || formsEqual(nextForms, state.currentForms)) {
       return;

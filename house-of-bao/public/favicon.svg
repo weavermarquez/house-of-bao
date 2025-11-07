@@ -1,0 +1,9 @@
+<svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <!-- Square - blue from gameplay -->
+  <rect x="0" y="0" width="100" height="100" rx="10" ry="10"
+      style="fill:#bfdbfe;stroke:#1d4ed8;stroke-width:10;"/>
+  <!-- Angle accent - purple from gameplay -->
+  <polygon points="10,50 50,10 90,50 50,90" fill="#e9d5ff" stroke="#7c3aed" stroke-width="5"/>
+  <!-- Round (circle) - yellow from gameplay -->
+  <circle cx="50" cy="50" r="20" fill="#fde68a" stroke="#b45309" stroke-width="5"/>
+</svg>
