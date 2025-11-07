@@ -8,6 +8,7 @@ import { canonicalSignature, type Form } from "./logic/Form";
 import { NetworkView, ROOT_NODE_ID } from "./dialects/network";
 import { AxiomActionPanel } from "./components/AxiomActionPanel";
 import { FormPreview } from "./components/FormPreview";
+import { Footer } from "./components/Footer";
 
 type LegendShape = "round" | "square" | "angle";
 
@@ -343,6 +344,8 @@ function App() {
 
           </aside>
         </div>
+
+        <Footer />
       </div>
     </div>
   );

@@ -288,14 +288,6 @@ button:disabled {
   gap: 0.25rem;
 }
 
-.axiom-group-reminder {
-  font-size: 0.75rem;
-  color: #475569;
-  text-transform: none;
-  letter-spacing: normal;
-  font-weight: 500;
-}
-
 .axiom-group-visual {
   display: flex;
   align-items: center;
@@ -428,12 +420,17 @@ button:disabled {
 }
 
 .selection-list li {
-  display: flex;
+  display: inline-flex;
   gap: 0.5rem;
-  align-items: baseline;
+  align-items: center;
   background: rgba(59, 130, 246, 0.08);
   border-radius: 0.6rem;
-  padding: 0.4rem 0.55rem;
+  padding: 0.2rem;
+}
+
+.selection-form-preview {
+  width: 100px;
+  height: 56px;
 }
 
 .selection-boundary {
