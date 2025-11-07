@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useShallow } from "zustand/shallow";
 import "./App.css";
 import { levels } from "./levels";
@@ -18,6 +18,8 @@ type LegendItem = {
   title: string;
   description: string;
 };
+
+type ActivePanel = "actions" | "selection" | "goal";
 
 const LEGEND_ITEMS: LegendItem[] = [
   {
@@ -75,11 +77,17 @@ function LegendIcon({ shape, color }: { shape: LegendShape; color: string }) {
   }
 }
 
-function LegendPanel() {
-  return;
+function LegendPanel({ onDismiss }: { onDismiss?: () => void }) {
   return (
     <div className="legend-panel">
-      <span className="legend-title">Legend</span>
+      <div className="legend-header">
+        <span className="legend-title">Legend</span>
+        {onDismiss ? (
+          <button type="button" className="legend-close" onClick={onDismiss}>
+            Close
+          </button>
+        ) : null}
+      </div>
       <div className="legend-grid">
         {LEGEND_ITEMS.map((item) => (
           <div key={item.title} className="legend-item">
@@ -119,7 +127,6 @@ const selectHistoryCounts = (state: GameState) => ({
   future: state.history.future.length,
 });
 
-
 function App() {
   const {
     level,
@@ -139,12 +146,29 @@ function App() {
   const undo = useGameStore(selectUndo);
   const redo = useGameStore(selectRedo);
   const historyCounts = useGameStore(useShallow(selectHistoryCounts));
+  const [activePanel, setActivePanel] = useState<ActivePanel>("actions");
+  const [legendOpen, setLegendOpen] = useState(false);
 
   useEffect(() => {
     if (!level) {
       loadLevel(levels[0]);
     }
   }, [level, loadLevel]);
+
+  useEffect(() => {
+    if (!legendOpen) {
+      return;
+    }
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setLegendOpen(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [legendOpen]);
 
   const formIndex = useMemo(() => indexForms(currentForms), [currentForms]);
   const selectionSet = useMemo(
@@ -180,59 +204,103 @@ function App() {
   const firstSelected = selectedNodeIds[0];
   const parentIdForOps =
     selectedParentId === ROOT_NODE_ID ? null : selectedParentId;
+  const selectionCount = selectedNodeIds.length;
+
+  const statusLabel =
+    status === "won"
+      ? "Goal complete"
+      : status === "playing"
+      ? "In progress"
+      : "Ready";
+  const levelSummary = level
+    ? `${level.id} · ${level.name}`
+    : "Select a level to get started";
+  const selectionTabLabel =
+    selectionCount === 0
+      ? "Selection"
+      : `Selection (${selectionCount})`;
+  const goalTabLabel = status === "won" ? "Goal ✓" : "Goal";
+
+  const tabs: Array<{
+    value: ActivePanel;
+    label: string;
+    tabId: string;
+    panelId: string;
+  }> = [
+    { value: "actions", label: "Actions", tabId: "tab-actions", panelId: "panel-actions" },
+    {
+      value: "selection",
+      label: selectionTabLabel,
+      tabId: "tab-selection",
+      panelId: "panel-selection",
+    },
+    { value: "goal", label: goalTabLabel, tabId: "tab-goal", panelId: "panel-goal" },
+  ];
 
   return (
     <div className="app-shell">
       <div className="app-card">
         <header className="app-header">
-          <div className="header-copy">
-            <h1>House of Bao</h1>
-            <p>Network Dialect Sandbox</p>
-          </div>
-          <div className="header-controls">
-            <label className="level-select">
-              <span>Level</span>
-              <select
-                value={level?.id ?? levels[0].id}
-                onChange={(event) => {
-                  const next = levels.find(
-                    (entry) => entry.id === event.target.value,
-                  );
-                  if (next) {
-                    loadLevel(next);
-                  }
-                }}
-              >
-                {levels.map((entry) => (
-                  <option key={entry.id} value={entry.id}>
-                    {entry.id}: {entry.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <span className={`status-pill ${status}`}>{status}</span>
-            <div className="history-controls">
-              <button
-                onClick={() => undo()}
-                disabled={historyCounts.past === 0}
-              >
-                Undo
-              </button>
-              <button
-                onClick={() => redo()}
-                disabled={historyCounts.future === 0}
-              >
-                Redo
-              </button>
-              <button onClick={() => resetLevel()} disabled={!level}>
-                Reset
-              </button>
+          <div className="header-identity">
+            <div className="header-title">
+              <h1>House of Bao</h1>
+              <p>Network Dialect Sandbox</p>
             </div>
+            <span className={`status-pill ${status}`}>{statusLabel}</span>
+          </div>
+          <p className="level-summary">{levelSummary}</p>
+          <label className="level-select">
+            <span>Level</span>
+            <select
+              value={level?.id ?? levels[0].id}
+              onChange={(event) => {
+                const next = levels.find(
+                  (entry) => entry.id === event.target.value,
+                );
+                if (next) {
+                  loadLevel(next);
+                  setActivePanel("actions");
+                }
+              }}
+            >
+              {levels.map((entry) => (
+                <option key={entry.id} value={entry.id}>
+                  {entry.id}: {entry.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div className="history-controls">
+            <button
+              onClick={() => undo()}
+              disabled={historyCounts.past === 0}
+            >
+              Undo
+            </button>
+            <button
+              onClick={() => redo()}
+              disabled={historyCounts.future === 0}
+            >
+              Redo
+            </button>
+            <button onClick={() => resetLevel()} disabled={!level}>
+              Reset
+            </button>
           </div>
         </header>
 
-        <div className="app-main">
-          <div className="play-column">
+        <main className="app-main">
+          <section className="play-stage">
+            <div className="stage-header">
+              <span className="stage-label">Working canvas</span>
+              <button
+                type="button"
+                className="legend-trigger"
+                onClick={() => setLegendOpen(true)}
+              >
+                Legend
+              </button>
+            </div>
             <div className="graph-panel">
               <NetworkView
                 forms={currentForms}
@@ -256,97 +324,154 @@ function App() {
                   clearParentSelection();
                 }}
               />
-              <LegendPanel />
             </div>
-            <AxiomActionPanel
-              showInversionActions={showInversionActions}
-              showArrangementActions={showArrangementActions}
-              showReflectionActions={showReflectionActions}
-              selectedNodeIds={selectedNodeIds}
-              firstSelected={firstSelected}
-              parentIdForOps={parentIdForOps}
-              applyOperation={applyOperation}
-            />
-          </div>
-          <aside className="side-panel">
-            <section className="info-card">
-              <div className="section-heading">
-                <h2>Goal State</h2>
-                <span
-                  className={`goal-status ${
-                    status === "won" ? "goal-status-complete" : ""
-                  }`}
+          </section>
+
+          <section className="panel-stack">
+            <nav className="panel-tabs" role="tablist" aria-label="Gameplay panels">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.value}
+                  type="button"
+                  role="tab"
+                  id={tab.tabId}
+                  aria-controls={tab.panelId}
+                  aria-selected={activePanel === tab.value}
+                  tabIndex={activePanel === tab.value ? 0 : -1}
+                  className={`panel-tab ${activePanel === tab.value ? "active" : ""}`}
+                  onClick={() => setActivePanel(tab.value)}
                 >
-                  {status === "won" ? "Complete" : "In Progress"}
-                </span>
-              </div>
-              <div className="goal-preview">
-                <NetworkView
-                  forms={goalForms}
-                  className="goal-network-container"
+                  {tab.label}
+                </button>
+              ))}
+            </nav>
+            <div className="panel-body">
+              <div
+                id="panel-actions"
+                role="tabpanel"
+                aria-labelledby="tab-actions"
+                hidden={activePanel !== "actions"}
+              >
+                <AxiomActionPanel
+                  showInversionActions={showInversionActions}
+                  showArrangementActions={showArrangementActions}
+                  showReflectionActions={showReflectionActions}
+                  selectedNodeIds={selectedNodeIds}
+                  firstSelected={firstSelected}
+                  parentIdForOps={parentIdForOps}
+                  applyOperation={applyOperation}
                 />
               </div>
-              {status === "won" ? (
-                <p className="goal-complete">Goal satisfied — nice work!</p>
-              ) : null}
-            </section>
-
-            <section className="info-card">
-              <div className="section-heading">
-                <h2>Selection</h2>
-                <span className="selection-count">
-                  {selectedNodeIds.length} node
-                  {selectedNodeIds.length === 1 ? "" : "s"}
-                </span>
-              </div>
-              {selectedDetails.length === 0 ? (
-                <p className="empty-note">Tap a node to select it</p>
-              ) : (
-                <ul className="selection-list">
-                  {selectedDetails.map(({ form }) => (
-                    <li key={form.id}>
-                      <FormPreview form={form} />
-                    </li>
-                  ))}
-                </ul>
-              )}
-              <button
-                type="button"
-                className="ghost"
-                onClick={() => clearSelection()}
-                disabled={selectedNodeIds.length === 0}
+              <div
+                id="panel-selection"
+                role="tabpanel"
+                aria-labelledby="tab-selection"
+                hidden={activePanel !== "selection"}
               >
-                Clear Selection
-              </button>
-              <div className="parent-summary">
-                <span className="parent-label">Parent</span>
-                <div className="parent-value">
-                  {selectedParentId === null ? (
-                    <span className="parent-root">root (default)</span>
-                  ) : selectedParentId === ROOT_NODE_ID ? (
-                    <span className="parent-root">root (forest)</span>
-                  ) : parentDetail ? (
-                    <FormPreview form={parentDetail} highlight />
+                <section className="info-card selection-panel">
+                  <div className="section-heading">
+                    <h2>Selection</h2>
+                    <span className="selection-count">
+                      {selectionCount} node{selectionCount === 1 ? "" : "s"}
+                    </span>
+                  </div>
+                  {selectedDetails.length === 0 ? (
+                    <p className="empty-note">Tap a node to select it.</p>
                   ) : (
-                    <span className="parent-none">none</span>
+                    <ul className="selection-list">
+                      {selectedDetails.map(({ form, signature }) => (
+                        <li key={form.id}>
+                          <FormPreview form={form} />
+                          <code>{signature}</code>
+                        </li>
+                      ))}
+                    </ul>
                   )}
-                </div>
-                <button
-                  type="button"
-                  className="ghost"
-                  onClick={() => clearParentSelection()}
-                  disabled={!selectedParentId}
-                >
-                  Clear Parent
-                </button>
+                  <button
+                    type="button"
+                    className="ghost"
+                    onClick={() => clearSelection()}
+                    disabled={selectionCount === 0}
+                  >
+                    Clear Selection
+                  </button>
+                  <div className="parent-summary">
+                    <span className="parent-label">Parent</span>
+                    <div className="parent-value">
+                      {selectedParentId === null ? (
+                        <span className="parent-root">root (default)</span>
+                      ) : selectedParentId === ROOT_NODE_ID ? (
+                        <span className="parent-root">root (forest)</span>
+                      ) : parentDetail ? (
+                        <FormPreview form={parentDetail} highlight />
+                      ) : (
+                        <span className="parent-none">none</span>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      className="ghost"
+                      onClick={() => clearParentSelection()}
+                      disabled={!selectedParentId}
+                    >
+                      Clear Parent
+                    </button>
+                  </div>
+                </section>
               </div>
-            </section>
-
-          </aside>
-        </div>
+              <div
+                id="panel-goal"
+                role="tabpanel"
+                aria-labelledby="tab-goal"
+                hidden={activePanel !== "goal"}
+              >
+                <section className="info-card goal-panel">
+                  <div className="section-heading">
+                    <h2>Goal State</h2>
+                    <span
+                      className={`goal-status ${
+                        status === "won" ? "goal-status-complete" : ""
+                      }`}
+                    >
+                      {status === "won" ? "Complete" : "In progress"}
+                    </span>
+                  </div>
+                  <p className="panel-note">Match this layout to clear the level.</p>
+                  <div className="goal-preview">
+                    <NetworkView
+                      forms={goalForms}
+                      className="goal-network-container"
+                    />
+                  </div>
+                  {status === "won" ? (
+                    <p className="goal-complete">Goal satisfied — nice work!</p>
+                  ) : null}
+                </section>
+              </div>
+            </div>
+          </section>
+        </main>
 
         <Footer />
       </div>
+      {legendOpen ? (
+        <div
+          className="legend-backdrop"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Legend"
+          onClick={() => setLegendOpen(false)}
+        >
+          <div
+            className="legend-sheet"
+            onClick={(event) => {
+              event.stopPropagation();
+            }}
+          >
+            <LegendPanel onDismiss={() => setLegendOpen(false)} />
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

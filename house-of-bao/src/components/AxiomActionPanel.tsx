@@ -74,7 +74,7 @@ export function AxiomActionPanel({
 
   const actionMessage = focusedOperation
     ? getOperationMessage(focusedOperation)
-    : "Hover or focus an action to learn what it does.";
+    : "Tap an action to try it. Disabled buttons explain why they're locked.";
 
   return (
     <section className="info-card axiom-actions-panel">
