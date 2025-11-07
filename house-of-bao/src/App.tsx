@@ -249,30 +249,41 @@ function App() {
         </header>
 
         <div className="app-main">
-          <div className="graph-panel">
-            <NetworkView
-              forms={currentForms}
-              selectedIds={selectionSet}
-              selectedParentId={selectedParentId}
-              className="network-view-container"
-              onToggleNode={(id) => toggleSelection(id)}
-              onSelectParent={(id) => {
-                if (
-                  selectedParentId === id ||
-                  (selectedParentId === null && id === null) ||
-                  (selectedParentId === ROOT_NODE_ID && id === null)
-                ) {
+          <div className="play-column">
+            <div className="graph-panel">
+              <NetworkView
+                forms={currentForms}
+                selectedIds={selectionSet}
+                selectedParentId={selectedParentId}
+                className="network-view-container"
+                onToggleNode={(id) => toggleSelection(id)}
+                onSelectParent={(id) => {
+                  if (
+                    selectedParentId === id ||
+                    (selectedParentId === null && id === null) ||
+                    (selectedParentId === ROOT_NODE_ID && id === null)
+                  ) {
+                    clearParentSelection();
+                  } else {
+                    selectParent(id ?? ROOT_NODE_ID);
+                  }
+                }}
+                onBackgroundClick={() => {
+                  clearSelection();
                   clearParentSelection();
-                } else {
-                  selectParent(id ?? ROOT_NODE_ID);
-                }
-              }}
-              onBackgroundClick={() => {
-                clearSelection();
-                clearParentSelection();
-              }}
+                }}
+              />
+              <LegendPanel />
+            </div>
+            <AxiomActionPanel
+              showInversionActions={showInversionActions}
+              showArrangementActions={showArrangementActions}
+              showReflectionActions={showReflectionActions}
+              selectedNodeIds={selectedNodeIds}
+              firstSelected={firstSelected}
+              parentIdForOps={parentIdForOps}
+              applyOperation={applyOperation}
             />
-            <LegendPanel />
           </div>
           <aside className="side-panel">
             <section className="info-card">
@@ -356,15 +367,6 @@ function App() {
               </div>
             </section>
 
-            <AxiomActionPanel
-              showInversionActions={showInversionActions}
-              showArrangementActions={showArrangementActions}
-              showReflectionActions={showReflectionActions}
-              selectedNodeIds={selectedNodeIds}
-              firstSelected={firstSelected}
-              parentIdForOps={parentIdForOps}
-              applyOperation={applyOperation}
-            />
           </aside>
         </div>
       </div>
