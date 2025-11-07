@@ -1010,7 +1010,7 @@ When ready to add backend (post-MVP):
 - [ ] Test with sample forms
 
 ** Phase 3: Game Loop (2 weeks)
-- [ ] Implement Zustand stores (game + progress)
+- [X] Implement Zustand stores (game + progress)
 - [ ] Create GameCanvas component
 - [ ] Create ActionMenu component
 - [ ] Create HUD component (move counter, undo/redo)

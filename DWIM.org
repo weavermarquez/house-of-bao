@@ -1,25 +1,93 @@
 #+title: Dwim
 
+
+
+
+
 * DWIM: Do What I Mean
 I am brainstorming a "do what I mean" approach to infer what a users' actions should be in cases where commands are sent but the selection /may/ be underspecified.
 
+I've discovered that while the axioms are quite intuitive in terms of visual presentation, the actual possibilities are quite broad.
 
-* <2025-11-01 Sat> Demo Day
-I am noticing order-dependent behaviour of the case where multiple selections are selected.
+** What is DWIM in Emacs? The fundamental pattern
+1. Prefer *Region* or *Thing-At-Point* if it exists; else nearest plausible target.
+2. switch *mode-aware* behaviour; same key does the right thing per context.
+3. keep *reversible* by default. fast =undo= is part of dwim.
+4. stash *smart defaults* (other window/buffer/directory) e.g. =dired-dwim-target=. 
+5. specific emacs exemplars to mirror:
+   - =comment-dwim= toggles comment on region or line.
+     - If region or line is not selected, add a comment.
+       - org-mode lines do not have mixed lines between content / comments. so for org-mode add a comment above.
+       - programming modes can mix code and comments, so for these add a comment on the line at the end. 
+     - If region or line is selected, comment the whole line.
 
-Inversion:
-- Clarify
-  - Both Parent and Child should be valid candidates for clarification in cases where there is no ambiguity.
-  - If there is ambiguity, it means a selected element are both parent and child for two separate invertible pairs.
+*** Applying this to James Algebra
+
+We want to define a *targeting inference stack* (ordered fallbacks)
+
+1. explicit selections
+2. hovered items
+3. last-selected
+4. symbol/edge under cursor
+5. nearest valid neighbor satisfying a rule
+6. canonical default (e.g. current focus component)
+
+
+and define an *action inference stack* (what to do)
+1. if user starts a partial gesture (e.g. drgging node onto box)
+
+** DWIM Interface Contract
+What are the core expects and provides?
+
+
+** Inversion:
+*** Clarify
+
+There may be many Clarify actions occuring at one button press. All valid, non-amibguous selections for Clarify should pass.
+
+Valid:
+- Both the Parent and Child of a clarifiable pair are valid selection candidates.
+
+Ambiguity
+- For each selection, we can check if it is the parent or the child of another container.
+  - case a :: 
+- If there is ambiguity, it means a selected element are both parent and child for two separate invertible pairs. ()-[]*-()
+
+
+
+  - An ambiguous case should not pass. 
   - If a selected element is an atom or a form where clarify does not apply, find the nearest element nearby (i.e. below a certain threshold of distance, probably 1 length) where it does.
-  - 
-- Enfold
-  - There is an inherent ambiguity as to where enfold should result in a frame or mark.
-  - Both results are /interchangable/ with each other until there are additional modifications.
-  - I am thinking that any sequence of void-equivalent form creations should be undoable within one step, maybe?
+
+  - A failure in Clarify should not block another valid Clarify.
+
     
-- Disperse
-- Collect
+*** Enfold
+- There is an inherent ambiguity as to where enfold should result in a frame or mark.
+- Both results are /interchangable/ with each other until there are additional modifications.
+- I am thinking that any sequence of void-equivalent form creations should be undoable within one step, maybe?
+
+- There may be only one Enfold action occuring at a time.
+  - This will fail (or rather)
+  
+
+    
+** Arrangement
+*** Disperse
+*** Collect
+
+** Reflection
+*** Create
+*** Cancel
+
+Karina didn't understand why /cancel/ was valid on selection of only
+
+Doesn't understand why /cancel/ is valid on selection of only =o= without both =o=, =<o>=
+
+
+
+
+* TODO <2025-11-01 Sat> Demo Day
+I am noticing order-dependent behaviour of the case where multiple selections are selected.
 
 ** In level-01 first-unwrap:
 say A-B-C is an alternating round(square(round)), where A is the parent and C is the innermost.
@@ -33,7 +101,6 @@ say A-B-C is an alternating round(square(round)), where A is the parent and C is
 15) select [C, A, B] then press clarify. This will FAIL, false negative. Same as 10.
 16) select [C, B, A] then press clarify. This will FAIL, false negative. Same as 10.
    
-
 ** then in level-06 Alpha-Unwrap,
 instead of round(square(round)) it is round(square(atom)). So A is the round, B is the square, C is the atom.
 
