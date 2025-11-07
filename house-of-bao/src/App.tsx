@@ -76,7 +76,6 @@ function LegendIcon({ shape, color }: { shape: LegendShape; color: string }) {
 }
 
 function LegendPanel() {
-  return;
   return (
     <div className="legend-panel">
       <span className="legend-title">Legend</span>
@@ -118,7 +117,6 @@ const selectHistoryCounts = (state: GameState) => ({
   past: state.history.past.length,
   future: state.history.future.length,
 });
-
 
 function App() {
   const {
@@ -341,7 +339,6 @@ function App() {
                 </button>
               </div>
             </section>
-
           </aside>
         </div>
 

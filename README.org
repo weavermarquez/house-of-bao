@@ -1053,3 +1053,12 @@ claude
 
 Awwwe, thank you :blushing_smile: I really do think that this can revolutionize math education. The situation is dire; one third of american adults do not understand fractions. one half of oecd adults do not understand fractions. I want to eradicate mathphobia. There is a kindergarten program in israel based on laws of form that... the department of education felt threatened by? because of its profundity and openness to a shared secular language of immanence? anyways, some physicist commented on that program saying that it was the purest of mathematics taught to kindergarteners. It saddens me that this is so unknown. But I know the demand is absolutely massive for mobile games based on basic arithmetic. People genuinely get upset at those mobile games with misleading adverts featuring gameplay that is essentially basic math. 
 
+** TREE(3)
+
+https://cp4space.hatsya.com/2012/12/19/fast-growing-2/
+
+This was a neat article. I should take note of this field because I imagine this could be inspiration for new mechanics.
+
+In particular, I thought it was notable that I had never heard of the particular label of /inf/  as the function for the common ancestor of two nodes.
+
+
