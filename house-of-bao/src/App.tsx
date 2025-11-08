@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useShallow } from "zustand/shallow";
 import "./App.css";
 import { levels } from "./levels";
@@ -9,6 +9,8 @@ import { NetworkView, ROOT_NODE_ID } from "./dialects/network";
 import { AxiomActionPanel } from "./components/AxiomActionPanel";
 import { FormPreview } from "./components/FormPreview";
 import { Footer } from "./components/Footer";
+import type { OperationKey } from "./hooks/useAvailableOperations";
+import { ACTION_METADATA } from "./components/ActionGlyphs";
 
 type LegendShape = "round" | "square" | "angle";
 
@@ -137,6 +139,13 @@ function App() {
   const undo = useGameStore(selectUndo);
   const redo = useGameStore(selectRedo);
   const historyCounts = useGameStore(useShallow(selectHistoryCounts));
+  const [previewState, setPreviewState] = useState<{
+    forms?: Form[];
+    description: string;
+    operation: OperationKey;
+    note?: string;
+  } | null>(null);
+  const previewTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!level) {
@@ -179,13 +188,55 @@ function App() {
   const parentIdForOps =
     selectedParentId === ROOT_NODE_ID ? null : selectedParentId;
 
+  const handlePreviewChange = useCallback(
+    (
+      next:
+        | {
+            forms?: Form[];
+            description: string;
+            operation: OperationKey;
+            note?: string;
+          }
+        | null,
+    ) => {
+      if (previewTimeoutRef.current) {
+        clearTimeout(previewTimeoutRef.current);
+        previewTimeoutRef.current = null;
+      }
+      if (next) {
+        setPreviewState(next);
+        return;
+      }
+      previewTimeoutRef.current = window.setTimeout(() => {
+        setPreviewState(null);
+        previewTimeoutRef.current = null;
+      }, 200);
+    },
+    [],
+  );
+
+  useEffect(
+    () => () => {
+      if (previewTimeoutRef.current) {
+        clearTimeout(previewTimeoutRef.current);
+      }
+    },
+    [],
+  );
+
+  const activeForms = previewState?.forms ?? currentForms;
+  const isPreviewing = Boolean(previewState?.forms);
+  const previewMetadata = previewState
+    ? ACTION_METADATA[previewState.operation]
+    : null;
+  const PreviewGlyph = previewMetadata?.Glyph;
+
   return (
     <div className="app-shell">
       <div className="app-card">
         <header className="app-header">
           <div className="header-copy">
             <h1>House of Bao</h1>
-            <p>Network Dialect Sandbox</p>
           </div>
           <div className="header-controls">
             <label className="level-select">
@@ -231,30 +282,71 @@ function App() {
 
         <div className="app-main">
           <div className="play-column">
-            <div className="graph-panel">
+            <div className={`graph-panel ${isPreviewing ? "is-previewing" : ""}`}>
               <NetworkView
-                forms={currentForms}
+                forms={activeForms}
                 selectedIds={selectionSet}
                 selectedParentId={selectedParentId}
                 className="network-view-container"
-                onToggleNode={(id) => toggleSelection(id)}
-                onSelectParent={(id) => {
-                  if (
-                    selectedParentId === id ||
-                    (selectedParentId === null && id === null) ||
-                    (selectedParentId === ROOT_NODE_ID && id === null)
-                  ) {
-                    clearParentSelection();
-                  } else {
-                    selectParent(id ?? ROOT_NODE_ID);
-                  }
-                }}
-                onBackgroundClick={() => {
-                  clearSelection();
-                  clearParentSelection();
-                }}
+                onToggleNode={
+                  isPreviewing ? undefined : (id) => toggleSelection(id)
+                }
+                onSelectParent={
+                  isPreviewing
+                    ? undefined
+                    : (id) => {
+                        if (
+                          selectedParentId === id ||
+                          (selectedParentId === null && id === null) ||
+                          (selectedParentId === ROOT_NODE_ID && id === null)
+                        ) {
+                          clearParentSelection();
+                        } else {
+                          selectParent(id ?? ROOT_NODE_ID);
+                        }
+                      }
+                }
+                onBackgroundClick={
+                  isPreviewing
+                    ? undefined
+                    : () => {
+                        clearSelection();
+                        clearParentSelection();
+                      }
+                }
               />
-              <LegendPanel />
+              {previewState ? (
+                <div className="graph-preview-overlay">
+                  {previewMetadata && PreviewGlyph ? (
+                    <div className="preview-label">
+                      <PreviewGlyph className="preview-glyph" />
+                      <div className="preview-copy">
+                        <span className="preview-operation-label">
+                          Preview • {previewMetadata.label}
+                        </span>
+                        <span className="preview-description">
+                          {previewState.description}
+                        </span>
+                        {previewState.note ? (
+                          <span className="preview-note">{previewState.note}</span>
+                        ) : null}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="preview-label">
+                      <div className="preview-copy">
+                        <span className="preview-operation-label">Preview</span>
+                        <span className="preview-description">
+                          {previewState.description}
+                        </span>
+                        {previewState.note ? (
+                          <span className="preview-note">{previewState.note}</span>
+                        ) : null}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : null}
             </div>
             <AxiomActionPanel
               showInversionActions={showInversionActions}
@@ -263,7 +355,10 @@ function App() {
               selectedNodeIds={selectedNodeIds}
               firstSelected={firstSelected}
               parentIdForOps={parentIdForOps}
+              currentForms={currentForms}
+              allowedAxioms={allowedAxioms}
               applyOperation={applyOperation}
+              onPreviewChange={handlePreviewChange}
             />
           </div>
           <aside className="side-panel">
@@ -338,6 +433,9 @@ function App() {
                   Clear Parent
                 </button>
               </div>
+            </section>
+            <section className="info-card legend-card">
+              <LegendPanel />
             </section>
           </aside>
         </div>

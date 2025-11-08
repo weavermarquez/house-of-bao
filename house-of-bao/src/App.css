@@ -141,10 +141,13 @@ button:active:not(:disabled) {
 }
 
 button:disabled {
-  opacity: 0.55;
+  opacity: 0.45;
   cursor: not-allowed;
   box-shadow: none;
   transform: none;
+  background: rgba(248, 250, 252, 0.5);
+  border-style: dashed;
+  border-color: rgba(15, 23, 42, 0.1);
 }
 
 .ghost {
@@ -178,8 +181,21 @@ button:disabled {
   overflow: hidden;
 }
 
+.graph-panel.is-previewing {
+  background: linear-gradient(145deg, rgba(219, 234, 254, 0.9), rgba(191, 219, 254, 0.65));
+  border-color: rgba(59, 130, 246, 0.4);
+  box-shadow:
+    0 20px 40px rgba(59, 130, 246, 0.18),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+}
+
+.graph-panel.is-previewing .network-view-container {
+  pointer-events: none;
+}
+
 .network-view-container {
   height: 100%;
+  position: relative;
 }
 
 .network-view-svg {
@@ -189,18 +205,13 @@ button:disabled {
 }
 
 .legend-panel {
-  position: absolute;
-  top: 1.25rem;
-  right: 1.25rem;
-  background: rgba(255, 255, 255, 0.9);
-  border-radius: 1rem;
-  padding: 0.85rem 1.1rem;
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  box-shadow: 0 20px 36px rgba(15, 23, 42, 0.14);
-  border: 1px solid rgba(226, 232, 240, 0.8);
-  max-width: 220px;
+}
+
+.legend-card {
+  padding: 1rem 1.25rem;
 }
 
 .legend-title {
@@ -244,26 +255,17 @@ button:disabled {
   padding: 1.5rem;
 }
 
-.axiom-panel-heading {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 1rem;
-}
-
-.axiom-panel-subhead {
-  margin: 0.2rem 0 0;
-  color: #475569;
-  font-size: 0.9rem;
-}
-
 .axiom-groups {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  flex-wrap: wrap;
   gap: 1rem;
+  justify-content: space-between;
 }
 
 .axiom-group {
+  flex: 1 1 0;
+  min-width: 220px;
   border: 1px solid rgba(148, 163, 184, 0.3);
   border-radius: 1rem;
   padding: 0.85rem 1rem;
@@ -301,23 +303,143 @@ button:disabled {
 
 .axiom-group-actions {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 0.5rem;
 }
 
 .axiom-group-actions button {
-  flex: 1 1 48%;
-  min-width: 140px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 0.65rem 0.85rem;
 }
 
-.axiom-group-actions button:last-child:nth-child(odd) {
-  flex: 1 1 100%;
+.action-button-wrapper {
+  width: 100%;
+}
+
+.action-button-content {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  width: 100%;
+}
+
+.action-button-glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.action-button-glyph svg {
+  width: 72px;
+  height: 40px;
+}
+
+.action-button-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+  text-align: left;
+}
+
+.action-button-name {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.action-button-hint {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #475569;
 }
 
 .action-feedback {
   margin-top: 1.2rem;
   font-size: 0.9rem;
   color: #334155;
+}
+
+.preview-label {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.graph-preview-overlay {
+  position: absolute;
+  bottom: 1rem;
+  left: 1rem;
+  right: 1rem;
+  padding: 0.85rem 1rem;
+  border-radius: 0.9rem;
+  background: rgba(59, 130, 246, 0.12);
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  backdrop-filter: blur(4px);
+  pointer-events: none;
+  display: flex;
+}
+
+.preview-glyph svg {
+  width: 92px;
+  height: 48px;
+}
+
+.preview-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.preview-operation-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+  color: #1d4ed8;
+}
+
+.preview-description {
+  font-size: 0.85rem;
+  color: #0f172a;
+  line-height: 1.3;
+}
+
+.preview-note {
+  font-size: 0.75rem;
+  color: #b91c1c;
+  line-height: 1.2;
+}
+
+@keyframes button-available-flash {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+    border-color: rgba(15, 23, 42, 0.16);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.3);
+    border-color: rgba(59, 130, 246, 0.6);
+  }
+}
+
+.button-newly-available {
+  animation: button-available-flash 1s ease-out;
+}
+
+@media (max-width: 1024px) {
+  .axiom-groups {
+    flex-direction: column;
+  }
+
+  .axiom-group {
+    min-width: unset;
+  }
 }
 
 .side-panel {
