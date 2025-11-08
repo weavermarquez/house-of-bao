@@ -103,15 +103,16 @@ export function AxiomActionPanel({
     [onPreviewChange],
   );
 
-  const createInteractionHandlers = (
-    key: OperationKey,
-    buildOperation?: () => GameOperation | null,
-  ) => {
-    const showPreview = () => {
-      const metadata = ACTION_METADATA[key];
-      const availability = operationAvailability[key];
-      const emitPreview = (forms?: Form[], note?: string) => {
-        onPreviewChange?.({
+  const createInteractionHandlers = useCallback(
+    (
+      key: OperationKey,
+      buildOperation?: () => GameOperation | null,
+    ) => {
+      const showPreview = () => {
+        const metadata = ACTION_METADATA[key];
+        const availability = operationAvailability[key];
+        const emitPreview = (forms?: Form[], note?: string) => {
+          onPreviewChange?.({
           forms,
           description: metadata.description,
           operation: key,
@@ -142,11 +143,11 @@ export function AxiomActionPanel({
       } else {
         emitPreview(undefined, availability.reason);
       }
-    };
+      };
 
-    return {
-      onMouseEnter: () => {
-        checkAndTriggerTutorial("button_hover");
+      return {
+        onMouseEnter: () => {
+          checkAndTriggerTutorial("button_hover");
         showPreview();
       },
       onFocus: () => {
@@ -160,9 +161,17 @@ export function AxiomActionPanel({
       onBlur: () => {
         onPreviewChange?.(null);
         setPreviewLock((current) => (current === key ? null : current));
-      },
-    };
-  };
+        },
+      };
+    },
+    [
+      previewLock,
+      operationAvailability,
+      computePreview,
+      onPreviewChange,
+      checkAndTriggerTutorial,
+    ],
+  );
 
   const getOperationTooltip = (key: OperationKey) =>
     operationAvailability[key].available
