@@ -306,7 +306,6 @@ function App() {
                   </span>
                 </div>
               ) : null}
-              <LegendPanel />
             </div>
             <AxiomActionPanel
               showInversionActions={showInversionActions}
@@ -393,6 +392,9 @@ function App() {
                   Clear Parent
                 </button>
               </div>
+            </section>
+            <section className="info-card legend-card">
+              <LegendPanel />
             </section>
           </aside>
         </div>

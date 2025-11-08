@@ -205,19 +205,13 @@ button:disabled {
 }
 
 .legend-panel {
-  position: absolute;
-  top: 1.25rem;
-  right: 1.25rem;
-  background: rgba(255, 255, 255, 0.9);
-  border-radius: 1rem;
-  padding: 0.85rem 1.1rem;
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  box-shadow: 0 20px 36px rgba(15, 23, 42, 0.14);
-  border: 1px solid rgba(226, 232, 240, 0.8);
-  max-width: 220px;
-  pointer-events: none;
+}
+
+.legend-card {
+  padding: 1rem 1.25rem;
 }
 
 .legend-title {

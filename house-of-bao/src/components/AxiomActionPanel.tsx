@@ -58,6 +58,7 @@ export function AxiomActionPanel({
   const [newlyAvailable, setNewlyAvailable] = useState<Set<OperationKey>>(
     () => new Set(),
   );
+  const [previewLock, setPreviewLock] = useState<OperationKey | null>(null);
   const availabilityRef = useRef(operationAvailability);
 
   useEffect(() => {
@@ -87,11 +88,23 @@ export function AxiomActionPanel({
     [currentForms, allowedAxioms],
   );
 
+  const lockPreviewFor = useCallback(
+    (key: OperationKey) => {
+      setPreviewLock(key);
+      onPreviewChange?.(null);
+    },
+    [onPreviewChange],
+  );
+
   const createInteractionHandlers = (
     key: OperationKey,
     buildOperation?: () => GameOperation | null,
   ) => {
     const showPreview = () => {
+      if (previewLock === key) {
+        onPreviewChange?.(null);
+        return;
+      }
       if (!buildOperation || !operationAvailability[key].available) {
         onPreviewChange?.(null);
         return;
@@ -121,9 +134,11 @@ export function AxiomActionPanel({
       },
       onMouseLeave: () => {
         onPreviewChange?.(null);
+        setPreviewLock((current) => (current === key ? null : current));
       },
       onBlur: () => {
         onPreviewChange?.(null);
+        setPreviewLock((current) => (current === key ? null : current));
       },
     };
   };
@@ -160,6 +175,7 @@ export function AxiomActionPanel({
                     type: "clarify",
                     targetId: firstSelected,
                   });
+                  lockPreviewFor("clarify");
                 }}
                 disabled={!operationAvailability.clarify.available}
                 title={getOperationTooltip("clarify")}
@@ -189,6 +205,7 @@ export function AxiomActionPanel({
                     variant: "frame",
                     parentId: parentIdForOps,
                   });
+                  lockPreviewFor("enfoldFrame");
                 }}
                 disabled={!operationAvailability.enfoldFrame.available}
                 title={getOperationTooltip("enfoldFrame")}
@@ -218,6 +235,7 @@ export function AxiomActionPanel({
                     variant: "mark",
                     parentId: parentIdForOps,
                   });
+                  lockPreviewFor("enfoldMark");
                 }}
                 disabled={!operationAvailability.enfoldMark.available}
                 title={getOperationTooltip("enfoldMark")}
@@ -260,6 +278,7 @@ export function AxiomActionPanel({
                     contentIds: selectedNodeIds,
                     frameId: parentIdForOps ?? undefined,
                   });
+                  lockPreviewFor("disperse");
                 }}
                 disabled={!operationAvailability.disperse.available}
                 title={getOperationTooltip("disperse")}
@@ -286,6 +305,7 @@ export function AxiomActionPanel({
                     type: "collect",
                     targetIds: selectedNodeIds,
                   });
+                  lockPreviewFor("collect");
                 }}
                 disabled={!operationAvailability.collect.available}
                 title={getOperationTooltip("collect")}
@@ -323,6 +343,7 @@ export function AxiomActionPanel({
                     type: "cancel",
                     targetIds: selectedNodeIds,
                   });
+                  lockPreviewFor("cancel");
                 }}
                 disabled={!operationAvailability.cancel.available}
                 title={getOperationTooltip("cancel")}
@@ -348,6 +369,7 @@ export function AxiomActionPanel({
                     templateIds:
                       selectedNodeIds.length > 0 ? selectedNodeIds : undefined,
                   });
+                  lockPreviewFor("create");
                 }}
                 disabled={!operationAvailability.create.available}
                 title={getOperationTooltip("create")}
