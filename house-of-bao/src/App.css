@@ -141,10 +141,13 @@ button:active:not(:disabled) {
 }
 
 button:disabled {
-  opacity: 0.55;
+  opacity: 0.45;
   cursor: not-allowed;
   box-shadow: none;
   transform: none;
+  background: rgba(248, 250, 252, 0.5);
+  border-style: dashed;
+  border-color: rgba(15, 23, 42, 0.1);
 }
 
 .ghost {
@@ -178,8 +181,21 @@ button:disabled {
   overflow: hidden;
 }
 
+.graph-panel.is-previewing {
+  background: linear-gradient(145deg, rgba(219, 234, 254, 0.9), rgba(191, 219, 254, 0.65));
+  border-color: rgba(59, 130, 246, 0.4);
+  box-shadow:
+    0 20px 40px rgba(59, 130, 246, 0.18),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+}
+
+.graph-panel.is-previewing .network-view-container {
+  pointer-events: none;
+}
+
 .network-view-container {
   height: 100%;
+  position: relative;
 }
 
 .network-view-svg {
@@ -245,26 +261,17 @@ button:disabled {
   padding: 1.5rem;
 }
 
-.axiom-panel-heading {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 1rem;
-}
-
-.axiom-panel-subhead {
-  margin: 0.2rem 0 0;
-  color: #475569;
-  font-size: 0.9rem;
-}
-
 .axiom-groups {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  flex-wrap: wrap;
   gap: 1rem;
+  justify-content: space-between;
 }
 
 .axiom-group {
+  flex: 1 1 0;
+  min-width: 220px;
   border: 1px solid rgba(148, 163, 184, 0.3);
   border-radius: 1rem;
   padding: 0.85rem 1rem;
@@ -302,23 +309,67 @@ button:disabled {
 
 .axiom-group-actions {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 0.5rem;
 }
 
 .axiom-group-actions button {
-  flex: 1 1 48%;
-  min-width: 140px;
-}
-
-.axiom-group-actions button:last-child:nth-child(odd) {
-  flex: 1 1 100%;
+  width: 100%;
 }
 
 .action-feedback {
   margin-top: 1.2rem;
   font-size: 0.9rem;
   color: #334155;
+}
+
+.preview-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+  color: #1d4ed8;
+  margin-bottom: 0.5rem;
+}
+
+.graph-preview-overlay {
+  position: absolute;
+  bottom: 1rem;
+  left: 1rem;
+  right: 1rem;
+  padding: 0.85rem 1rem;
+  border-radius: 0.9rem;
+  background: rgba(59, 130, 246, 0.12);
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  backdrop-filter: blur(4px);
+  pointer-events: none;
+}
+
+
+@keyframes button-available-flash {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+    border-color: rgba(15, 23, 42, 0.16);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.3);
+    border-color: rgba(59, 130, 246, 0.6);
+  }
+}
+
+.button-newly-available {
+  animation: button-available-flash 1s ease-out;
+}
+
+@media (max-width: 1024px) {
+  .axiom-groups {
+    flex-direction: column;
+  }
+
+  .axiom-group {
+    min-width: unset;
+  }
 }
 
 .side-panel {

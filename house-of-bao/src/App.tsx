@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useShallow } from "zustand/shallow";
 import "./App.css";
 import { levels } from "./levels";
@@ -137,6 +137,11 @@ function App() {
   const undo = useGameStore(selectUndo);
   const redo = useGameStore(selectRedo);
   const historyCounts = useGameStore(useShallow(selectHistoryCounts));
+  const [previewState, setPreviewState] = useState<{
+    forms: Form[];
+    description: string;
+  } | null>(null);
+  const previewTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!level) {
@@ -179,13 +184,43 @@ function App() {
   const parentIdForOps =
     selectedParentId === ROOT_NODE_ID ? null : selectedParentId;
 
+  const handlePreviewChange = useCallback(
+    (next: { forms: Form[]; description: string } | null) => {
+      if (previewTimeoutRef.current) {
+        clearTimeout(previewTimeoutRef.current);
+        previewTimeoutRef.current = null;
+      }
+      if (next) {
+        setPreviewState(next);
+        return;
+      }
+      previewTimeoutRef.current = window.setTimeout(() => {
+        setPreviewState(null);
+        previewTimeoutRef.current = null;
+      }, 200);
+    },
+    [],
+  );
+
+  useEffect(
+    () => () => {
+      if (previewTimeoutRef.current) {
+        clearTimeout(previewTimeoutRef.current);
+      }
+    },
+    [],
+  );
+
+  const activeForms = previewState?.forms ?? currentForms;
+  const isPreviewing = previewState !== null;
+  const previewDescription = previewState?.description;
+
   return (
     <div className="app-shell">
       <div className="app-card">
         <header className="app-header">
           <div className="header-copy">
             <h1>House of Bao</h1>
-            <p>Network Dialect Sandbox</p>
           </div>
           <div className="header-controls">
             <label className="level-select">
@@ -231,29 +266,46 @@ function App() {
 
         <div className="app-main">
           <div className="play-column">
-            <div className="graph-panel">
+            <div className={`graph-panel ${isPreviewing ? "is-previewing" : ""}`}>
               <NetworkView
-                forms={currentForms}
+                forms={activeForms}
                 selectedIds={selectionSet}
                 selectedParentId={selectedParentId}
                 className="network-view-container"
-                onToggleNode={(id) => toggleSelection(id)}
-                onSelectParent={(id) => {
-                  if (
-                    selectedParentId === id ||
-                    (selectedParentId === null && id === null) ||
-                    (selectedParentId === ROOT_NODE_ID && id === null)
-                  ) {
-                    clearParentSelection();
-                  } else {
-                    selectParent(id ?? ROOT_NODE_ID);
-                  }
-                }}
-                onBackgroundClick={() => {
-                  clearSelection();
-                  clearParentSelection();
-                }}
+                onToggleNode={
+                  isPreviewing ? undefined : (id) => toggleSelection(id)
+                }
+                onSelectParent={
+                  isPreviewing
+                    ? undefined
+                    : (id) => {
+                        if (
+                          selectedParentId === id ||
+                          (selectedParentId === null && id === null) ||
+                          (selectedParentId === ROOT_NODE_ID && id === null)
+                        ) {
+                          clearParentSelection();
+                        } else {
+                          selectParent(id ?? ROOT_NODE_ID);
+                        }
+                      }
+                }
+                onBackgroundClick={
+                  isPreviewing
+                    ? undefined
+                    : () => {
+                        clearSelection();
+                        clearParentSelection();
+                      }
+                }
               />
+              {isPreviewing ? (
+                <div className="graph-preview-overlay">
+                  <span className="preview-label">
+                    Preview: {previewDescription ?? "Simulated result"}
+                  </span>
+                </div>
+              ) : null}
               <LegendPanel />
             </div>
             <AxiomActionPanel
@@ -263,7 +315,10 @@ function App() {
               selectedNodeIds={selectedNodeIds}
               firstSelected={firstSelected}
               parentIdForOps={parentIdForOps}
+              currentForms={currentForms}
+              allowedAxioms={allowedAxioms}
               applyOperation={applyOperation}
+              onPreviewChange={handlePreviewChange}
             />
           </div>
           <aside className="side-panel">

@@ -1,5 +1,7 @@
-import { useState } from "react";
-import type { GameOperation } from "../store/gameStore";
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { Form } from "../logic/Form";
+import type { AxiomType } from "../levels/types";
+import { previewOperation, type GameOperation } from "../store/gameStore";
 import { useAvailableOperations, type OperationKey } from "../hooks/useAvailableOperations";
 
 const OPERATION_READY_COPY: Record<OperationKey, string> = {
@@ -35,6 +37,9 @@ type AxiomActionPanelProps = {
   firstSelected?: string;
   parentIdForOps: string | null;
   applyOperation: (operation: GameOperation) => void;
+  currentForms: Form[];
+  allowedAxioms?: AxiomType[];
+  onPreviewChange?: (payload: { forms: Form[]; description: string } | null) => void;
 };
 
 export function AxiomActionPanel({
@@ -44,48 +49,92 @@ export function AxiomActionPanel({
   selectedNodeIds,
   firstSelected,
   parentIdForOps,
+  currentForms,
+  allowedAxioms,
   applyOperation,
+  onPreviewChange,
 }: AxiomActionPanelProps) {
   const operationAvailability = useAvailableOperations();
-  const [focusedOperation, setFocusedOperation] = useState<OperationKey | null>(
-    null,
+  const [newlyAvailable, setNewlyAvailable] = useState<Set<OperationKey>>(
+    () => new Set(),
+  );
+  const availabilityRef = useRef(operationAvailability);
+
+  useEffect(() => {
+    const previous = availabilityRef.current;
+    const keys = Object.keys(operationAvailability) as OperationKey[];
+    const nowAvailable = new Set<OperationKey>();
+    keys.forEach((key) => {
+      if (operationAvailability[key].available && !previous[key]?.available) {
+        nowAvailable.add(key);
+      }
+    });
+    availabilityRef.current = operationAvailability;
+
+    if (nowAvailable.size > 0) {
+      setNewlyAvailable(nowAvailable);
+      const timer = setTimeout(() => setNewlyAvailable(new Set()), 1000);
+      return () => clearTimeout(timer);
+    }
+    setNewlyAvailable(new Set());
+    return undefined;
+  }, [operationAvailability]);
+
+  const computePreview = useCallback(
+    (operation: GameOperation): Form[] | null => {
+      return previewOperation(currentForms, operation, allowedAxioms);
+    },
+    [currentForms, allowedAxioms],
   );
 
-  const withFocusHandlers = (key: OperationKey) => ({
-    onMouseEnter: () => setFocusedOperation(key),
-    onFocus: () => setFocusedOperation(key),
-    onMouseLeave: () => setFocusedOperation(null),
-    onBlur: () =>
-      setFocusedOperation((current) => (current === key ? null : current)),
-  });
+  const createInteractionHandlers = (
+    key: OperationKey,
+    buildOperation?: () => GameOperation | null,
+  ) => {
+    const showPreview = () => {
+      if (!buildOperation || !operationAvailability[key].available) {
+        onPreviewChange?.(null);
+        return;
+      }
+      const operation = buildOperation();
+      if (!operation) {
+        onPreviewChange?.(null);
+        return;
+      }
+      const preview = computePreview(operation);
+      if (preview) {
+        onPreviewChange?.({
+          forms: preview,
+          description: OPERATION_READY_COPY[key],
+        });
+      } else {
+        onPreviewChange?.(null);
+      }
+    };
+
+    return {
+      onMouseEnter: () => {
+        showPreview();
+      },
+      onFocus: () => {
+        showPreview();
+      },
+      onMouseLeave: () => {
+        onPreviewChange?.(null);
+      },
+      onBlur: () => {
+        onPreviewChange?.(null);
+      },
+    };
+  };
 
   const getOperationTooltip = (key: OperationKey) =>
     operationAvailability[key].available
       ? undefined
       : operationAvailability[key].reason ?? undefined;
 
-  const getOperationMessage = (key: OperationKey): string => {
-    const entry = operationAvailability[key];
-    if (!entry.available) {
-      return entry.reason ?? "Action unavailable.";
-    }
-    return OPERATION_READY_COPY[key];
-  };
-
-  const actionMessage = focusedOperation
-    ? getOperationMessage(focusedOperation)
-    : "Hover or focus an action to learn what it does.";
-
   return (
     <section className="info-card axiom-actions-panel">
-      <div className="axiom-panel-heading">
-        <div>
-          <h2>Axiom Actions</h2>
-          <p className="axiom-panel-subhead">
-            See which moves are ready and why others are blocked.
-          </p>
-        </div>
-      </div>
       <div className="axiom-groups">
         {showInversionActions && (
           <div className="axiom-group">
@@ -114,9 +163,19 @@ export function AxiomActionPanel({
                 }}
                 disabled={!operationAvailability.clarify.available}
                 title={getOperationTooltip("clarify")}
-                {...withFocusHandlers("clarify")}
+                className={
+                  newlyAvailable.has("clarify") ? "button-newly-available" : ""
+                }
+                {...createInteractionHandlers("clarify", () =>
+                  firstSelected
+                    ? {
+                        type: "clarify",
+                        targetId: firstSelected,
+                      }
+                    : null,
+                )}
               >
-                Clarify
+                Clarify (unwrap)
               </button>
               <button
                 type="button"
@@ -133,9 +192,19 @@ export function AxiomActionPanel({
                 }}
                 disabled={!operationAvailability.enfoldFrame.available}
                 title={getOperationTooltip("enfoldFrame")}
-                {...withFocusHandlers("enfoldFrame")}
+                className={
+                  newlyAvailable.has("enfoldFrame")
+                    ? "button-newly-available"
+                    : ""
+                }
+                {...createInteractionHandlers("enfoldFrame", () => ({
+                  type: "enfold",
+                  targetIds: selectedNodeIds,
+                  variant: "frame",
+                  parentId: parentIdForOps,
+                }))}
               >
-                Enfold Frame
+                Enfold Frame (○□)
               </button>
               <button
                 type="button"
@@ -152,9 +221,19 @@ export function AxiomActionPanel({
                 }}
                 disabled={!operationAvailability.enfoldMark.available}
                 title={getOperationTooltip("enfoldMark")}
-                {...withFocusHandlers("enfoldMark")}
+                className={
+                  newlyAvailable.has("enfoldMark")
+                    ? "button-newly-available"
+                    : ""
+                }
+                {...createInteractionHandlers("enfoldMark", () => ({
+                  type: "enfold",
+                  targetIds: selectedNodeIds,
+                  variant: "mark",
+                  parentId: parentIdForOps,
+                }))}
               >
-                Enfold Mark
+                Enfold Mark (□○)
               </button>
             </div>
           </div>
@@ -184,9 +263,18 @@ export function AxiomActionPanel({
                 }}
                 disabled={!operationAvailability.disperse.available}
                 title={getOperationTooltip("disperse")}
-                {...withFocusHandlers("disperse")}
+                className={
+                  newlyAvailable.has("disperse")
+                    ? "button-newly-available"
+                    : ""
+                }
+                {...createInteractionHandlers("disperse", () => ({
+                  type: "disperse",
+                  contentIds: selectedNodeIds,
+                  frameId: parentIdForOps ?? undefined,
+                }))}
               >
-                Disperse
+                Disperse (split)
               </button>
               <button
                 type="button"
@@ -201,9 +289,15 @@ export function AxiomActionPanel({
                 }}
                 disabled={!operationAvailability.collect.available}
                 title={getOperationTooltip("collect")}
-                {...withFocusHandlers("collect")}
+                className={
+                  newlyAvailable.has("collect") ? "button-newly-available" : ""
+                }
+                {...createInteractionHandlers("collect", () => ({
+                  type: "collect",
+                  targetIds: selectedNodeIds,
+                }))}
               >
-                Collect
+                Collect (merge)
               </button>
             </div>
           </div>
@@ -232,9 +326,15 @@ export function AxiomActionPanel({
                 }}
                 disabled={!operationAvailability.cancel.available}
                 title={getOperationTooltip("cancel")}
-                {...withFocusHandlers("cancel")}
+                className={
+                  newlyAvailable.has("cancel") ? "button-newly-available" : ""
+                }
+                {...createInteractionHandlers("cancel", () => ({
+                  type: "cancel",
+                  targetIds: selectedNodeIds,
+                }))}
               >
-                Cancel
+                Cancel (remove pair)
               </button>
               <button
                 type="button"
@@ -251,15 +351,27 @@ export function AxiomActionPanel({
                 }}
                 disabled={!operationAvailability.create.available}
                 title={getOperationTooltip("create")}
-                {...withFocusHandlers("create")}
+                className={
+                  newlyAvailable.has("create") ? "button-newly-available" : ""
+                }
+                {...createInteractionHandlers("create", () => ({
+                  type: "create",
+                  parentId: parentIdForOps,
+                  templateIds:
+                    selectedNodeIds.length > 0 ? selectedNodeIds : undefined,
+                }))}
               >
-                Create Pair
+                Create Pair (+)
               </button>
             </div>
           </div>
         )}
       </div>
-      <p className="action-feedback">{actionMessage}</p>
+      {/*
+        TODO(bao-preview-copy): Reintroduce the action-feedback text if future UX testing
+        shows the overlay description is insufficient.
+        <p className="action-feedback">{actionMessage}</p>
+      */}
     </section>
   );
 }
