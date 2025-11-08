@@ -247,6 +247,49 @@ function App() {
     : null;
   const PreviewGlyph = previewMetadata?.Glyph;
 
+  const handlePreviewChange = useCallback(
+    (
+      next:
+        | {
+            forms?: Form[];
+            description: string;
+            operation: OperationKey;
+            note?: string;
+          }
+        | null,
+    ) => {
+      if (previewTimeoutRef.current) {
+        clearTimeout(previewTimeoutRef.current);
+        previewTimeoutRef.current = null;
+      }
+      if (next) {
+        setPreviewState(next);
+        return;
+      }
+      previewTimeoutRef.current = window.setTimeout(() => {
+        setPreviewState(null);
+        previewTimeoutRef.current = null;
+      }, 200);
+    },
+    [],
+  );
+
+  useEffect(
+    () => () => {
+      if (previewTimeoutRef.current) {
+        clearTimeout(previewTimeoutRef.current);
+      }
+    },
+    [],
+  );
+
+  const activeForms = previewState?.forms ?? currentForms;
+  const isPreviewing = Boolean(previewState?.forms);
+  const previewMetadata = previewState
+    ? ACTION_METADATA[previewState.operation]
+    : null;
+  const PreviewGlyph = previewMetadata?.Glyph;
+
   return (
     <div className="app-shell">
       <div className="app-card">
@@ -304,7 +347,9 @@ function App() {
                 selectedIds={selectionSet}
                 selectedParentId={selectedParentId}
                 className="network-view-container"
-                onToggleNode={isPreviewing ? undefined : handleToggleNode}
+                onToggleNode={
+                  isPreviewing ? undefined : (id) => toggleSelection(id)
+                }
                 onSelectParent={
                   isPreviewing
                     ? undefined
