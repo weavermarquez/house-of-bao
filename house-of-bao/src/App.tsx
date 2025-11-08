@@ -140,9 +140,10 @@ function App() {
   const redo = useGameStore(selectRedo);
   const historyCounts = useGameStore(useShallow(selectHistoryCounts));
   const [previewState, setPreviewState] = useState<{
-    forms: Form[];
+    forms?: Form[];
     description: string;
     operation: OperationKey;
+    note?: string;
   } | null>(null);
   const previewTimeoutRef = useRef<number | null>(null);
 
@@ -191,9 +192,10 @@ function App() {
     (
       next:
         | {
-            forms: Form[];
+            forms?: Form[];
             description: string;
             operation: OperationKey;
+            note?: string;
           }
         | null,
     ) => {
@@ -223,7 +225,7 @@ function App() {
   );
 
   const activeForms = previewState?.forms ?? currentForms;
-  const isPreviewing = previewState !== null;
+  const isPreviewing = Boolean(previewState?.forms);
   const previewMetadata = previewState
     ? ACTION_METADATA[previewState.operation]
     : null;
@@ -325,12 +327,23 @@ function App() {
                         <span className="preview-description">
                           {previewState.description}
                         </span>
+                        {previewState.note ? (
+                          <span className="preview-note">{previewState.note}</span>
+                        ) : null}
                       </div>
                     </div>
                   ) : (
-                    <span className="preview-label">
-                      Preview: {previewState.description}
-                    </span>
+                    <div className="preview-label">
+                      <div className="preview-copy">
+                        <span className="preview-operation-label">Preview</span>
+                        <span className="preview-description">
+                          {previewState.description}
+                        </span>
+                        {previewState.note ? (
+                          <span className="preview-note">{previewState.note}</span>
+                        ) : null}
+                      </div>
+                    </div>
                   )}
                 </div>
               ) : null}
