@@ -9,6 +9,8 @@ import { NetworkView, ROOT_NODE_ID } from "./dialects/network";
 import { AxiomActionPanel } from "./components/AxiomActionPanel";
 import { FormPreview } from "./components/FormPreview";
 import { Footer } from "./components/Footer";
+import type { OperationKey } from "./hooks/useAvailableOperations";
+import { ACTION_METADATA } from "./components/ActionGlyphs";
 
 type LegendShape = "round" | "square" | "angle";
 
@@ -140,6 +142,7 @@ function App() {
   const [previewState, setPreviewState] = useState<{
     forms: Form[];
     description: string;
+    operation: OperationKey;
   } | null>(null);
   const previewTimeoutRef = useRef<number | null>(null);
 
@@ -185,7 +188,15 @@ function App() {
     selectedParentId === ROOT_NODE_ID ? null : selectedParentId;
 
   const handlePreviewChange = useCallback(
-    (next: { forms: Form[]; description: string } | null) => {
+    (
+      next:
+        | {
+            forms: Form[];
+            description: string;
+            operation: OperationKey;
+          }
+        | null,
+    ) => {
       if (previewTimeoutRef.current) {
         clearTimeout(previewTimeoutRef.current);
         previewTimeoutRef.current = null;
@@ -213,7 +224,10 @@ function App() {
 
   const activeForms = previewState?.forms ?? currentForms;
   const isPreviewing = previewState !== null;
-  const previewDescription = previewState?.description;
+  const previewMetadata = previewState
+    ? ACTION_METADATA[previewState.operation]
+    : null;
+  const PreviewGlyph = previewMetadata?.Glyph;
 
   return (
     <div className="app-shell">
@@ -299,11 +313,25 @@ function App() {
                       }
                 }
               />
-              {isPreviewing ? (
+              {previewState ? (
                 <div className="graph-preview-overlay">
-                  <span className="preview-label">
-                    Preview: {previewDescription ?? "Simulated result"}
-                  </span>
+                  {previewMetadata && PreviewGlyph ? (
+                    <div className="preview-label">
+                      <PreviewGlyph className="preview-glyph" />
+                      <div className="preview-copy">
+                        <span className="preview-operation-label">
+                          Preview • {previewMetadata.label}
+                        </span>
+                        <span className="preview-description">
+                          {previewState.description}
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <span className="preview-label">
+                      Preview: {previewState.description}
+                    </span>
+                  )}
                 </div>
               ) : null}
             </div>

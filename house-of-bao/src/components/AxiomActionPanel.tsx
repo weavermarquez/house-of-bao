@@ -3,16 +3,7 @@ import type { Form } from "../logic/Form";
 import type { AxiomType } from "../levels/types";
 import { previewOperation, type GameOperation } from "../store/gameStore";
 import { useAvailableOperations, type OperationKey } from "../hooks/useAvailableOperations";
-
-const OPERATION_READY_COPY: Record<OperationKey, string> = {
-  clarify: "Clarify removes a round/square wrapper from the selected form.",
-  enfoldFrame: "Enfold Frame wraps siblings with a round-square shell.",
-  enfoldMark: "Enfold Mark wraps siblings with a square-round shell.",
-  disperse: "Disperse splits square contents into separate frames.",
-  collect: "Collect merges matching frames back together.",
-  cancel: "Cancel removes a form and its reflection (or empty angle).",
-  create: "Create Pair spawns a template + reflection at the chosen parent.",
-};
+import { ACTION_METADATA } from "./ActionGlyphs";
 
 const AXIOM_METADATA = {
   inversion: {
@@ -39,7 +30,15 @@ type AxiomActionPanelProps = {
   applyOperation: (operation: GameOperation) => void;
   currentForms: Form[];
   allowedAxioms?: AxiomType[];
-  onPreviewChange?: (payload: { forms: Form[]; description: string } | null) => void;
+  onPreviewChange?: (
+    payload:
+      | {
+          forms: Form[];
+          description: string;
+          operation: OperationKey;
+        }
+      | null
+  ) => void;
 };
 
 export function AxiomActionPanel({
@@ -100,6 +99,7 @@ export function AxiomActionPanel({
     key: OperationKey,
     buildOperation?: () => GameOperation | null,
   ) => {
+    const metadata = ACTION_METADATA[key];
     const showPreview = () => {
       if (previewLock === key) {
         onPreviewChange?.(null);
@@ -118,7 +118,8 @@ export function AxiomActionPanel({
       if (preview) {
         onPreviewChange?.({
           forms: preview,
-          description: OPERATION_READY_COPY[key],
+          description: metadata.description,
+          operation: key,
         });
       } else {
         onPreviewChange?.(null);
@@ -147,6 +148,20 @@ export function AxiomActionPanel({
     operationAvailability[key].available
       ? undefined
       : operationAvailability[key].reason ?? undefined;
+
+  const renderButtonContent = (key: OperationKey) => {
+    const metadata = ACTION_METADATA[key];
+    const Glyph = metadata.Glyph;
+    return (
+      <span className="action-button-content">
+        <Glyph className="action-button-glyph" />
+        <span className="action-button-text">
+          <span className="action-button-name">{metadata.label}</span>
+          <span className="action-button-hint">{metadata.hint}</span>
+        </span>
+      </span>
+    );
+  };
 
   return (
     <section className="info-card axiom-actions-panel">
@@ -191,7 +206,7 @@ export function AxiomActionPanel({
                     : null,
                 )}
               >
-                Clarify (unwrap)
+                {renderButtonContent("clarify")}
               </button>
               <button
                 type="button"
@@ -221,7 +236,7 @@ export function AxiomActionPanel({
                   parentId: parentIdForOps,
                 }))}
               >
-                Enfold Frame (○□)
+                {renderButtonContent("enfoldFrame")}
               </button>
               <button
                 type="button"
@@ -251,7 +266,7 @@ export function AxiomActionPanel({
                   parentId: parentIdForOps,
                 }))}
               >
-                Enfold Mark (□○)
+                {renderButtonContent("enfoldMark")}
               </button>
             </div>
           </div>
@@ -293,7 +308,7 @@ export function AxiomActionPanel({
                   frameId: parentIdForOps ?? undefined,
                 }))}
               >
-                Disperse (split)
+                {renderButtonContent("disperse")}
               </button>
               <button
                 type="button"
@@ -317,7 +332,7 @@ export function AxiomActionPanel({
                   targetIds: selectedNodeIds,
                 }))}
               >
-                Collect (merge)
+                {renderButtonContent("collect")}
               </button>
             </div>
           </div>
@@ -355,7 +370,7 @@ export function AxiomActionPanel({
                   targetIds: selectedNodeIds,
                 }))}
               >
-                Cancel (remove pair)
+                {renderButtonContent("cancel")}
               </button>
               <button
                 type="button"
@@ -383,7 +398,7 @@ export function AxiomActionPanel({
                     selectedNodeIds.length > 0 ? selectedNodeIds : undefined,
                 }))}
               >
-                Create Pair (+)
+                {renderButtonContent("create")}
               </button>
             </div>
           </div>
