@@ -318,7 +318,7 @@ button:disabled {
 .action-button-content {
   display: inline-flex;
   align-items: center;
-  gap: 0.8rem;
+  gap: 0.65rem;
   width: 100%;
 }
 
@@ -330,8 +330,8 @@ button:disabled {
 }
 
 .action-button-glyph svg {
-  width: 52px;
-  height: 32px;
+  width: 72px;
+  height: 40px;
 }
 
 .action-button-text {
@@ -382,8 +382,8 @@ button:disabled {
 }
 
 .preview-glyph svg {
-  width: 58px;
-  height: 34px;
+  width: 92px;
+  height: 48px;
 }
 
 .preview-copy {
