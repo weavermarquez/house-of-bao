@@ -10,6 +10,8 @@ import { AxiomActionPanel } from "./components/AxiomActionPanel";
 import { FormPreview } from "./components/FormPreview";
 import { Footer } from "./components/Footer";
 import { TutorialOverlay } from "./components/TutorialOverlay";
+import type { OperationKey } from "./hooks/useAvailableOperations";
+import { ACTION_METADATA } from "./components/ActionGlyphs";
 
 type LegendShape = "round" | "square" | "angle";
 
@@ -142,8 +144,10 @@ function App() {
   );
   const historyCounts = useGameStore(useShallow(selectHistoryCounts));
   const [previewState, setPreviewState] = useState<{
-    forms: Form[];
+    forms?: Form[];
     description: string;
+    operation: OperationKey;
+    note?: string;
   } | null>(null);
   const previewTimeoutRef = useRef<number | null>(null);
 
@@ -201,7 +205,16 @@ function App() {
   );
 
   const handlePreviewChange = useCallback(
-    (next: { forms: Form[]; description: string } | null) => {
+    (
+      next:
+        | {
+            forms?: Form[];
+            description: string;
+            operation: OperationKey;
+            note?: string;
+          }
+        | null,
+    ) => {
       if (previewTimeoutRef.current) {
         clearTimeout(previewTimeoutRef.current);
         previewTimeoutRef.current = null;
@@ -228,8 +241,11 @@ function App() {
   );
 
   const activeForms = previewState?.forms ?? currentForms;
-  const isPreviewing = previewState !== null;
-  const previewDescription = previewState?.description;
+  const isPreviewing = Boolean(previewState?.forms);
+  const previewMetadata = previewState
+    ? ACTION_METADATA[previewState.operation]
+    : null;
+  const PreviewGlyph = previewMetadata?.Glyph;
 
   return (
     <div className="app-shell">
@@ -313,11 +329,36 @@ function App() {
                       }
                 }
               />
-              {isPreviewing ? (
+              {previewState ? (
                 <div className="graph-preview-overlay">
-                  <span className="preview-label">
-                    Preview: {previewDescription ?? "Simulated result"}
-                  </span>
+                  {previewMetadata && PreviewGlyph ? (
+                    <div className="preview-label">
+                      <PreviewGlyph className="preview-glyph" />
+                      <div className="preview-copy">
+                        <span className="preview-operation-label">
+                          Preview • {previewMetadata.label}
+                        </span>
+                        <span className="preview-description">
+                          {previewState.description}
+                        </span>
+                        {previewState.note ? (
+                          <span className="preview-note">{previewState.note}</span>
+                        ) : null}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="preview-label">
+                      <div className="preview-copy">
+                        <span className="preview-operation-label">Preview</span>
+                        <span className="preview-description">
+                          {previewState.description}
+                        </span>
+                        {previewState.note ? (
+                          <span className="preview-note">{previewState.note}</span>
+                        ) : null}
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : null}
             </div>

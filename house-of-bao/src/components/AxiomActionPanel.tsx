@@ -7,16 +7,7 @@ import {
   type GameOperation,
 } from "../store/gameStore";
 import { useAvailableOperations, type OperationKey } from "../hooks/useAvailableOperations";
-
-const OPERATION_READY_COPY: Record<OperationKey, string> = {
-  clarify: "Clarify removes a round/square wrapper from the selected form.",
-  enfoldFrame: "Enfold Frame wraps siblings with a round-square shell.",
-  enfoldMark: "Enfold Mark wraps siblings with a square-round shell.",
-  disperse: "Disperse splits square contents into separate frames.",
-  collect: "Collect merges matching frames back together.",
-  cancel: "Cancel removes a form and its reflection (or empty angle).",
-  create: "Create Pair spawns a template + reflection at the chosen parent.",
-};
+import { ACTION_METADATA } from "./ActionGlyphs";
 
 const AXIOM_METADATA = {
   inversion: {
@@ -43,7 +34,16 @@ type AxiomActionPanelProps = {
   applyOperation: (operation: GameOperation) => void;
   currentForms: Form[];
   allowedAxioms?: AxiomType[];
-  onPreviewChange?: (payload: { forms: Form[]; description: string } | null) => void;
+  onPreviewChange?: (
+    payload:
+      | {
+          forms?: Form[];
+          description: string;
+          operation: OperationKey;
+          note?: string;
+        }
+      | null
+  ) => void;
 };
 
 export function AxiomActionPanel({
@@ -108,27 +108,39 @@ export function AxiomActionPanel({
     buildOperation?: () => GameOperation | null,
   ) => {
     const showPreview = () => {
+      const metadata = ACTION_METADATA[key];
+      const availability = operationAvailability[key];
+      const emitPreview = (forms?: Form[], note?: string) => {
+        onPreviewChange?.({
+          forms,
+          description: metadata.description,
+          operation: key,
+          note,
+        });
+      };
+
       if (previewLock === key) {
         onPreviewChange?.(null);
         return;
       }
-      if (!buildOperation || !operationAvailability[key].available) {
-        onPreviewChange?.(null);
+      if (!buildOperation) {
+        emitPreview(undefined, availability.reason);
         return;
       }
       const operation = buildOperation();
       if (!operation) {
-        onPreviewChange?.(null);
+        emitPreview(undefined, availability.reason);
         return;
       }
-      const preview = computePreview(operation);
-      if (preview) {
-        onPreviewChange?.({
-          forms: preview,
-          description: OPERATION_READY_COPY[key],
-        });
+      if (availability.available) {
+        const preview = computePreview(operation);
+        if (preview) {
+          emitPreview(preview);
+        } else {
+          emitPreview();
+        }
       } else {
-        onPreviewChange?.(null);
+        emitPreview(undefined, availability.reason);
       }
     };
 
@@ -157,6 +169,49 @@ export function AxiomActionPanel({
       ? undefined
       : operationAvailability[key].reason ?? undefined;
 
+  const renderButtonContent = (key: OperationKey) => {
+    const metadata = ACTION_METADATA[key];
+    const Glyph = metadata.Glyph;
+    return (
+      <span className="action-button-content">
+        <Glyph className="action-button-glyph" />
+        <span className="action-button-text">
+          <span className="action-button-name">{metadata.label}</span>
+          <span className="action-button-hint">{metadata.hint}</span>
+        </span>
+      </span>
+    );
+  };
+
+  const renderActionControl = (
+    key: OperationKey,
+    buildOperation: (() => GameOperation | null) | undefined,
+    buttonProps: {
+      onClick: () => void;
+      disabled: boolean;
+      title?: string;
+      className?: string;
+    },
+  ) => {
+    const handlers = createInteractionHandlers(key, buildOperation);
+    return (
+      <div
+        className="action-button-wrapper"
+        onMouseEnter={handlers.onMouseEnter}
+        onMouseLeave={handlers.onMouseLeave}
+      >
+        <button
+          type="button"
+          {...buttonProps}
+          onFocus={handlers.onFocus}
+          onBlur={handlers.onBlur}
+        >
+          {renderButtonContent(key)}
+        </button>
+      </div>
+    );
+  };
+
   return (
     <section className="info-card axiom-actions-panel">
       <div className="axiom-groups">
@@ -171,97 +226,92 @@ export function AxiomActionPanel({
               </div>
             </div>
             <div className="axiom-group-actions">
-              <button
-                type="button"
-                onClick={() => {
-                  if (
-                    !operationAvailability.clarify.available ||
-                    !firstSelected
-                  ) {
-                    return;
-                  }
-                  applyOperation({
-                    type: "clarify",
-                    targetId: firstSelected,
-                  });
-                  lockPreviewFor("clarify");
-                }}
-                disabled={!operationAvailability.clarify.available}
-                title={getOperationTooltip("clarify")}
-                className={
-                  newlyAvailable.has("clarify") ? "button-newly-available" : ""
-                }
-                {...createInteractionHandlers("clarify", () =>
+              {renderActionControl(
+                "clarify",
+                () =>
                   firstSelected
                     ? {
                         type: "clarify",
                         targetId: firstSelected,
                       }
                     : null,
-                )}
-              >
-                Clarify (unwrap)
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  if (!operationAvailability.enfoldFrame.available) {
-                    return;
-                  }
-                  applyOperation({
-                    type: "enfold",
-                    targetIds: selectedNodeIds,
-                    variant: "frame",
-                    parentId: parentIdForOps,
-                  });
-                  lockPreviewFor("enfoldFrame");
-                }}
-                disabled={!operationAvailability.enfoldFrame.available}
-                title={getOperationTooltip("enfoldFrame")}
-                className={
-                  newlyAvailable.has("enfoldFrame")
+                {
+                  onClick: () => {
+                    if (
+                      !operationAvailability.clarify.available ||
+                      !firstSelected
+                    ) {
+                      return;
+                    }
+                    applyOperation({
+                      type: "clarify",
+                      targetId: firstSelected,
+                    });
+                    lockPreviewFor("clarify");
+                  },
+                  disabled: !operationAvailability.clarify.available,
+                  title: getOperationTooltip("clarify"),
+                  className: newlyAvailable.has("clarify")
                     ? "button-newly-available"
-                    : ""
-                }
-                {...createInteractionHandlers("enfoldFrame", () => ({
+                    : "",
+                },
+              )}
+              {renderActionControl(
+                "enfoldFrame",
+                () => ({
                   type: "enfold",
                   targetIds: selectedNodeIds,
                   variant: "frame",
                   parentId: parentIdForOps,
-                }))}
-              >
-                Enfold Frame (○□)
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  if (!operationAvailability.enfoldMark.available) {
-                    return;
-                  }
-                  applyOperation({
-                    type: "enfold",
-                    targetIds: selectedNodeIds,
-                    variant: "mark",
-                    parentId: parentIdForOps,
-                  });
-                  lockPreviewFor("enfoldMark");
-                }}
-                disabled={!operationAvailability.enfoldMark.available}
-                title={getOperationTooltip("enfoldMark")}
-                className={
-                  newlyAvailable.has("enfoldMark")
+                }),
+                {
+                  onClick: () => {
+                    if (!operationAvailability.enfoldFrame.available) {
+                      return;
+                    }
+                    applyOperation({
+                      type: "enfold",
+                      targetIds: selectedNodeIds,
+                      variant: "frame",
+                      parentId: parentIdForOps,
+                    });
+                    lockPreviewFor("enfoldFrame");
+                  },
+                  disabled: !operationAvailability.enfoldFrame.available,
+                  title: getOperationTooltip("enfoldFrame"),
+                  className: newlyAvailable.has("enfoldFrame")
                     ? "button-newly-available"
-                    : ""
-                }
-                {...createInteractionHandlers("enfoldMark", () => ({
+                    : "",
+                },
+              )}
+              {renderActionControl(
+                "enfoldMark",
+                () => ({
                   type: "enfold",
                   targetIds: selectedNodeIds,
                   variant: "mark",
                   parentId: parentIdForOps,
-                }))}
-              >
-                Enfold Mark (□○)
-              </button>
+                }),
+                {
+                  onClick: () => {
+                    if (!operationAvailability.enfoldMark.available) {
+                      return;
+                    }
+                    applyOperation({
+                      type: "enfold",
+                      targetIds: selectedNodeIds,
+                      variant: "mark",
+                      parentId: parentIdForOps,
+                    });
+                    lockPreviewFor("enfoldMark");
+                  },
+                  disabled: !operationAvailability.enfoldMark.available,
+                  title: getOperationTooltip("enfoldMark"),
+                  className: newlyAvailable.has("enfoldMark")
+                    ? "button-newly-available"
+                    : "",
+                },
+              )}
             </div>
           </div>
         )}
@@ -276,58 +326,56 @@ export function AxiomActionPanel({
               </div>
             </div>
             <div className="axiom-group-actions">
-              <button
-                type="button"
-                onClick={() => {
-                  if (!operationAvailability.disperse.available) {
-                    return;
-                  }
-                  applyOperation({
-                    type: "disperse",
-                    contentIds: selectedNodeIds,
-                    frameId: parentIdForOps ?? undefined,
-                  });
-                  lockPreviewFor("disperse");
-                }}
-                disabled={!operationAvailability.disperse.available}
-                title={getOperationTooltip("disperse")}
-                className={
-                  newlyAvailable.has("disperse")
-                    ? "button-newly-available"
-                    : ""
-                }
-                {...createInteractionHandlers("disperse", () => ({
+              {renderActionControl(
+                "disperse",
+                () => ({
                   type: "disperse",
                   contentIds: selectedNodeIds,
                   frameId: parentIdForOps ?? undefined,
-                }))}
-              >
-                Disperse (split)
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  if (!operationAvailability.collect.available) {
-                    return;
-                  }
-                  applyOperation({
-                    type: "collect",
-                    targetIds: selectedNodeIds,
-                  });
-                  lockPreviewFor("collect");
-                }}
-                disabled={!operationAvailability.collect.available}
-                title={getOperationTooltip("collect")}
-                className={
-                  newlyAvailable.has("collect") ? "button-newly-available" : ""
-                }
-                {...createInteractionHandlers("collect", () => ({
+                }),
+                {
+                  onClick: () => {
+                    if (!operationAvailability.disperse.available) {
+                      return;
+                    }
+                    applyOperation({
+                      type: "disperse",
+                      contentIds: selectedNodeIds,
+                      frameId: parentIdForOps ?? undefined,
+                    });
+                    lockPreviewFor("disperse");
+                  },
+                  disabled: !operationAvailability.disperse.available,
+                  title: getOperationTooltip("disperse"),
+                  className: newlyAvailable.has("disperse")
+                    ? "button-newly-available"
+                    : "",
+                },
+              )}
+              {renderActionControl(
+                "collect",
+                () => ({
                   type: "collect",
                   targetIds: selectedNodeIds,
-                }))}
-              >
-                Collect (merge)
-              </button>
+                }),
+                {
+                  onClick: () => {
+                    if (!operationAvailability.collect.available) {
+                      return;
+                    }
+                    applyOperation({
+                      type: "collect",
+                      targetIds: selectedNodeIds,
+                    });
+                    lockPreviewFor("collect");
+                  },
+                  disabled: !operationAvailability.collect.available,
+                  title: getOperationTooltip("collect"),
+                  className: newlyAvailable.has("collect")
+                    ? "button-newly-available"
+                    : "",
+                },
+              )}
             </div>
           </div>
         )}
@@ -342,58 +390,58 @@ export function AxiomActionPanel({
               </div>
             </div>
             <div className="axiom-group-actions">
-              <button
-                type="button"
-                onClick={() => {
-                  if (!operationAvailability.cancel.available) {
-                    return;
-                  }
-                  applyOperation({
-                    type: "cancel",
-                    targetIds: selectedNodeIds,
-                  });
-                  lockPreviewFor("cancel");
-                }}
-                disabled={!operationAvailability.cancel.available}
-                title={getOperationTooltip("cancel")}
-                className={
-                  newlyAvailable.has("cancel") ? "button-newly-available" : ""
-                }
-                {...createInteractionHandlers("cancel", () => ({
+              {renderActionControl(
+                "cancel",
+                () => ({
                   type: "cancel",
                   targetIds: selectedNodeIds,
-                }))}
-              >
-                Cancel (remove pair)
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  if (!operationAvailability.create.available) {
-                    return;
-                  }
-                  applyOperation({
-                    type: "create",
-                    parentId: parentIdForOps,
-                    templateIds:
-                      selectedNodeIds.length > 0 ? selectedNodeIds : undefined,
-                  });
-                  lockPreviewFor("create");
-                }}
-                disabled={!operationAvailability.create.available}
-                title={getOperationTooltip("create")}
-                className={
-                  newlyAvailable.has("create") ? "button-newly-available" : ""
-                }
-                {...createInteractionHandlers("create", () => ({
+                }),
+                {
+                  onClick: () => {
+                    if (!operationAvailability.cancel.available) {
+                      return;
+                    }
+                    applyOperation({
+                      type: "cancel",
+                      targetIds: selectedNodeIds,
+                    });
+                    lockPreviewFor("cancel");
+                  },
+                  disabled: !operationAvailability.cancel.available,
+                  title: getOperationTooltip("cancel"),
+                  className: newlyAvailable.has("cancel")
+                    ? "button-newly-available"
+                    : "",
+                },
+              )}
+              {renderActionControl(
+                "create",
+                () => ({
                   type: "create",
                   parentId: parentIdForOps,
                   templateIds:
                     selectedNodeIds.length > 0 ? selectedNodeIds : undefined,
-                }))}
-              >
-                Create Pair (+)
-              </button>
+                }),
+                {
+                  onClick: () => {
+                    if (!operationAvailability.create.available) {
+                      return;
+                    }
+                    applyOperation({
+                      type: "create",
+                      parentId: parentIdForOps,
+                      templateIds:
+                        selectedNodeIds.length > 0 ? selectedNodeIds : undefined,
+                    });
+                    lockPreviewFor("create");
+                  },
+                  disabled: !operationAvailability.create.available,
+                  title: getOperationTooltip("create"),
+                  className: newlyAvailable.has("create")
+                    ? "button-newly-available"
+                    : "",
+                },
+              )}
             </div>
           </div>
         )}
