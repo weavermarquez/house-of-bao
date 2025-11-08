@@ -99,6 +99,14 @@ Phase 1. sounds all good. Can you provide info to delegate that out?
     - this will require a tutorial
   - start form: keep
   - goal form: keep
+
+- [ ] level 7.2 *collect disambiguation*
+  - [ ] we need to add a level clarifying that /three/ selections must be made when collection is ambiguous.
+  - ([oo][o])([oo][o])
+    - may collect to either
+      ([oooo][o])
+      or
+      ([oo][oo])
     
     
 - level 7.1 parent 1
@@ -143,77 +151,5 @@ Let's go with 1) Option A. 2) I would like to remove certain levels.
 -----
 
 as for levels 8 onwards... uhhh, we'll deal with that later. hopefully the more fleshed out tutorial levels help with the difficulty spike.
-
-
-* Tutorial Onboarding Design
-
-Option 1: Tutorial Prompts on gameplay when relevant. No separate tutorial mode.
-- The biggest pain point for completely new players is that they have no clue how to even /read/ the gamestate or even the UI.
-  - I think there's no way around this at the moment other than explicit instruction connecting the idea of containment to the way the nodes are displayed in the play area.
-  - I think the bounding box dialect is uniquely strong in this regard for visually enclosing one shape in the other.
-- I also think there's no way around the fact that new players don't know that they can select both nodes as well as the spaces between them, and what the hell that means.
-  Or that "nothingness" is semantically notable.
-  I think we want to keep these overlays as minimal as possible, I agree.
-
-  I don't think such modals should be /one time only/ - they should be tied to specific action introduction levels. We don't want to presume a players' comfort and we want to help them re-orient themselves by coming back to intro levels if they feel lost later.
-  
-
-Option 2: Practice Levels
-- Frankly, I think we need a /lot/ more practice levels in any case. But I can't expect you to design them, I understand.
-- I'm torn between introducing the connection between arithmetic and this system earlier or later.
-  - Points for Earlier: establishes motivation for even understranding what the hell the containers are. Or what this is "supposed" to be. I know that I wanted explanations about that ASAP and I have noticed that with several playtesters.
-    - We can easily draw inspiration for a gradation of levels by simply drawing from the k-12 math curriculum, especially the early grades. There should be workbooks for introducing new concepts that are already well designed to gently introduce concepts while exploring the nuances of the conventional arithmetic system. However, some of these nuances will be lost in translation to james algebra because JA already simplifies and clears a lot of unnecessary complications up.  
-  - Points for Later: playing around with the rules in themselves should be fun in order to determine whether this system is fertile ground for a /puzzle game/ and not just a 'fake-fun' way of teaching math. Puzzles are going to have to come not just from its interpretation to contemporary math but also in the nuances of boundary based / iconic systems. this means embracing, exploring, and highlighting concepts like void-equivalence (e.g. by featuring a set of levels for the Inversion axiom that literally just involves cleaning trees up with Clarify, or /creating/ elaborate structures with Enfold)
-    - There are many nuances /especially/ to Arrangement that can /not/ be explored if players are stuck in the mindset of solely interpreting James Algebra as a notation for conventional math. From the book:
-      #+begin_quote
-If reducing every arbitrary form within an axiomatic
-system is easy, then the system is trivial. Useful systems
-must include difficult reductions. Descriptively powerful
-transformation processes are necessarily complex. The
-complexity associated with Arrangement is that the most
-effective direction of application is unclear. There is not
-a consistently preferred direction that leads to a minimal
-form, rather direction of application depends upon con-
-text. Arrangement is the only James axiom that entails
-complexity, a feature that leads to very efficient trans-
-formation sequences. But having three different types of
-boundaries potentially increases the risk of undesirable
-features such as the lack of a unique normal form. There
-is even the risk of contradictory results.8 For the James
-algebra, we will come across a quite interesting com-
-plexity: the system itself is very well behaved, but the
-interpretation can step outside of the domain of numbers,
-as is the case of zero and infinity.
-      #+end_quote
-    - The current implementation of Reflection is largely incomplete until we incorporate more functionality for variable/atom hydration. Right now, we rely on the user selecting from forms directly visible on the screen as the template, but that is just a temporary limitation of the system and not an actual property of the axiom.
-  
-Option 3:
-I think good naming is always important. But we do not have a solver.
-Hmm. I do think a hint system is likely necessary.
-We just received back the hover previews, and it is /glorious/. We still have to do more work to make the actions eligible on a broader selection of actions that they really should have, but this does a /ton/ to help. 
-
-Option 4:
-Duh, hybrid approach. I am wondering if we will need to further consider the plan given the details I have provided here.
-
-
-Tutorial Framework:
-A level contains...
-- a leveldefinition
-  - Name
-  - Start Form
-  - Goal Form
-  - optional Axiom Restrictions (maybe make this broader -- perhaps /specific action/ restrictions?) :: currently implemented as an allowlist instead
-  - optional tutorial steps
-  - isintrolevel :: is this necessary? either it contains tutorial info or not, right? doesn't really matter if it's an intro level.
-    
-- Tutorial Steps.
-  - id, trigger, position, title, message, dismissonaction, requiredaction all sound good.
-  - targetElement may be a bit difficult, but we could reuse the 'label' field since they are unused in non-atom nodes?
-  
-I think tutorialstate should not be cleared. This is a prototype right now.
-
-
-
-
 
 
