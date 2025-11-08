@@ -1059,6 +1059,6 @@ https://cp4space.hatsya.com/2012/12/19/fast-growing-2/
 
 This was a neat article. I should take note of this field because I imagine this could be inspiration for new mechanics.
 
-In particular, I thought it was notable that I had never heard of the particular label of /inf/  as the function for the common ancestor of two nodes.
+In particular, I thought it was notable that I had never heard of the particular label of /inf/ as the function for the common ancestor of two nodes.
 
 
