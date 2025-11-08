@@ -103,66 +103,75 @@ export function AxiomActionPanel({
     [onPreviewChange],
   );
 
-  const createInteractionHandlers = (
-    key: OperationKey,
-    buildOperation?: () => GameOperation | null,
-  ) => {
-    const showPreview = () => {
-      const metadata = ACTION_METADATA[key];
-      const availability = operationAvailability[key];
-      const emitPreview = (forms?: Form[], note?: string) => {
-        onPreviewChange?.({
-          forms,
-          description: metadata.description,
-          operation: key,
-          note,
-        });
+  const createInteractionHandlers = useCallback(
+    (
+      key: OperationKey,
+      buildOperation?: () => GameOperation | null,
+    ) => {
+      const showPreview = () => {
+        const metadata = ACTION_METADATA[key];
+        const availability = operationAvailability[key];
+        const emitPreview = (forms?: Form[], note?: string) => {
+          onPreviewChange?.({
+            forms,
+            description: metadata.description,
+            operation: key,
+            note,
+          });
+        };
+
+        if (previewLock === key) {
+          onPreviewChange?.(null);
+          return;
+        }
+        if (!buildOperation) {
+          emitPreview(undefined, availability.reason);
+          return;
+        }
+        const operation = buildOperation();
+        if (!operation) {
+          emitPreview(undefined, availability.reason);
+          return;
+        }
+        if (availability.available) {
+          const preview = computePreview(operation);
+          if (preview) {
+            emitPreview(preview);
+          } else {
+            emitPreview();
+          }
+        } else {
+          emitPreview(undefined, availability.reason);
+        }
       };
 
-      if (previewLock === key) {
-        onPreviewChange?.(null);
-        return;
-      }
-      if (!buildOperation) {
-        emitPreview(undefined, availability.reason);
-        return;
-      }
-      const operation = buildOperation();
-      if (!operation) {
-        emitPreview(undefined, availability.reason);
-        return;
-      }
-      if (availability.available) {
-        const preview = computePreview(operation);
-        if (preview) {
-          emitPreview(preview);
-        } else {
-          emitPreview();
-        }
-      } else {
-        emitPreview(undefined, availability.reason);
-      }
-    };
-
-    return {
-      onMouseEnter: () => {
-        checkAndTriggerTutorial("button_hover");
-        showPreview();
-      },
-      onFocus: () => {
-        checkAndTriggerTutorial("button_hover");
-        showPreview();
-      },
-      onMouseLeave: () => {
-        onPreviewChange?.(null);
-        setPreviewLock((current) => (current === key ? null : current));
-      },
-      onBlur: () => {
-        onPreviewChange?.(null);
-        setPreviewLock((current) => (current === key ? null : current));
-      },
-    };
-  };
+      return {
+        onMouseEnter: () => {
+          checkAndTriggerTutorial("button_hover");
+          showPreview();
+        },
+        onFocus: () => {
+          checkAndTriggerTutorial("button_hover");
+          showPreview();
+        },
+        onMouseLeave: () => {
+          onPreviewChange?.(null);
+          setPreviewLock((current) => (current === key ? null : current));
+        },
+        onBlur: () => {
+          onPreviewChange?.(null);
+          setPreviewLock((current) => (current === key ? null : current));
+        },
+      };
+    },
+    [
+      previewLock,
+      operationAvailability,
+      computePreview,
+      onPreviewChange,
+      checkAndTriggerTutorial,
+    ],
+  );
 
   const getOperationTooltip = (key: OperationKey) =>
     operationAvailability[key].available
