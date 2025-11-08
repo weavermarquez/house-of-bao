@@ -16,10 +16,10 @@ const VIEWBOX_WIDTH = 148;
 const VIEWBOX_HEIGHT = 48;
 const MID_Y = VIEWBOX_HEIGHT / 2;
 
-const LEFT_CENTER_X = 40;
-const RIGHT_CENTER_X = 116;
-const ARROW_FROM_X = 70;
-const ARROW_TO_X = 102;
+const LEFT_CENTER_X = 25;
+const RIGHT_CENTER_X = 100;
+const ARROW_FROM_X = 50;
+const ARROW_TO_X = 70;
 
 const colors = {
   roundFill: "#fde68a",
@@ -33,6 +33,9 @@ const colors = {
   accent: "#2563eb",
   neutral: "#94a3b8",
   voidFill: "#f8fafc",
+  voidStroke: "#94a3b8",
+  atomFill: "#fecdd3",
+  atomStroke: "#be123c",
 };
 
 const baseSvgProps = {
@@ -50,37 +53,36 @@ function ClarifyGlyph({ className }: GlyphProps) {
       <circle
         cx={LEFT_CENTER_X}
         cy={MID_Y}
-        r={17}
-        fill={colors.roundFill}
-        stroke={colors.roundStroke}
+        r={16}
+        fill={colors.atomFill}
+        stroke={colors.atomStroke}
         strokeWidth={2}
       />
       <rect
-        x={LEFT_CENTER_X - 12}
-        y={MID_Y - 11}
-        width={24}
-        height={22}
+        x={LEFT_CENTER_X - 8}
+        y={MID_Y - 8}
+        width={16}
+        height={16}
         rx={5}
         fill={colors.squareFill}
         stroke={colors.squareStroke}
         strokeWidth={1.8}
       />
-      <circle
-        cx={LEFT_CENTER_X}
-        cy={MID_Y}
-        r={6}
-        fill={colors.nodeFill}
-        stroke={colors.nodeStroke}
-        strokeWidth={1.6}
-      />
       <Arrow from={ARROW_FROM_X} to={ARROW_TO_X} />
       <circle
         cx={RIGHT_CENTER_X}
         cy={MID_Y}
-        r={8}
-        fill={colors.nodeFill}
-        stroke={colors.nodeStroke}
-        strokeWidth={1.6}
+        r={12}
+        fill={colors.voidFill}
+        stroke={colors.neutral}
+        strokeWidth={1.4}
+        strokeDasharray="5 4"
+      />
+      <path
+        d={`M${RIGHT_CENTER_X - 6} ${MID_Y}h12`}
+        stroke={colors.neutral}
+        strokeWidth={1.2}
+        strokeLinecap="round"
       />
     </svg>
   );
@@ -90,19 +92,19 @@ function EnfoldFrameGlyph({ className }: GlyphProps) {
   return (
     <svg {...baseSvgProps} className={className}>
       <circle
-        cx={LEFT_CENTER_X - 8}
+        cx={LEFT_CENTER_X - 6}
         cy={MID_Y - 6}
         r={6}
-        fill={colors.nodeFill}
-        stroke={colors.nodeStroke}
+        fill={colors.atomFill}
+        stroke={colors.atomStroke}
         strokeWidth={1.4}
       />
       <circle
-        cx={LEFT_CENTER_X + 8}
+        cx={LEFT_CENTER_X + 6}
         cy={MID_Y + 6}
         r={6}
-        fill={colors.nodeFill}
-        stroke={colors.nodeStroke}
+        fill={colors.atomFill}
+        stroke={colors.atomStroke}
         strokeWidth={1.4}
       />
       <Arrow from={ARROW_FROM_X} to={ARROW_TO_X} />
@@ -125,19 +127,19 @@ function EnfoldFrameGlyph({ className }: GlyphProps) {
         strokeWidth={1.6}
       />
       <circle
-        cx={RIGHT_CENTER_X - 8}
+        cx={RIGHT_CENTER_X - 5}
         cy={MID_Y - 6}
         r={5}
-        fill={colors.nodeFill}
-        stroke={colors.nodeStroke}
+        fill={colors.atomFill}
+        stroke={colors.atomStroke}
         strokeWidth={1.2}
       />
       <circle
-        cx={RIGHT_CENTER_X + 8}
+        cx={RIGHT_CENTER_X + 5}
         cy={MID_Y + 6}
         r={5}
-        fill={colors.nodeFill}
-        stroke={colors.nodeStroke}
+        fill={colors.atomFill}
+        stroke={colors.atomStroke}
         strokeWidth={1.2}
       />
     </svg>
@@ -148,28 +150,28 @@ function EnfoldMarkGlyph({ className }: GlyphProps) {
   return (
     <svg {...baseSvgProps} className={className}>
       <circle
-        cx={LEFT_CENTER_X}
+        cx={LEFT_CENTER_X - 6}
         cy={MID_Y - 7}
-        r={5}
-        fill={colors.nodeFill}
-        stroke={colors.nodeStroke}
+        r={6}
+        fill={colors.atomFill}
+        stroke={colors.atomStroke}
         strokeWidth={1.2}
       />
       <circle
-        cx={LEFT_CENTER_X}
+        cx={LEFT_CENTER_X + 6}
         cy={MID_Y + 7}
-        r={5}
-        fill={colors.nodeFill}
-        stroke={colors.nodeStroke}
+        r={6}
+        fill={colors.atomFill}
+        stroke={colors.atomStroke}
         strokeWidth={1.2}
       />
       <Arrow from={ARROW_FROM_X} to={ARROW_TO_X} />
       <rect
-        x={RIGHT_CENTER_X - 18}
+        x={RIGHT_CENTER_X - 16}
         y={MID_Y - 16}
         width={32}
-        height={32}
-        rx={8}
+        height={33}
+        rx={4}
         fill={colors.squareFill}
         stroke={colors.squareStroke}
         strokeWidth={1.8}
@@ -177,25 +179,25 @@ function EnfoldMarkGlyph({ className }: GlyphProps) {
       <circle
         cx={RIGHT_CENTER_X}
         cy={MID_Y}
-        r={16}
+        r={15}
         fill={colors.roundFill}
         stroke={colors.roundStroke}
         strokeWidth={1.8}
       />
       <circle
-        cx={RIGHT_CENTER_X - 8}
+        cx={RIGHT_CENTER_X - 5}
         cy={MID_Y - 4}
         r={4.8}
-        fill={colors.nodeFill}
-        stroke={colors.nodeStroke}
+        fill={colors.atomFill}
+        stroke={colors.atomStroke}
         strokeWidth={1.2}
       />
       <circle
-        cx={RIGHT_CENTER_X + 8}
+        cx={RIGHT_CENTER_X + 5}
         cy={MID_Y + 4}
         r={4.8}
-        fill={colors.nodeFill}
-        stroke={colors.nodeStroke}
+        fill={colors.atomFill}
+        stroke={colors.atomStroke}
         strokeWidth={1.2}
       />
     </svg>
@@ -224,42 +226,42 @@ function DisperseGlyph({ className }: GlyphProps) {
         strokeWidth={1.6}
       />
       <circle
-        cx={LEFT_CENTER_X - 8}
+        cx={LEFT_CENTER_X - 4}
         cy={MID_Y - 5}
         r={4.6}
-        fill={colors.nodeFill}
-        stroke={colors.nodeStroke}
+        fill={colors.atomFill}
+        stroke={colors.atomStroke}
         strokeWidth={1}
       />
       <circle
-        cx={LEFT_CENTER_X + 8}
+        cx={LEFT_CENTER_X + 4}
         cy={MID_Y + 5}
         r={4.6}
-        fill={colors.nodeFill}
-        stroke={colors.nodeStroke}
+        fill={colors.atomFill}
+        stroke={colors.atomStroke}
         strokeWidth={1}
       />
       <Arrow from={ARROW_FROM_X} to={ARROW_TO_X} />
       <circle
         cx={RIGHT_CENTER_X - 12}
         cy={MID_Y - 6}
-        r={13}
+        r={11}
         fill={colors.roundFill}
         stroke={colors.roundStroke}
         strokeWidth={1.6}
       />
       <rect
-        x={RIGHT_CENTER_X - 19}
+        x={RIGHT_CENTER_X - 18}
         y={MID_Y - 12}
-        width={14}
-        height={14}
+        width={12}
+        height={12}
         rx={4}
         fill={colors.squareFill}
         stroke={colors.squareStroke}
         strokeWidth={1.3}
       />
       <circle
-        cx={104}
+        cx={RIGHT_CENTER_X - 12}
         cy={MID_Y - 6}
         r={3.2}
         fill={colors.nodeFill}
@@ -267,25 +269,25 @@ function DisperseGlyph({ className }: GlyphProps) {
         strokeWidth={0.9}
       />
       <circle
-        cx={RIGHT_CENTER_X + 12}
+        cx={RIGHT_CENTER_X + 6}
         cy={MID_Y + 6}
-        r={13}
+        r={11}
         fill={colors.roundFill}
         stroke={colors.roundStroke}
         strokeWidth={1.6}
       />
       <rect
-        x={RIGHT_CENTER_X + 5}
+        x={RIGHT_CENTER_X}
         y={MID_Y + 0.5}
-        width={14}
-        height={14}
+        width={12}
+        height={12}
         rx={4}
         fill={colors.squareFill}
         stroke={colors.squareStroke}
         strokeWidth={1.3}
       />
       <circle
-        cx={128}
+        cx={RIGHT_CENTER_X + 6}
         cy={MID_Y + 7}
         r={3.2}
         fill={colors.nodeFill}
@@ -302,9 +304,9 @@ function CollectGlyph({ className }: GlyphProps) {
       <circle
         cx={LEFT_CENTER_X - 8}
         cy={MID_Y - 7}
-        r={13}
-        fill={colors.roundFill}
-        stroke={colors.roundStroke}
+        r={12}
+        fill={colors.atomFill}
+        stroke={colors.atomStroke}
         strokeWidth={1.6}
       />
       <rect
@@ -314,34 +316,34 @@ function CollectGlyph({ className }: GlyphProps) {
         height={14}
         rx={4}
         fill={colors.squareFill}
-        stroke={colors.squareStroke}
-        strokeWidth={1.3}
+        stroke={colors.atomStroke}
+        strokeWidth={2}
       />
       <circle
         cx={LEFT_CENTER_X - 8}
         cy={MID_Y - 6}
         r={3.2}
-        fill={colors.nodeFill}
-        stroke={colors.nodeStroke}
+        fill={colors.roundFill}
+        stroke={colors.roundStroke}
         strokeWidth={0.9}
       />
       <circle
         cx={LEFT_CENTER_X + 8}
         cy={MID_Y + 7}
-        r={13}
-        fill={colors.roundFill}
-        stroke={colors.roundStroke}
+        r={12}
+        fill={colors.atomFill}
+        stroke={colors.atomStroke}
         strokeWidth={1.6}
       />
       <rect
         x={LEFT_CENTER_X + 1}
-        y={MID_Y + 1}
+        y={MID_Y}
         width={14}
         height={14}
         rx={4}
         fill={colors.squareFill}
-        stroke={colors.squareStroke}
-        strokeWidth={1.3}
+        stroke={colors.atomStroke}
+        strokeWidth={2}
       />
       <circle
         cx={LEFT_CENTER_X + 8}
@@ -397,20 +399,20 @@ function CancelGlyph({ className }: GlyphProps) {
         cx={LEFT_CENTER_X - 12}
         cy={MID_Y}
         r={6}
-        fill={colors.nodeFill}
-        stroke={colors.nodeStroke}
+        fill={colors.atomFill}
+        stroke={colors.atomStroke}
         strokeWidth={1.3}
       />
       <polygon
-        points={`${LEFT_CENTER_X + 2},12 ${LEFT_CENTER_X + 24},24 ${LEFT_CENTER_X + 2},36`}
-        fill={colors.angleFill}
-        stroke={colors.angleStroke}
+        points={`${LEFT_CENTER_X - 4},12 ${LEFT_CENTER_X + 22},24 ${LEFT_CENTER_X - 4},36`}
+        fill={colors.atomFill}
+        stroke={colors.atomStroke}
         strokeWidth={1.8}
       />
       <circle
-        cx={LEFT_CENTER_X + 18}
+        cx={LEFT_CENTER_X + 5}
         cy={MID_Y}
-        r={6}
+        r={5}
         fill={colors.nodeFill}
         stroke={colors.nodeStroke}
         strokeWidth={1.3}
@@ -420,10 +422,10 @@ function CancelGlyph({ className }: GlyphProps) {
         y1={MID_Y - 18}
         x2={LEFT_CENTER_X + 24}
         y2={MID_Y + 18}
-        stroke="#dc2626"
-        strokeWidth={1.6}
+        stroke="#ff5555"
+        strokeWidth={2}
         strokeLinecap="round"
-        strokeDasharray="4 3"
+        strokeDasharray="4 6"
       />
       <Arrow from={ARROW_FROM_X} to={ARROW_TO_X} />
       <circle
@@ -452,38 +454,32 @@ function CreatePairGlyph({ className }: GlyphProps) {
         cx={LEFT_CENTER_X}
         cy={MID_Y}
         r={12}
-        fill={colors.voidFill}
-        stroke={colors.neutral}
+        fill={colors.atomFill}
+        stroke={colors.atomStroke}
         strokeWidth={1.4}
-        strokeDasharray="4 3"
-      />
-      <path
-        d={`M${LEFT_CENTER_X - 6} ${MID_Y}h12`}
-        stroke={colors.neutral}
-        strokeWidth={1.2}
-        strokeLinecap="round"
+        strokeDasharray="3 3"
       />
       <Arrow from={ARROW_FROM_X} to={ARROW_TO_X} />
       <circle
-        cx={RIGHT_CENTER_X - 8}
-        cy={MID_Y - 6}
+        cx={RIGHT_CENTER_X - 12}
+        cy={MID_Y}
         r={6}
-        fill={colors.nodeFill}
-        stroke={colors.nodeStroke}
+        fill={colors.roundFill}
+        stroke={colors.roundStroke}
         strokeWidth={1.3}
       />
       <polygon
-        points={`${RIGHT_CENTER_X + 4},10 ${RIGHT_CENTER_X + 22},24 ${RIGHT_CENTER_X + 4},38`}
+        points={`${RIGHT_CENTER_X},12 ${RIGHT_CENTER_X + 26},24 ${RIGHT_CENTER_X},36`}
         fill={colors.angleFill}
         stroke={colors.angleStroke}
         strokeWidth={1.8}
       />
       <circle
-        cx={RIGHT_CENTER_X + 14}
+        cx={RIGHT_CENTER_X + 9}
         cy={MID_Y}
-        r={6}
-        fill={colors.nodeFill}
-        stroke={colors.nodeStroke}
+        r={5}
+        fill={colors.roundFill}
+        stroke={colors.roundStroke}
         strokeWidth={1.3}
       />
     </svg>
