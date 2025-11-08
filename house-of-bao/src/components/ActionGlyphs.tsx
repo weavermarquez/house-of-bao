@@ -531,8 +531,7 @@ export const ACTION_METADATA: Record<OperationKey, ActionMetadata> = {
   clarify: {
     label: "Clarify",
     hint: "Unwrap",
-    description:
-      "Axiom 1 (Inversion): remove the paired round/square wrapper from the selection.",
+    description: "Remove the paired round/square wrapper from the selection.",
     Glyph: ClarifyGlyph,
   },
   enfoldFrame: {
@@ -552,29 +551,25 @@ export const ACTION_METADATA: Record<OperationKey, ActionMetadata> = {
   disperse: {
     label: "Disperse",
     hint: "Split context",
-    description:
-      "Axiom 2 (Arrangement): push the surrounding round context into each child of the square frame.",
+    description: "Push the surrounding round context into each child of the square frame.",
     Glyph: DisperseGlyph,
   },
   collect: {
     label: "Collect",
     hint: "Merge context",
-    description:
-      "Axiom 2 (Arrangement): merge matching round contexts back into a single square frame.",
+    description: "Merge matching round contexts back into a single square frame.",
     Glyph: CollectGlyph,
   },
   cancel: {
     label: "Cancel",
     hint: "Erase pair",
-    description:
-      "Axiom 3 (Reflection): remove a form together with its angled reflection, returning to the void.",
+    description: "Remove a form together with its angled reflection, returning to the void.",
     Glyph: CancelGlyph,
   },
   create: {
     label: "Create Pair",
     hint: "Spawn pair",
-    description:
-      "Axiom 3 (Reflection): create a form plus its angled reflection from empty space.",
+    description: "Create a form plus its angled reflection from empty space.",
     Glyph: CreatePairGlyph,
   },
 };
