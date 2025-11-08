@@ -9,6 +9,7 @@ import { NetworkView, ROOT_NODE_ID } from "./dialects/network";
 import { AxiomActionPanel } from "./components/AxiomActionPanel";
 import { FormPreview } from "./components/FormPreview";
 import { Footer } from "./components/Footer";
+import { TutorialOverlay } from "./components/TutorialOverlay";
 
 type LegendShape = "round" | "square" | "angle";
 
@@ -136,6 +137,9 @@ function App() {
   const clearParentSelection = useGameStore(selectClearParentSelection);
   const undo = useGameStore(selectUndo);
   const redo = useGameStore(selectRedo);
+  const checkAndTriggerTutorial = useGameStore(
+    (state) => state.checkAndTriggerTutorial,
+  );
   const historyCounts = useGameStore(useShallow(selectHistoryCounts));
   const [previewState, setPreviewState] = useState<{
     forms: Form[];
@@ -183,6 +187,18 @@ function App() {
   const firstSelected = selectedNodeIds[0];
   const parentIdForOps =
     selectedParentId === ROOT_NODE_ID ? null : selectedParentId;
+  const selectionCount = selectedNodeIds.length;
+
+  const handleToggleNode = useCallback(
+    (id: string) => {
+      const wasEmpty = selectionCount === 0;
+      toggleSelection(id);
+      if (wasEmpty) {
+        checkAndTriggerTutorial("first_selection");
+      }
+    },
+    [selectionCount, toggleSelection, checkAndTriggerTutorial],
+  );
 
   const handlePreviewChange = useCallback(
     (next: { forms: Form[]; description: string } | null) => {
@@ -272,9 +288,7 @@ function App() {
                 selectedIds={selectionSet}
                 selectedParentId={selectedParentId}
                 className="network-view-container"
-                onToggleNode={
-                  isPreviewing ? undefined : (id) => toggleSelection(id)
-                }
+                onToggleNode={isPreviewing ? undefined : handleToggleNode}
                 onSelectParent={
                   isPreviewing
                     ? undefined
@@ -401,6 +415,7 @@ function App() {
 
         <Footer />
       </div>
+      <TutorialOverlay />
     </div>
   );
 }

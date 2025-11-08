@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Form } from "../logic/Form";
 import type { AxiomType } from "../levels/types";
-import { previewOperation, type GameOperation } from "../store/gameStore";
+import {
+  previewOperation,
+  useGameStore,
+  type GameOperation,
+} from "../store/gameStore";
 import { useAvailableOperations, type OperationKey } from "../hooks/useAvailableOperations";
 
 const OPERATION_READY_COPY: Record<OperationKey, string> = {
@@ -54,6 +58,9 @@ export function AxiomActionPanel({
   applyOperation,
   onPreviewChange,
 }: AxiomActionPanelProps) {
+  const checkAndTriggerTutorial = useGameStore(
+    (state) => state.checkAndTriggerTutorial,
+  );
   const operationAvailability = useAvailableOperations();
   const [newlyAvailable, setNewlyAvailable] = useState<Set<OperationKey>>(
     () => new Set(),
@@ -127,9 +134,11 @@ export function AxiomActionPanel({
 
     return {
       onMouseEnter: () => {
+        checkAndTriggerTutorial("button_hover");
         showPreview();
       },
       onFocus: () => {
+        checkAndTriggerTutorial("button_hover");
         showPreview();
       },
       onMouseLeave: () => {

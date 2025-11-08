@@ -1,0 +1,219 @@
+* Tutorial Framework
+Phase 1. sounds all good. Can you provide info to delegate that out?
+
+* Phase 2. Levels
+- We should not be afraid to rearrange the levels numbers, but maybe it's useful to keep it consistent just for easier tracking andn comparisons between playtests.
+- Level 0 is kind of ironic given that there is no 0 in the system other than /void/. Anyways.
+  - Some instructions are good.
+  - fyi, selected forms have their outer strokes turn /red/.
+  - I think players should do /something/ instead of just reading, fam.
+  - To be on point, it should actually be to /create/ some simple void-equivalent forms. Maybe actually, yeah, get the player to a goal state of, not nothing, but rather, a somewhat simple forest of empty Frames and empty Marks.
+    - start state: nothing
+    - Goal state: one frame, two marks at the toplevel
+    - this also should show that nothignness is a valid state, and that order does not matter. 
+    - disable all actions except enfold frame and enfold mark. >:)
+  - give me feedback: is this too hard? the solution is ultimately just pressing three buttons (and maybe undo/reset if they overshoot, which... hm, idk, mayb a good thing?)
+  - this is where we introduce /enfold/ and /void/
+
+    This needs changing
+    #+begin_quote
+  1. level_start: "Welcome! This is a form - a container. Tap it to select."
+  2. first_selection: "Great! Selected forms glow blue. Now look at the actions below."
+  3. button_hover (any button): "These buttons transform your selection. Hover to see what they do."
+  4. Message: "Notice: most actions are gray (disabled). Only valid moves are enabled!"
+  5. Final: "This form is already at the goal. Try the next level!"
+    #+end_quote
+
+- level 1: first unwrap
+  - disable all actions except Clarify
+  - I like the presented tutorial steps.
+  - this is where we introduce /clarify/
+  - add tutorial text. 
+    #+begin_quote
+  1. level_start: "Round containing Square containing Round. Your goal: unwrap to reveal just Round."
+  2. After first selection: "Clarify removes paired Round-Square wrappers. Try it!"
+  3. On success: "Nice! Round-Square cancels to nothing. This is Inversion."
+    #+end_quote
+
+- level 2:
+  - tut: "what we see is a 'frame' (note: maybe show bounding-box svg?) with two rounds as its *content*."
+    - I liked your description for 2.5, I trust you'll do fine making more tut text here.
+  - this is where we introduce /disperse/
+  - I think this is what needs some tutorial steps here.
+    
+- level 2.5: the missing collect tutorial :)
+  - following from 2, this should not be (A[B])(A[C]) but rather it should simply be ([B])([C]) while Clarify is /disabled/. we can introduce "context" in level 7.
+  - definitely needs tutorial text, this is where we introduce /collect/
+    Please modify to a version without context.
+    #+begin_quote
+
+    #+end_quote
+
+- Level 3 presents too little information about what or why we are able to create an empty <> from nothing. We should introduce the idea of 
+  - start state: round()
+  - goal state: round(), round(), angle(round()), angle()
+  - the player must press create twice: once with a template selected and once while nothing selected.
+  - only /create/ action enabled.
+  - probably add tutorials since this is where we introduce angle brackets and /create/
+    
+- Level 4: I like the name Void Sandwich but this level layout conveys too little information.
+  - I think this needs to be a supercharged version of Level 1.
+    - start form: a somewhat more complicated forest of void-equivalent forms. Not merely a trivial collection but something that actually /looks/ verging on complex.
+      Of course, it is a well balanced stack of rounds and squares which clarify to nothing.
+    - goal form: void
+      
+- level 5: Void Collapse is okay, but I think it should be a tad more complex. Let's start out with a slight variation of the current start form.
+  - start form: round(), angle(round(), round(), angle(round()))
+  - goal form: void
+  - only /cancel/ action enabled
+  - probably add tutorials since this is where we introduce /cancel/
+  
+- level 5.1: (your proposal):
+  - we need a simple intro to the frame vs. mark distinction.
+  - empty Frames and Marks are interchangable but we don't have a way to make that fungible yet. So we might as well teach this.
+  - starting form: oooo
+  - goal: ([o o]) [(o o)]
+  - your tutorial steps
+    IDK how we're going to program multiple goals TBH. Maybe we should just keep it be have one and the other.
+#+begin_quote
+    1. level_start: "Two separate things. Let's wrap them together."
+    2. After selecting both: "You can choose Enfold Frame (○□) or Enfold Mark (□○)."
+    3. After first enfold: "They look different but mean the same thing until you add more!"
+    4. Hint: "Try both and see - either satisfies the goal."
+
+#+end_quote    
+- level 5.5:
+  - creating a frame from a collection
+  - starting form: ([oo] o) ([oo] o) 
+  - goal form: ([oooo] o)
+
+- Level 6:
+  - this is where we introduce /atoms/ or /variables/, but we haven't done anything with that yet. presently, this is functionally identical to level 01 until we improve on the clarification.
+  - Maybe we use this level to start combining axioms? Nothing crazy, just the basic ones Inversion and Reflection.
+  - start: ([ [(A)] ([<A>]) ])  B
+  - goal:  [( ([ ([B]) [(B)] ]) <B> )]   
+    
+- level 7
+  - there are so many possible variations of this level to explore based on both the context as well as the contents. I would have to provide more detail about that but I can't right now. 
+  - this is where we introduce the idea of /context/ of a frame. let's just keep it straightforward here.
+    - this will require a tutorial
+  - start form: keep
+  - goal form: keep
+    
+    
+- level 7.1 parent 1
+  - I think we need to add the idea of adding a mark /inside/ a frame to separate out a collection of items into separate containers, and then start to clue in on collecting on those frames. This is also a crucial step that was not covered.
+  - starting form: o o o [] [] [] 
+  - goal form: ([o []][o])([o []][o])([o []][o])
+    - this will require players to enfold with a frame, mark. they will see the pattern later to be able to collect them.
+  - this is where we introduce the idea of /selecting a parent/ of a frame.
+  - we will need tutorial text for this.
+    #+begin_quote
+  1. level_start: "Time to learn parent selection!"
+  2. "See the space around the square? Right-click (or long-press) to select it as parent."
+  3. After parent selected: "Now select the contents inside the square."
+  4. After both selected: "Disperse splits square contents when you specify the parent!"
+    #+end_quote
+
+- level 7.2 parent 2
+  - start form: round(atom(A)), round(square())
+  - goal form: round(atom(A)), square(round( atom(A), angle(atom(A)) ))
+  - this is where we introduce the idea of /selecting a parent/ for the target location of the /select/ and /enfold/ actions.
+  - we may need tutorial text to point out that the /create/ action's parent selection can be /anywhere/, as opposed to /enfold/ which is locally bound if it is wrapping something and can be anywhere if it is wrapping /void/ (aka being created out of nowhere and having no children)
+    
+  
+- level 7.2 combine Arrangement with other axioms
+  - collect after enfolding to match
+  - ran out of steam. will have to design later.
+
+- level 7.5 combine Arrangement with other axioms
+  - collect after creating to match
+  - ran out of steam. will have to design later.
+
+- level 7.9 a sneak-peek of a crucial step in the Dominion Theorem
+  - starting form: round(atom(A), square()), round(atom(A), square(round()))
+  - goal form: round(atom(A),square(round()))
+  - sadly, i havent' implemented the other direction yet.
+  - this may require a /hint/ about void + A = A, or such.
+
+Let's go with 1) Option A. 2) I would like to remove certain levels. 
+
+
+
+-----
+
+as for levels 8 onwards... uhhh, we'll deal with that later. hopefully the more fleshed out tutorial levels help with the difficulty spike.
+
+
+* Tutorial Onboarding Design
+
+Option 1: Tutorial Prompts on gameplay when relevant. No separate tutorial mode.
+- The biggest pain point for completely new players is that they have no clue how to even /read/ the gamestate or even the UI.
+  - I think there's no way around this at the moment other than explicit instruction connecting the idea of containment to the way the nodes are displayed in the play area.
+  - I think the bounding box dialect is uniquely strong in this regard for visually enclosing one shape in the other.
+- I also think there's no way around the fact that new players don't know that they can select both nodes as well as the spaces between them, and what the hell that means.
+  Or that "nothingness" is semantically notable.
+  I think we want to keep these overlays as minimal as possible, I agree.
+
+  I don't think such modals should be /one time only/ - they should be tied to specific action introduction levels. We don't want to presume a players' comfort and we want to help them re-orient themselves by coming back to intro levels if they feel lost later.
+  
+
+Option 2: Practice Levels
+- Frankly, I think we need a /lot/ more practice levels in any case. But I can't expect you to design them, I understand.
+- I'm torn between introducing the connection between arithmetic and this system earlier or later.
+  - Points for Earlier: establishes motivation for even understranding what the hell the containers are. Or what this is "supposed" to be. I know that I wanted explanations about that ASAP and I have noticed that with several playtesters.
+    - We can easily draw inspiration for a gradation of levels by simply drawing from the k-12 math curriculum, especially the early grades. There should be workbooks for introducing new concepts that are already well designed to gently introduce concepts while exploring the nuances of the conventional arithmetic system. However, some of these nuances will be lost in translation to james algebra because JA already simplifies and clears a lot of unnecessary complications up.  
+  - Points for Later: playing around with the rules in themselves should be fun in order to determine whether this system is fertile ground for a /puzzle game/ and not just a 'fake-fun' way of teaching math. Puzzles are going to have to come not just from its interpretation to contemporary math but also in the nuances of boundary based / iconic systems. this means embracing, exploring, and highlighting concepts like void-equivalence (e.g. by featuring a set of levels for the Inversion axiom that literally just involves cleaning trees up with Clarify, or /creating/ elaborate structures with Enfold)
+    - There are many nuances /especially/ to Arrangement that can /not/ be explored if players are stuck in the mindset of solely interpreting James Algebra as a notation for conventional math. From the book:
+      #+begin_quote
+If reducing every arbitrary form within an axiomatic
+system is easy, then the system is trivial. Useful systems
+must include difficult reductions. Descriptively powerful
+transformation processes are necessarily complex. The
+complexity associated with Arrangement is that the most
+effective direction of application is unclear. There is not
+a consistently preferred direction that leads to a minimal
+form, rather direction of application depends upon con-
+text. Arrangement is the only James axiom that entails
+complexity, a feature that leads to very efficient trans-
+formation sequences. But having three different types of
+boundaries potentially increases the risk of undesirable
+features such as the lack of a unique normal form. There
+is even the risk of contradictory results.8 For the James
+algebra, we will come across a quite interesting com-
+plexity: the system itself is very well behaved, but the
+interpretation can step outside of the domain of numbers,
+as is the case of zero and infinity.
+      #+end_quote
+    - The current implementation of Reflection is largely incomplete until we incorporate more functionality for variable/atom hydration. Right now, we rely on the user selecting from forms directly visible on the screen as the template, but that is just a temporary limitation of the system and not an actual property of the axiom.
+  
+Option 3:
+I think good naming is always important. But we do not have a solver.
+Hmm. I do think a hint system is likely necessary.
+We just received back the hover previews, and it is /glorious/. We still have to do more work to make the actions eligible on a broader selection of actions that they really should have, but this does a /ton/ to help. 
+
+Option 4:
+Duh, hybrid approach. I am wondering if we will need to further consider the plan given the details I have provided here.
+
+
+Tutorial Framework:
+A level contains...
+- a leveldefinition
+  - Name
+  - Start Form
+  - Goal Form
+  - optional Axiom Restrictions (maybe make this broader -- perhaps /specific action/ restrictions?) :: currently implemented as an allowlist instead
+  - optional tutorial steps
+  - isintrolevel :: is this necessary? either it contains tutorial info or not, right? doesn't really matter if it's an intro level.
+    
+- Tutorial Steps.
+  - id, trigger, position, title, message, dismissonaction, requiredaction all sound good.
+  - targetElement may be a bit difficult, but we could reuse the 'label' field since they are unused in non-atom nodes?
+  
+I think tutorialstate should not be cleared. This is a prototype right now.
+
+
+
+
+
+
