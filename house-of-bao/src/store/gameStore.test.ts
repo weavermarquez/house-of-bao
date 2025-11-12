@@ -214,6 +214,92 @@ describe("game store operations", () => {
     );
   });
 
+  it("addVariable inserts a labeled atom at the root when sandbox is enabled", () => {
+    const level: LevelDefinition = {
+      id: "test-var-root",
+      name: "Add Variable Root",
+      start: [],
+      goal: [],
+      difficulty: 1,
+    };
+
+    loadTestLevel(level);
+    const store = useGameStore.getState();
+    store.setSandboxEnabled(true);
+
+    store.applyOperation({ type: "addVariable", label: "foo" });
+
+    const added = useGameStore.getState().currentForms;
+    expect(added).toHaveLength(1);
+    const [variable] = added;
+    expect(variable.boundary).toBe("atom");
+    expect(variable.label).toBe("foo");
+  });
+
+  it("addVariable inserts into the selected parent when provided", () => {
+    const container = round();
+    const level: LevelDefinition = {
+      id: "test-var-parent",
+      name: "Add Variable Parent",
+      start: [container],
+      goal: [],
+      difficulty: 1,
+    };
+
+    loadTestLevel(level);
+    const store = useGameStore.getState();
+    const parentId = store.currentForms[0].id;
+    store.setSandboxEnabled(true);
+
+    store.applyOperation({ type: "addVariable", label: "bar", parentId });
+
+    const updatedParent = useGameStore.getState().currentForms[0];
+    const childAtoms = [...updatedParent.children].filter(
+      (child) => child.boundary === "atom",
+    );
+    expect(childAtoms).toHaveLength(1);
+    expect(childAtoms[0]?.label).toBe("bar");
+  });
+
+  it("trims variable labels before insertion", () => {
+    const level: LevelDefinition = {
+      id: "test-var-trim",
+      name: "Trim Variable Label",
+      start: [],
+      goal: [],
+      difficulty: 1,
+    };
+
+    loadTestLevel(level);
+    const store = useGameStore.getState();
+    store.setSandboxEnabled(true);
+
+    store.applyOperation({ type: "addVariable", label: "  Zap  " });
+
+    const [variable] = useGameStore.getState().currentForms;
+    expect(variable?.label).toBe("Zap");
+  });
+
+  it("ignores addVariable requests while sandbox mode is disabled", () => {
+    const level: LevelDefinition = {
+      id: "test-var-disabled",
+      name: "Add Variable Disabled",
+      start: [],
+      goal: [],
+      difficulty: 1,
+    };
+
+    loadTestLevel(level);
+    const before = useGameStore.getState().currentForms;
+
+    useGameStore.getState().applyOperation({ type: "addVariable", label: "q" });
+
+    const after = useGameStore.getState().currentForms;
+    expect(canonicalSignatureForest(after)).toEqual(
+      canonicalSignatureForest(before),
+    );
+  });
+
   it("disperse splits selection of square contents", () => {
     const frame = round(square(round(), round()));
 

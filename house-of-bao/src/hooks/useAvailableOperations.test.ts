@@ -100,6 +100,7 @@ describe("useAvailableOperations/evaluateOperationAvailability", () => {
     expect(availability.addRound.reason).toContain("Enable sandbox mode");
     expect(availability.addSquare.reason).toContain("Enable sandbox mode");
     expect(availability.addAngle.reason).toContain("Enable sandbox mode");
+    expect(availability.addVariable.reason).toContain("Enable sandbox mode");
   });
 
   it("marks addRound as available when sandbox mode is enabled", () => {
@@ -109,6 +110,7 @@ describe("useAvailableOperations/evaluateOperationAvailability", () => {
     });
 
     expect(availability.addRound.available).toBe(true);
+    expect(availability.addVariable.available).toBe(true);
   });
 
   it("requires sibling selections for sandbox wrapping", () => {

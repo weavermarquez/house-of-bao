@@ -32,7 +32,7 @@ const AXIOM_REASONS: Record<AxiomType, string> = {
 };
 
 const SANDBOX_DISABLED_REASON =
-  "Enable sandbox mode to add standalone boundaries.";
+  "Enable sandbox mode to add sandbox primitives.";
 
 const FALLBACK_REASONS = {
   clarify: "Select a round-square pair to clarify.",
@@ -45,6 +45,7 @@ const FALLBACK_REASONS = {
   addRound: "Enable sandbox mode and select siblings to wrap with a round boundary.",
   addSquare: "Enable sandbox mode and select siblings to wrap with a square boundary.",
   addAngle: "Enable sandbox mode and select siblings to wrap with an angle boundary.",
+  addVariable: "Enter a variable label to insert an atom in sandbox mode.",
 } as const;
 
 const OPERATION_DISABLED_REASONS: Record<OperationKey, string> = {
@@ -58,6 +59,7 @@ const OPERATION_DISABLED_REASONS: Record<OperationKey, string> = {
   addRound: "This level locks Add Round to focus on other actions.",
   addSquare: "This level locks Add Square to focus on other actions.",
   addAngle: "This level locks Add Angle to focus on other actions.",
+  addVariable: "This level locks Add Variable to focus on other actions.",
 };
 
 export type OperationAvailability = {
@@ -378,6 +380,34 @@ export function evaluateOperationAvailability(
   evaluateAddBoundary("addSquare", "square");
   evaluateAddBoundary("addAngle", "angle");
 
+  const evaluateAddVariable = () => {
+    if (guardOperation("addVariable")) {
+      return;
+    }
+    if (!context.sandboxEnabled) {
+      availability.addVariable = {
+        available: false,
+        reason: SANDBOX_DISABLED_REASON,
+      };
+      return;
+    }
+    if (guardParent("addVariable")) {
+      return;
+    }
+
+    if (
+      previewChange({
+        type: "addVariable",
+        label: "sandbox",
+        parentId: parentIdForOps ?? null,
+      })
+    ) {
+      availability.addVariable = { available: true };
+    }
+  };
+
+  evaluateAddVariable();
+
   return availability;
 }
 
@@ -408,7 +438,12 @@ function allowsOperation(
   allowed: OperationKey[] | undefined,
   key: OperationKey,
 ): boolean {
-  if (key === "addRound" || key === "addSquare" || key === "addAngle") {
+  if (
+    key === "addRound" ||
+    key === "addSquare" ||
+    key === "addAngle" ||
+    key === "addVariable"
+  ) {
     return true;
   }
   if (!allowed || allowed.length === 0) {

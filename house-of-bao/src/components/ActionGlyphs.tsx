@@ -641,6 +641,59 @@ function AddAngleGlyph({ className }: GlyphProps) {
   );
 }
 
+function AddVariableGlyph({ className }: GlyphProps) {
+  return (
+    <svg {...baseSvgProps} className={className}>
+      <circle
+        cx={LEFT_CENTER_X}
+        cy={MID_Y}
+        r={12}
+        fill={colors.voidFill}
+        stroke={colors.neutral}
+        strokeWidth={1.6}
+        strokeDasharray="4 3"
+      />
+      <line
+        x1={LEFT_CENTER_X}
+        y1={MID_Y - 8}
+        x2={LEFT_CENTER_X}
+        y2={MID_Y + 8}
+        stroke={colors.neutral}
+        strokeWidth={2}
+        strokeLinecap="round"
+      />
+      <line
+        x1={LEFT_CENTER_X - 8}
+        y1={MID_Y}
+        x2={LEFT_CENTER_X + 8}
+        y2={MID_Y}
+        stroke={colors.neutral}
+        strokeWidth={2}
+        strokeLinecap="round"
+      />
+      <Arrow from={ARROW_FROM_X} to={ARROW_TO_X} />
+      <circle
+        cx={RIGHT_CENTER_X}
+        cy={MID_Y}
+        r={14}
+        fill={colors.atomFill}
+        stroke={colors.atomStroke}
+        strokeWidth={1.8}
+      />
+      <rect
+        x={RIGHT_CENTER_X - 10}
+        y={MID_Y + 10}
+        width={20}
+        height={6}
+        rx={3}
+        fill={colors.squareFill}
+        stroke={colors.squareStroke}
+        strokeWidth={1.2}
+      />
+    </svg>
+  );
+}
+
 function Arrow({
   from,
   to,
@@ -750,6 +803,13 @@ export const ACTION_METADATA: Record<OperationKey, ActionMetadata> = {
     description:
       "Insert a new angle boundary around the selection or at the chosen parent for reflection experiments.",
     Glyph: AddAngleGlyph,
+  },
+  addVariable: {
+    label: "Add Variable",
+    hint: "Insert atom",
+    description:
+      "Insert a labeled atom into the chosen parent or at the root for sandbox prototyping.",
+    Glyph: AddVariableGlyph,
   },
 };
 

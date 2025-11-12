@@ -6,6 +6,7 @@ import {
   canonicalSignatureForest,
   canonicalSignature,
   createForm,
+  atom,
 } from "../logic/Form";
 import { clarify, enfold } from "../logic/inversion";
 import { disperse, collect } from "../logic/arrangement";
@@ -60,7 +61,8 @@ export type GameOperation =
       targetIds: string[];
       boundary: "round" | "square" | "angle";
       parentId?: string | null;
-    };
+    }
+  | { type: "addVariable"; label: string; parentId?: string | null };
 
 export type GameState = {
   level: LevelDefinition | null;
@@ -386,6 +388,8 @@ function operationKeyFor(operation: GameOperation): OperationKey {
         default:
           return "addRound";
       }
+    case "addVariable":
+      return "addVariable";
     default:
       return "clarify";
   }
@@ -396,7 +400,12 @@ function isOperationAllowed(
   operation: GameOperation,
 ): boolean {
   const key = operationKeyFor(operation);
-  if (key === "addRound" || key === "addSquare" || key === "addAngle") {
+  if (
+    key === "addRound" ||
+    key === "addSquare" ||
+    key === "addAngle" ||
+    key === "addVariable"
+  ) {
     return true;
   }
   if (!allowed || allowed.length === 0) {
@@ -673,6 +682,16 @@ export function previewOperation(
       }
       break;
     }
+    case "addVariable": {
+      const label = operation.label.trim();
+      if (label.length === 0) {
+        return null;
+      }
+      const parentId = operation.parentId ?? null;
+      const created = atom(label);
+      nextForms = addChild(forest, parentId, [created]);
+      break;
+    }
     default:
       nextForms = null;
   }
@@ -747,7 +766,11 @@ export const useGameStore = create<GameState>()(
         if (state.status === "idle") {
           return;
         }
-        if (operation.type === "addBoundary" && !state.sandboxEnabled) {
+        if (
+          (operation.type === "addBoundary" ||
+            operation.type === "addVariable") &&
+          !state.sandboxEnabled
+        ) {
           return;
         }
 
