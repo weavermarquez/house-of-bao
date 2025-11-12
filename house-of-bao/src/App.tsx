@@ -206,57 +206,12 @@ function App() {
 
   const handlePreviewChange = useCallback(
     (
-      next:
-        | {
-            forms?: Form[];
-            description: string;
-            operation: OperationKey;
-            note?: string;
-          }
-        | null,
-    ) => {
-      if (previewTimeoutRef.current) {
-        clearTimeout(previewTimeoutRef.current);
-        previewTimeoutRef.current = null;
-      }
-      if (next) {
-        setPreviewState(next);
-        return;
-      }
-      previewTimeoutRef.current = window.setTimeout(() => {
-        setPreviewState(null);
-        previewTimeoutRef.current = null;
-      }, 200);
-    },
-    [],
-  );
-
-  useEffect(
-    () => () => {
-      if (previewTimeoutRef.current) {
-        clearTimeout(previewTimeoutRef.current);
-      }
-    },
-    [],
-  );
-
-  const activeForms = previewState?.forms ?? currentForms;
-  const isPreviewing = Boolean(previewState?.forms);
-  const previewMetadata = previewState
-    ? ACTION_METADATA[previewState.operation]
-    : null;
-  const PreviewGlyph = previewMetadata?.Glyph;
-
-  const handlePreviewChange = useCallback(
-    (
-      next:
-        | {
-            forms?: Form[];
-            description: string;
-            operation: OperationKey;
-            note?: string;
-          }
-        | null,
+      next: {
+        forms?: Form[];
+        description: string;
+        operation: OperationKey;
+        note?: string;
+      } | null,
     ) => {
       if (previewTimeoutRef.current) {
         clearTimeout(previewTimeoutRef.current);
@@ -341,15 +296,15 @@ function App() {
 
         <div className="app-main">
           <div className="play-column">
-            <div className={`graph-panel ${isPreviewing ? "is-previewing" : ""}`}>
+            <div
+              className={`graph-panel ${isPreviewing ? "is-previewing" : ""}`}
+            >
               <NetworkView
                 forms={activeForms}
                 selectedIds={selectionSet}
                 selectedParentId={selectedParentId}
                 className="network-view-container"
-                onToggleNode={
-                  isPreviewing ? undefined : (id) => toggleSelection(id)
-                }
+                onToggleNode={isPreviewing ? undefined : handleToggleNode}
                 onSelectParent={
                   isPreviewing
                     ? undefined
@@ -387,7 +342,9 @@ function App() {
                           {previewState.description}
                         </span>
                         {previewState.note ? (
-                          <span className="preview-note">{previewState.note}</span>
+                          <span className="preview-note">
+                            {previewState.note}
+                          </span>
                         ) : null}
                       </div>
                     </div>
@@ -399,7 +356,9 @@ function App() {
                           {previewState.description}
                         </span>
                         {previewState.note ? (
-                          <span className="preview-note">{previewState.note}</span>
+                          <span className="preview-note">
+                            {previewState.note}
+                          </span>
                         ) : null}
                       </div>
                     </div>
