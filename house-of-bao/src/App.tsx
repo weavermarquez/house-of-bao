@@ -306,6 +306,22 @@ function App() {
         </header>
 
         <div className="app-main">
+          <aside className="axiom-sidebar">
+            <AxiomActionPanel
+              showInversionActions={showInversionActions}
+              showArrangementActions={showArrangementActions}
+              showReflectionActions={showReflectionActions}
+              showSandboxActions={sandboxEnabled}
+              selectedNodeIds={selectedNodeIds}
+              firstSelected={firstSelected}
+              parentIdForOps={parentIdForOps}
+              currentForms={currentForms}
+              allowedAxioms={allowedAxioms}
+              allowedOperations={level?.allowedOperations}
+              applyOperation={applyOperation}
+              onPreviewChange={handlePreviewChange}
+            />
+          </aside>
           <div className="play-column">
             <div
               className={`graph-panel ${isPreviewing ? "is-previewing" : ""}`}
@@ -377,20 +393,6 @@ function App() {
                 </div>
               ) : null}
             </div>
-            <AxiomActionPanel
-              showInversionActions={showInversionActions}
-              showArrangementActions={showArrangementActions}
-              showReflectionActions={showReflectionActions}
-              showSandboxActions={sandboxEnabled}
-              selectedNodeIds={selectedNodeIds}
-              firstSelected={firstSelected}
-              parentIdForOps={parentIdForOps}
-              currentForms={currentForms}
-              allowedAxioms={allowedAxioms}
-              allowedOperations={level?.allowedOperations}
-              applyOperation={applyOperation}
-              onPreviewChange={handlePreviewChange}
-            />
           </div>
           <aside className="side-panel">
             <section className="info-card">

@@ -9,6 +9,7 @@
   font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
+
 .app-shell {
   flex: 1;
   display: flex;
@@ -160,18 +161,20 @@ button:disabled {
 
 .app-main {
   display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(340px, 1fr);
+  grid-template-columns: minmax(280px, 1.05fr) minmax(0, 2.4fr) minmax(320px, 1fr);
+  grid-template-areas: "axiom play side";
   gap: clamp(1.75rem, 3vw, 3rem);
   align-items: start;
 }
 
 @media (max-width: 1480px) {
   .app-main {
-    grid-template-columns: minmax(0, 1.6fr) minmax(320px, 1fr);
+    grid-template-columns: minmax(260px, 1fr) minmax(0, 2.1fr) minmax(300px, 1fr);
   }
 }
 
 .play-column {
+  grid-area: play;
   display: flex;
   flex-direction: column;
   gap: clamp(1.5rem, 2vw, 2.5rem);
@@ -186,6 +189,37 @@ button:disabled {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
   height: clamp(320px, 45vh, 520px);
   overflow: hidden;
+}
+
+.axiom-sidebar {
+  grid-area: axiom;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  align-self: stretch;
+}
+
+.axiom-sidebar .axiom-actions-panel {
+  background: rgba(248, 250, 252, 0.9);
+  border-radius: 18px;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  padding: clamp(1.25rem, 2vw, 1.75rem);
+  max-height: calc(100vh - clamp(12rem, 18vh, 16rem));
+  overflow-y: auto;
+}
+
+.axiom-sidebar .axiom-actions-panel::-webkit-scrollbar {
+  width: 0.5rem;
+}
+
+.axiom-sidebar .axiom-actions-panel::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.45);
+  border-radius: 999px;
+}
+
+.axiom-sidebar .axiom-actions-panel::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 .graph-panel.is-previewing {
@@ -450,6 +484,7 @@ button:disabled {
 }
 
 .side-panel {
+  grid-area: side;
   display: flex;
   flex-direction: column;
   gap: 1rem;
@@ -673,24 +708,19 @@ button:disabled {
   padding: 0.55rem 0.65rem;
 }
 
-@media (max-width: 1160px) {
-  #root {
-    padding: clamp(1rem, 4vw, 1.75rem);
-  }
-
+@media (max-width: 1260px) {
   .app-main {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(260px, 1fr) minmax(0, 2.1fr);
+    grid-template-areas:
+      "axiom play"
+      "side  side";
   }
 
   .side-panel {
-    grid-row: 1;
+    grid-row: auto;
     flex-direction: row;
     flex-wrap: wrap;
     gap: 1rem;
-  }
-
-  .graph-panel {
-    height: clamp(260px, 48vh, 380px);
   }
 
   .info-card {
@@ -698,7 +728,34 @@ button:disabled {
   }
 }
 
+@media (max-width: 1160px) {
+  #root {
+    padding: clamp(1rem, 4vw, 1.75rem);
+  }
+
+  .axiom-sidebar .axiom-actions-panel {
+    max-height: unset;
+  }
+}
+
 @media (max-width: 820px) {
+  .app-main {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "axiom"
+      "play"
+      "side";
+    gap: 1.25rem;
+  }
+
+  .axiom-sidebar {
+    order: 0;
+  }
+
+  .side-panel {
+    flex-direction: column;
+  }
+
   .app-card {
     padding: 1.5rem;
   }
