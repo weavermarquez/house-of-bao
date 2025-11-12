@@ -43,12 +43,7 @@ export type TutorialTrigger =
   | "action_available" // As soon as a specific action becomes usable
   | "custom"; // External/manual trigger
 
-export type TutorialPosition =
-  | "top"
-  | "bottom"
-  | "left"
-  | "right"
-  | "center";
+export type TutorialPosition = "top" | "bottom" | "left" | "right" | "center";
 
 export type TutorialIllustration = {
   type: "bounding_box" | "custom_svg";

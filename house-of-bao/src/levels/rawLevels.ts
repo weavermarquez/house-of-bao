@@ -559,6 +559,127 @@ export const rawLevels: RawLevelDefinition[] = [
     ],
   },
   {
+    id: "level-065",
+    name: "Alphabet Swap",
+    description: "Clear up the illusory forms.",
+    difficulty: 2,
+    allowedAxioms: ["inversion", "reflection"],
+    start: [
+      {
+        boundary: "atom",
+        children: [],
+        label: "B",
+      },
+      {
+        boundary: "round",
+        children: [
+          {
+            boundary: "square",
+            children: [
+              {
+                boundary: "round",
+                children: [
+                  {
+                    boundary: "square",
+                    children: [
+                      {
+                        boundary: "angle",
+                        children: [
+                          {
+                            boundary: "atom",
+                            children: [],
+                            label: "A",
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                ],
+              },
+              {
+                boundary: "square",
+                children: [
+                  {
+                    boundary: "round",
+                    children: [
+                      {
+                        boundary: "atom",
+                        children: [],
+                        label: "A",
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    ],
+    goal: [
+      {
+        boundary: "square",
+        children: [
+          {
+            boundary: "round",
+            children: [
+              {
+                boundary: "angle",
+                children: [
+                  {
+                    boundary: "atom",
+                    children: [],
+                    label: "B",
+                  },
+                ],
+              },
+              {
+                boundary: "round",
+                children: [
+                  {
+                    boundary: "square",
+                    children: [
+                      {
+                        boundary: "round",
+                        children: [
+                          {
+                            boundary: "square",
+                            children: [
+                              {
+                                boundary: "atom",
+                                children: [],
+                                label: "B",
+                              },
+                            ],
+                          },
+                        ],
+                      },
+                      {
+                        boundary: "square",
+                        children: [
+                          {
+                            boundary: "round",
+                            children: [
+                              {
+                                boundary: "atom",
+                                children: [],
+                                label: "B",
+                              },
+                            ],
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  {
     id: "level-07",
     name: "Split the Square",
     description: "Disperse a shared square into separate frames.",
@@ -620,6 +741,187 @@ export const rawLevels: RawLevelDefinition[] = [
               {
                 boundary: "atom",
                 label: "D",
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: "level-071",
+    name: "Tally and Mark",
+    description: "Tally and Mark each grouping.",
+    difficulty: 3,
+    allowedAxioms: ["inversion"],
+    start: [
+      {
+        boundary: "round",
+        children: [],
+      },
+      {
+        boundary: "round",
+        children: [],
+      },
+      {
+        boundary: "round",
+        children: [],
+      },
+      {
+        boundary: "square",
+        children: [],
+      },
+      {
+        boundary: "square",
+        children: [],
+      },
+      {
+        boundary: "square",
+        children: [],
+      },
+    ],
+    goal: [
+      {
+        boundary: "round",
+        children: [
+          {
+            boundary: "square",
+            children: [
+              {
+                boundary: "round",
+                children: [],
+              },
+              {
+                boundary: "square",
+                children: [],
+              },
+            ],
+          },
+          {
+            boundary: "square",
+            children: [
+              {
+                boundary: "round",
+                children: [],
+              },
+            ],
+          },
+        ],
+      },
+      {
+        boundary: "round",
+        children: [
+          {
+            boundary: "square",
+            children: [
+              {
+                boundary: "round",
+                children: [],
+              },
+              {
+                boundary: "square",
+                children: [],
+              },
+            ],
+          },
+          {
+            boundary: "square",
+            children: [
+              {
+                boundary: "round",
+                children: [],
+              },
+            ],
+          },
+        ],
+      },
+      {
+        boundary: "round",
+        children: [
+          {
+            boundary: "square",
+            children: [
+              {
+                boundary: "round",
+                children: [],
+              },
+              {
+                boundary: "square",
+                children: [],
+              },
+            ],
+          },
+          {
+            boundary: "square",
+            children: [
+              {
+                boundary: "round",
+                children: [],
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: "level-072",
+    name: "Targeted Create",
+    description: "Tally and Mark each grouping.",
+    difficulty: 3,
+    allowedAxioms: ["inversion", "reflection"],
+    start: [
+      {
+        boundary: "round",
+        children: [
+          {
+            boundary: "atom",
+            children: [],
+            label: "A",
+          },
+          {
+            boundary: "round",
+            children: [
+              {
+                boundary: "square",
+                children: [],
+              },
+            ],
+          },
+        ],
+      },
+    ],
+    goal: [
+      {
+        boundary: "round",
+        children: [
+          {
+            boundary: "atom",
+            children: [],
+            label: "A",
+          },
+          {
+            boundary: "square",
+            children: [
+              {
+                boundary: "round",
+                children: [
+                  {
+                    boundary: "angle",
+                    children: [
+                      {
+                        boundary: "atom",
+                        children: [],
+                        label: "A",
+                      },
+                    ],
+                  },
+                  {
+                    boundary: "atom",
+                    children: [],
+                    label: "A",
+                  },
+                ],
               },
             ],
           },

@@ -332,7 +332,7 @@ Phase 1. sounds all good. Can you provide info to delegate that out?
   - starting form: ([oo] o) ([oo] o) 
   - goal form: ([oooo] o)
 
-- Level 6:
+- [X] Level 6:
   - this is where we introduce /atoms/ or /variables/, but we haven't done anything with that yet. presently, this is functionally identical to level 01 until we improve on the clarification.
   - Maybe we use this level to start combining axioms? Nothing crazy, just the basic ones Inversion and Reflection.
   - start: ([ [(A)] ([<A>]) ])  B
@@ -341,18 +341,18 @@ Phase 1. sounds all good. Can you provide info to delegate that out?
 - level 7
   - there are so many possible variations of this level to explore based on both the context as well as the contents. I would have to provide more detail about that but I can't right now. 
   - this is where we introduce the idea of /context/ of a frame. let's just keep it straightforward here.
-    - this will require a tutorial
+    - [ ] this will require a tutorial
   - start form: keep
   - goal form: keep
     
     
-- level 7.1 parent 1
+- [X] level 7.1 parent 1
   - I think we need to add the idea of adding a mark /inside/ a frame to separate out a collection of items into separate containers, and then start to clue in on collecting on those frames. This is also a crucial step that was not covered.
   - starting form: o o o [] [] [] 
   - goal form: ([o []][o])([o []][o])([o []][o])
     - this will require players to enfold with a frame, mark. they will see the pattern later to be able to collect them.
   - this is where we introduce the idea of /selecting a parent/ of a frame.
-  - we will need tutorial text for this.
+  - [ ] we will need tutorial text for this.
     #+begin_quote
   1. level_start: "Time to learn parent selection!"
   2. "See the space around the square? Right-click (or long-press) to select it as parent."
