@@ -2,9 +2,9 @@
   min-height: 100vh;
   margin: 0;
   display: flex;
-  justify-content: center;
   align-items: stretch;
-  padding: 2.5rem;
+  justify-content: center;
+  padding: clamp(1rem, 4vw, 3rem);
   box-sizing: border-box;
   font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
@@ -12,19 +12,20 @@
 .app-shell {
   flex: 1;
   display: flex;
-  justify-content: center;
   align-items: stretch;
+  justify-content: center;
+  width: 100%;
 }
 
 .app-card {
   width: 100%;
-  max-width: 1280px;
+  max-width: none;
   background: rgba(255, 255, 255, 0.92);
   border-radius: 24px;
-  padding: 1.75rem 2rem 2rem;
+  padding: clamp(1.75rem, 2.5vw, 2.5rem) clamp(2rem, 3.5vw, 3.5rem) clamp(2rem, 3vw, 3rem);
   display: flex;
   flex-direction: column;
-  gap: 1.75rem;
+  gap: clamp(1.75rem, 2.5vw, 2.75rem);
   box-shadow:
     0 40px 80px rgba(15, 23, 42, 0.18),
     0 12px 32px rgba(15, 23, 42, 0.12);
@@ -159,15 +160,21 @@ button:disabled {
 
 .app-main {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 340px;
-  gap: 1.5rem;
+  grid-template-columns: minmax(0, 2fr) minmax(340px, 1fr);
+  gap: clamp(1.75rem, 3vw, 3rem);
   align-items: start;
+}
+
+@media (max-width: 1480px) {
+  .app-main {
+    grid-template-columns: minmax(0, 1.6fr) minmax(320px, 1fr);
+  }
 }
 
 .play-column {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: clamp(1.5rem, 2vw, 2.5rem);
 }
 
 .graph-panel {
@@ -175,9 +182,9 @@ button:disabled {
   background: radial-gradient(circle at top, rgba(226, 232, 240, 0.55), rgba(226, 232, 240, 0.25));
   border-radius: 20px;
   border: 1px solid rgba(148, 163, 184, 0.25);
-  padding: 1.5rem;
+  padding: clamp(1.25rem, 2vw, 1.75rem);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
-  height: clamp(280px, 42vh, 420px);
+  height: clamp(320px, 45vh, 520px);
   overflow: hidden;
 }
 
@@ -666,9 +673,9 @@ button:disabled {
   padding: 0.55rem 0.65rem;
 }
 
-@media (max-width: 1200px) {
+@media (max-width: 1160px) {
   #root {
-    padding: 1.5rem;
+    padding: clamp(1rem, 4vw, 1.75rem);
   }
 
   .app-main {
@@ -679,10 +686,15 @@ button:disabled {
     grid-row: 1;
     flex-direction: row;
     flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .graph-panel {
+    height: clamp(260px, 48vh, 380px);
   }
 
   .info-card {
-    flex: 1 1 240px;
+    flex: 1 1 260px;
   }
 }
 
@@ -697,7 +709,7 @@ button:disabled {
   }
 
   .graph-panel {
-    height: clamp(240px, 48vh, 360px);
+    height: clamp(220px, 52vh, 320px);
   }
 }
 
