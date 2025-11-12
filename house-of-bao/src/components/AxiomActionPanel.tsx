@@ -1,4 +1,12 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type KeyboardEvent,
+  type ReactNode,
+} from "react";
 import type { Form } from "../logic/Form";
 import type { AxiomType } from "../levels/types";
 import {
@@ -6,7 +14,8 @@ import {
   useGameStore,
   type GameOperation,
 } from "../store/gameStore";
-import { useAvailableOperations, type OperationKey } from "../hooks/useAvailableOperations";
+import { useAvailableOperations } from "../hooks/useAvailableOperations";
+import type { OperationKey } from "../operations/types";
 import { ACTION_METADATA } from "./ActionGlyphs";
 
 const AXIOM_METADATA = {
@@ -24,25 +33,42 @@ const AXIOM_METADATA = {
   },
 } as const;
 
+const colors = {
+  roundFill: "#fde68a",
+  roundStroke: "#b45309",
+  squareFill: "#bfdbfe",
+  squareStroke: "#1d4ed8",
+  angleFill: "#e9d5ff",
+  angleStroke: "#7c3aed",
+  nodeFill: "#fcd34d",
+  nodeStroke: "#a16207",
+  accent: "#2563eb",
+  neutral: "#94a3b8",
+  voidFill: "#f8fafc",
+  voidStroke: "#94a3b8",
+  atomFill: "#fecdd3",
+  atomStroke: "#be123c",
+};
+
 type AxiomActionPanelProps = {
   showInversionActions: boolean;
   showArrangementActions: boolean;
   showReflectionActions: boolean;
+  showSandboxActions: boolean;
   selectedNodeIds: string[];
   firstSelected?: string;
   parentIdForOps: string | null;
   applyOperation: (operation: GameOperation) => void;
   currentForms: Form[];
   allowedAxioms?: AxiomType[];
+  allowedOperations?: OperationKey[];
   onPreviewChange?: (
-    payload:
-      | {
-          forms?: Form[];
-          description: string;
-          operation: OperationKey;
-          note?: string;
-        }
-      | null
+    payload: {
+      forms?: Form[];
+      description: string;
+      operation: OperationKey;
+      note?: string;
+    } | null,
   ) => void;
 };
 
@@ -50,11 +76,13 @@ export function AxiomActionPanel({
   showInversionActions,
   showArrangementActions,
   showReflectionActions,
+  showSandboxActions,
   selectedNodeIds,
   firstSelected,
   parentIdForOps,
   currentForms,
   allowedAxioms,
+  allowedOperations,
   applyOperation,
   onPreviewChange,
 }: AxiomActionPanelProps) {
@@ -66,6 +94,7 @@ export function AxiomActionPanel({
     () => new Set(),
   );
   const [previewLock, setPreviewLock] = useState<OperationKey | null>(null);
+  const [sandboxVariableLabel, setSandboxVariableLabel] = useState("x");
   const availabilityRef = useRef(operationAvailability);
 
   useEffect(() => {
@@ -90,9 +119,14 @@ export function AxiomActionPanel({
 
   const computePreview = useCallback(
     (operation: GameOperation): Form[] | null => {
-      return previewOperation(currentForms, operation, allowedAxioms);
+      return previewOperation(
+        currentForms,
+        operation,
+        allowedAxioms,
+        allowedOperations,
+      );
     },
-    [currentForms, allowedAxioms],
+    [currentForms, allowedAxioms, allowedOperations],
   );
 
   const lockPreviewFor = useCallback(
@@ -104,10 +138,7 @@ export function AxiomActionPanel({
   );
 
   const createInteractionHandlers = useCallback(
-    (
-      key: OperationKey,
-      buildOperation?: () => GameOperation | null,
-    ) => {
+    (key: OperationKey, buildOperation?: () => GameOperation | null) => {
       const showPreview = () => {
         const metadata = ACTION_METADATA[key];
         const availability = operationAvailability[key];
@@ -177,7 +208,7 @@ export function AxiomActionPanel({
   const getOperationTooltip = (key: OperationKey) =>
     operationAvailability[key].available
       ? undefined
-      : operationAvailability[key].reason ?? undefined;
+      : (operationAvailability[key].reason ?? undefined);
 
   const renderButtonContent = (key: OperationKey) => {
     const metadata = ACTION_METADATA[key];
@@ -202,11 +233,18 @@ export function AxiomActionPanel({
       title?: string;
       className?: string;
     },
+    options?: {
+      append?: ReactNode;
+      wrapperClassName?: string;
+    },
   ) => {
     const handlers = createInteractionHandlers(key, buildOperation);
+    const wrapperClassName = options?.wrapperClassName
+      ? `action-button-wrapper ${options.wrapperClassName}`
+      : "action-button-wrapper";
     return (
       <div
-        className="action-button-wrapper"
+        className={wrapperClassName}
         onMouseEnter={handlers.onMouseEnter}
         onMouseLeave={handlers.onMouseLeave}
       >
@@ -218,8 +256,43 @@ export function AxiomActionPanel({
         >
           {renderButtonContent(key)}
         </button>
+        {options?.append}
       </div>
     );
+  };
+
+  const trimmedVariableLabel = sandboxVariableLabel.trim();
+
+  const buildAddVariableOperation = () => {
+    if (trimmedVariableLabel.length === 0) {
+      return null;
+    }
+    return {
+      type: "addVariable" as const,
+      label: trimmedVariableLabel,
+      parentId: parentIdForOps ?? null,
+    } satisfies GameOperation;
+  };
+
+  const handleVariableLabelChange = (event: ChangeEvent<HTMLInputElement>) => {
+    setSandboxVariableLabel(event.target.value);
+  };
+
+  const handleVariableLabelKeyDown = (
+    event: KeyboardEvent<HTMLInputElement>,
+  ) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      const operation = buildAddVariableOperation();
+      if (!operation) {
+        return;
+      }
+      if (!operationAvailability.addVariable.available) {
+        return;
+      }
+      applyOperation(operation);
+      lockPreviewFor("addVariable");
+    }
   };
 
   return (
@@ -441,7 +514,9 @@ export function AxiomActionPanel({
                       type: "create",
                       parentId: parentIdForOps,
                       templateIds:
-                        selectedNodeIds.length > 0 ? selectedNodeIds : undefined,
+                        selectedNodeIds.length > 0
+                          ? selectedNodeIds
+                          : undefined,
                     });
                     lockPreviewFor("create");
                   },
@@ -450,6 +525,149 @@ export function AxiomActionPanel({
                   className: newlyAvailable.has("create")
                     ? "button-newly-available"
                     : "",
+                },
+              )}
+            </div>
+          </div>
+        )}
+        {showSandboxActions && (
+          <div className="axiom-group">
+            <div className="axiom-group-heading">
+              <div className="axiom-heading-copy">
+                <span>Sandbox</span>
+              </div>
+              <div className="axiom-group-visual">
+                <SandboxGlyph />
+              </div>
+            </div>
+            <div className="axiom-group-actions">
+              {renderActionControl(
+                "addRound",
+                () => ({
+                  type: "addBoundary",
+                  targetIds: selectedNodeIds,
+                  boundary: "round",
+                  parentId: parentIdForOps,
+                }),
+                {
+                  onClick: () => {
+                    if (!operationAvailability.addRound.available) {
+                      return;
+                    }
+                    applyOperation({
+                      type: "addBoundary",
+                      targetIds: selectedNodeIds,
+                      boundary: "round",
+                      parentId: parentIdForOps,
+                    });
+                    lockPreviewFor("addRound");
+                  },
+                  disabled: !operationAvailability.addRound.available,
+                  title: getOperationTooltip("addRound"),
+                  className: newlyAvailable.has("addRound")
+                    ? "button-newly-available"
+                    : "",
+                },
+              )}
+              {renderActionControl(
+                "addSquare",
+                () => ({
+                  type: "addBoundary",
+                  targetIds: selectedNodeIds,
+                  boundary: "square",
+                  parentId: parentIdForOps,
+                }),
+                {
+                  onClick: () => {
+                    if (!operationAvailability.addSquare.available) {
+                      return;
+                    }
+                    applyOperation({
+                      type: "addBoundary",
+                      targetIds: selectedNodeIds,
+                      boundary: "square",
+                      parentId: parentIdForOps,
+                    });
+                    lockPreviewFor("addSquare");
+                  },
+                  disabled: !operationAvailability.addSquare.available,
+                  title: getOperationTooltip("addSquare"),
+                  className: newlyAvailable.has("addSquare")
+                    ? "button-newly-available"
+                    : "",
+                },
+              )}
+              {renderActionControl(
+                "addAngle",
+                () => ({
+                  type: "addBoundary",
+                  targetIds: selectedNodeIds,
+                  boundary: "angle",
+                  parentId: parentIdForOps,
+                }),
+                {
+                  onClick: () => {
+                    if (!operationAvailability.addAngle.available) {
+                      return;
+                    }
+                    applyOperation({
+                      type: "addBoundary",
+                      targetIds: selectedNodeIds,
+                      boundary: "angle",
+                      parentId: parentIdForOps,
+                    });
+                    lockPreviewFor("addAngle");
+                  },
+                  disabled: !operationAvailability.addAngle.available,
+                  title: getOperationTooltip("addAngle"),
+                  className: newlyAvailable.has("addAngle")
+                    ? "button-newly-available"
+                    : "",
+                },
+              )}
+              {renderActionControl(
+                "addVariable",
+                buildAddVariableOperation,
+                {
+                  onClick: () => {
+                    const operation = buildAddVariableOperation();
+                    if (!operation) {
+                      return;
+                    }
+                    if (!operationAvailability.addVariable.available) {
+                      return;
+                    }
+                    applyOperation(operation);
+                    lockPreviewFor("addVariable");
+                  },
+                  disabled:
+                    !operationAvailability.addVariable.available ||
+                    trimmedVariableLabel.length === 0,
+                  title:
+                    trimmedVariableLabel.length === 0
+                      ? "Enter a label to add a variable."
+                      : getOperationTooltip("addVariable"),
+                  className: newlyAvailable.has("addVariable")
+                    ? "button-newly-available"
+                    : "",
+                },
+                {
+                  append: (
+                    <div className="sandbox-variable-field">
+                      <label htmlFor="sandbox-variable-input">
+                        Variable label
+                      </label>
+                      <input
+                        id="sandbox-variable-input"
+                        type="text"
+                        className="sandbox-variable-input"
+                        value={sandboxVariableLabel}
+                        onChange={handleVariableLabelChange}
+                        onKeyDown={handleVariableLabelKeyDown}
+                        placeholder="e.g. x"
+                      />
+                    </div>
+                  ),
                 },
               )}
             </div>
@@ -466,10 +684,6 @@ export function AxiomActionPanel({
 }
 
 function InversionGlyph() {
-  const roundFill = "#fde68a";
-  const roundStroke = "#b45309";
-  const squareFill = "#bfdbfe";
-  const squareStroke = "#1d4ed8";
   return (
     <svg width={76} height={40} viewBox="0 0 76 40" aria-hidden>
       <rect
@@ -478,17 +692,24 @@ function InversionGlyph() {
         width={28}
         height={28}
         rx={4}
-        fill={squareFill}
-        stroke={squareStroke}
+        fill={colors.squareFill}
+        stroke={colors.squareStroke}
         strokeWidth={2}
       />
-      <circle cx={18} cy={20} r={9} fill={roundFill} stroke={roundStroke} strokeWidth={2} />
+      <circle
+        cx={18}
+        cy={20}
+        r={9}
+        fill={colors.roundFill}
+        stroke={colors.roundStroke}
+        strokeWidth={2}
+      />
       <circle
         cx={52}
         cy={20}
         r={14}
-        fill={roundFill}
-        stroke={roundStroke}
+        fill={colors.roundFill}
+        stroke={colors.roundStroke}
         strokeWidth={2}
       />
       <rect
@@ -497,8 +718,8 @@ function InversionGlyph() {
         width={16}
         height={16}
         rx={3}
-        fill={squareFill}
-        stroke={squareStroke}
+        fill={colors.squareFill}
+        stroke={colors.squareStroke}
         strokeWidth={2}
       />
     </svg>
@@ -506,50 +727,108 @@ function InversionGlyph() {
 }
 
 function ArrangementGlyph() {
-  const roundFill = "#fde68a";
-  const roundStroke = "#b45309";
-  const squareFill = "#bfdbfe";
-  const squareStroke = "#1d4ed8";
-  const contentFill = "#fcd34d";
   return (
     <svg width={120} height={42} viewBox="0 0 120 42" aria-hidden>
-      <circle cx={24} cy={21} r={18} fill={roundFill} stroke={roundStroke} strokeWidth={2} />
+      <circle
+        cx={24}
+        cy={21}
+        r={18}
+        fill={colors.roundFill}
+        stroke={colors.roundStroke}
+        strokeWidth={2}
+      />
       <rect
         x={12}
         y={11}
         width={24}
         height={20}
         rx={4}
-        fill={squareFill}
-        stroke={squareStroke}
+        fill={colors.squareFill}
+        stroke={colors.squareStroke}
         strokeWidth={1.8}
       />
-      <circle cx={24} cy={16} r={3} fill={contentFill} stroke={roundStroke} strokeWidth={1} />
-      <circle cx={24} cy={26} r={3} fill={contentFill} stroke={roundStroke} strokeWidth={1} />
-      <circle cx={70} cy={14} r={4} fill={contentFill} stroke={roundStroke} strokeWidth={1} />
-      <circle cx={94} cy={14} r={4} fill={contentFill} stroke={roundStroke} strokeWidth={1} />
-      <circle cx={70} cy={28} r={4} fill={contentFill} stroke={roundStroke} strokeWidth={1} />
-      <circle cx={94} cy={28} r={4} fill={contentFill} stroke={roundStroke} strokeWidth={1} />
-      <circle cx={70} cy={21} r={13} fill={roundFill} stroke={roundStroke} strokeWidth={1.6} />
+      <circle
+        cx={24}
+        cy={16}
+        r={3}
+        fill={colors.nodeFill}
+        stroke={colors.roundStroke}
+        strokeWidth={1}
+      />
+      <circle
+        cx={24}
+        cy={26}
+        r={3}
+        fill={colors.nodeFill}
+        stroke={colors.roundStroke}
+        strokeWidth={1}
+      />
+      <circle
+        cx={70}
+        cy={14}
+        r={4}
+        fill={colors.nodeFill}
+        stroke={colors.roundStroke}
+        strokeWidth={1}
+      />
+      <circle
+        cx={94}
+        cy={14}
+        r={4}
+        fill={colors.nodeFill}
+        stroke={colors.roundStroke}
+        strokeWidth={1}
+      />
+      <circle
+        cx={70}
+        cy={28}
+        r={4}
+        fill={colors.nodeFill}
+        stroke={colors.roundStroke}
+        strokeWidth={1}
+      />
+      <circle
+        cx={94}
+        cy={28}
+        r={4}
+        fill={colors.nodeFill}
+        stroke={colors.roundStroke}
+        strokeWidth={1}
+      />
+      <circle
+        cx={70}
+        cy={21}
+        r={13}
+        fill={colors.roundFill}
+        stroke={colors.roundStroke}
+        strokeWidth={1.6}
+      />
       <rect
         x={62}
         y={15}
         width={16}
         height={12}
         rx={3}
-        fill={squareFill}
-        stroke={squareStroke}
+        fill={colors.squareFill}
+        stroke={colors.squareStroke}
         strokeWidth={1.4}
       />
-      <circle cx={94} cy={21} r={13} fill={roundFill} stroke={roundStroke} strokeWidth={1.6} />
+      <circle
+        cx={94}
+        cy={21}
+        r={13}
+        fill={colors.roundFill}
+        stroke={colors.roundStroke}
+        strokeWidth={1.6}
+      />
       <rect
         x={86}
         y={15}
         width={16}
         height={12}
         rx={3}
-        fill={squareFill}
-        stroke={squareStroke}
+        fill={colors.squareFill}
+        stroke={colors.squareStroke}
         strokeWidth={1.4}
       />
     </svg>
@@ -557,20 +836,79 @@ function ArrangementGlyph() {
 }
 
 function ReflectionGlyph() {
-  const angleFill = "#e9d5ff";
-  const angleStroke = "#7c3aed";
-  const roundFill = "#fde68a";
-  const roundStroke = "#b45309";
   return (
     <svg width={100} height={42} viewBox="0 0 100 42" aria-hidden>
-      <circle cx={24} cy={21} r={12} fill={roundFill} stroke={roundStroke} strokeWidth={2} />
-      <polygon
-        points="64,7 90,21 64,35"
-        fill={angleFill}
-        stroke={angleStroke}
+      <circle
+        cx={24}
+        cy={21}
+        r={12}
+        fill={colors.roundFill}
+        stroke={colors.roundStroke}
         strokeWidth={2}
       />
-      <circle cx={76} cy={21} r={6} fill={roundFill} stroke={roundStroke} strokeWidth={1.4} />
+      <polygon
+        points="64,7 90,21 64,35"
+        fill={colors.angleFill}
+        stroke={colors.angleStroke}
+        strokeWidth={2}
+      />
+      <circle
+        cx={76}
+        cy={21}
+        r={6}
+        fill={colors.roundFill}
+        stroke={colors.roundStroke}
+        strokeWidth={1.4}
+      />
+    </svg>
+  );
+}
+
+function SandboxGlyph() {
+  return (
+    <svg width={100} height={42} viewBox="0 0 100 42" aria-hidden>
+      <rect
+        x={10}
+        y={12}
+        width={24}
+        height={18}
+        rx={4}
+        fill={colors.squareFill}
+        stroke={colors.squareStroke}
+        strokeWidth={2}
+      />
+      <circle
+        cx={22}
+        cy={18}
+        r={5}
+        fill={colors.roundFill}
+        stroke={colors.roundStroke}
+        strokeWidth={1.4}
+      />
+      <polygon
+        points="58,8 82,21 58,34"
+        fill={colors.angleFill}
+        stroke={colors.angleStroke}
+        strokeWidth={2}
+      />
+      <circle
+        cx={74}
+        cy={16}
+        r={5}
+        fill={colors.roundFill}
+        stroke={colors.roundStroke}
+        strokeWidth={1.4}
+      />
+      <rect
+        x={68}
+        y={22}
+        width={12}
+        height={10}
+        rx={3}
+        fill={colors.squareFill}
+        stroke={colors.squareStroke}
+        strokeWidth={1.4}
+      />
     </svg>
   );
 }

@@ -1,5 +1,5 @@
 import type { JSX } from "react";
-import type { OperationKey } from "../hooks/useAvailableOperations";
+import type { OperationKey } from "../operations/types";
 
 type GlyphProps = {
   className?: string;
@@ -115,29 +115,31 @@ function EnfoldFrameGlyph({ className }: GlyphProps) {
         fill={colors.roundFill}
         stroke={colors.roundStroke}
         strokeWidth={2}
+        strokeDasharray="2.5 2.5"
       />
       <rect
-        x={RIGHT_CENTER_X - 14}
-        y={MID_Y - 14}
-        width={28}
-        height={28}
+        x={RIGHT_CENTER_X - 12}
+        y={MID_Y - 12}
+        width={24}
+        height={24}
         rx={6}
         fill={colors.squareFill}
         stroke={colors.squareStroke}
         strokeWidth={1.6}
+        strokeDasharray="2 2"
       />
       <circle
         cx={RIGHT_CENTER_X - 5}
-        cy={MID_Y - 6}
-        r={5}
+        cy={MID_Y - 4}
+        r={4.8}
         fill={colors.atomFill}
         stroke={colors.atomStroke}
         strokeWidth={1.2}
       />
       <circle
         cx={RIGHT_CENTER_X + 5}
-        cy={MID_Y + 6}
-        r={5}
+        cy={MID_Y + 4}
+        r={4.8}
         fill={colors.atomFill}
         stroke={colors.atomStroke}
         strokeWidth={1.2}
@@ -175,14 +177,16 @@ function EnfoldMarkGlyph({ className }: GlyphProps) {
         fill={colors.squareFill}
         stroke={colors.squareStroke}
         strokeWidth={1.8}
+        strokeDasharray="2.5 2.5"
       />
       <circle
         cx={RIGHT_CENTER_X}
         cy={MID_Y}
-        r={15}
+        r={14}
         fill={colors.roundFill}
         stroke={colors.roundStroke}
-        strokeWidth={1.8}
+        strokeWidth={1.6}
+        strokeDasharray="2 2"
       />
       <circle
         cx={RIGHT_CENTER_X - 5}
@@ -467,12 +471,14 @@ function CreatePairGlyph({ className }: GlyphProps) {
         fill={colors.roundFill}
         stroke={colors.roundStroke}
         strokeWidth={1.3}
+        strokeDasharray="2 1"
       />
       <polygon
         points={`${RIGHT_CENTER_X},12 ${RIGHT_CENTER_X + 26},24 ${RIGHT_CENTER_X},36`}
         fill={colors.angleFill}
         stroke={colors.angleStroke}
         strokeWidth={1.8}
+        strokeDasharray="2 1"
       />
       <circle
         cx={RIGHT_CENTER_X + 9}
@@ -481,6 +487,208 @@ function CreatePairGlyph({ className }: GlyphProps) {
         fill={colors.roundFill}
         stroke={colors.roundStroke}
         strokeWidth={1.3}
+        strokeDasharray="2 1"
+      />
+    </svg>
+  );
+}
+
+function AddRoundGlyph({ className }: GlyphProps) {
+  return (
+    <svg {...baseSvgProps} className={className}>
+      <rect
+        x={LEFT_CENTER_X - 14}
+        y={MID_Y - 14}
+        width={12}
+        height={12}
+        rx={3}
+        fill={colors.squareFill}
+        stroke={colors.squareStroke}
+        strokeWidth={1.4}
+      />
+      <polygon
+        points={`${LEFT_CENTER_X + 4},${MID_Y - 8} ${LEFT_CENTER_X + 12},${MID_Y} ${LEFT_CENTER_X + 4},${MID_Y + 8}`}
+        fill={colors.angleFill}
+        stroke={colors.angleStroke}
+        strokeWidth={1.4}
+      />
+      <Arrow from={ARROW_FROM_X} to={ARROW_TO_X} />
+      <circle
+        cx={RIGHT_CENTER_X}
+        cy={MID_Y}
+        r={18}
+        fill={colors.roundFill}
+        stroke={colors.roundStroke}
+        strokeWidth={2}
+      />
+      <rect
+        x={RIGHT_CENTER_X - 8}
+        y={MID_Y - 10}
+        width={12}
+        height={12}
+        rx={3}
+        fill={colors.squareFill}
+        stroke={colors.squareStroke}
+        strokeWidth={1.2}
+      />
+      <polygon
+        points={`${RIGHT_CENTER_X + 6},${MID_Y - 4} ${RIGHT_CENTER_X + 14},${MID_Y} ${RIGHT_CENTER_X + 6},${MID_Y + 4}`}
+        fill={colors.angleFill}
+        stroke={colors.angleStroke}
+        strokeWidth={1.2}
+      />
+    </svg>
+  );
+}
+
+function AddSquareGlyph({ className }: GlyphProps) {
+  return (
+    <svg {...baseSvgProps} className={className}>
+      <circle
+        cx={LEFT_CENTER_X - 6}
+        cy={MID_Y - 6}
+        r={7}
+        fill={colors.roundFill}
+        stroke={colors.roundStroke}
+        strokeWidth={1.4}
+      />
+      <circle
+        cx={LEFT_CENTER_X + 6}
+        cy={MID_Y + 6}
+        r={7}
+        fill={colors.roundFill}
+        stroke={colors.roundStroke}
+        strokeWidth={1.4}
+      />
+      <Arrow from={ARROW_FROM_X} to={ARROW_TO_X} />
+      <rect
+        x={RIGHT_CENTER_X - 18}
+        y={MID_Y - 18}
+        width={36}
+        height={36}
+        rx={6}
+        fill={colors.squareFill}
+        stroke={colors.squareStroke}
+        strokeWidth={2}
+      />
+      <circle
+        cx={RIGHT_CENTER_X - 9}
+        cy={MID_Y - 6}
+        r={6}
+        fill={colors.roundFill}
+        stroke={colors.roundStroke}
+        strokeWidth={1.2}
+      />
+      <circle
+        cx={RIGHT_CENTER_X + 9}
+        cy={MID_Y + 6}
+        r={6}
+        fill={colors.roundFill}
+        stroke={colors.roundStroke}
+        strokeWidth={1.2}
+      />
+    </svg>
+  );
+}
+
+function AddAngleGlyph({ className }: GlyphProps) {
+  return (
+    <svg {...baseSvgProps} className={className}>
+      <circle
+        cx={LEFT_CENTER_X}
+        cy={MID_Y - 10}
+        r={6.5}
+        fill={colors.roundFill}
+        stroke={colors.roundStroke}
+        strokeWidth={1.3}
+      />
+      <rect
+        x={LEFT_CENTER_X - 8}
+        y={MID_Y + 2}
+        width={16}
+        height={10}
+        rx={3}
+        fill={colors.squareFill}
+        stroke={colors.squareStroke}
+        strokeWidth={1.3}
+      />
+      <Arrow from={ARROW_FROM_X} to={ARROW_TO_X} />
+      <polygon
+        points={`${RIGHT_CENTER_X - 5},${MID_Y - 18} ${RIGHT_CENTER_X + 22},${MID_Y} ${RIGHT_CENTER_X - 5},${MID_Y + 18}`}
+        fill={colors.angleFill}
+        stroke={colors.angleStroke}
+        strokeWidth={2}
+      />
+      <circle
+        cx={RIGHT_CENTER_X + 4}
+        cy={MID_Y - 4}
+        r={5}
+        fill={colors.roundFill}
+        stroke={colors.roundStroke}
+        strokeWidth={1.2}
+      />
+      <rect
+        x={RIGHT_CENTER_X + 4}
+        y={MID_Y + 2}
+        width={10}
+        height={10}
+        rx={2.5}
+        fill={colors.squareFill}
+        stroke={colors.squareStroke}
+        strokeWidth={1.2}
+      />
+    </svg>
+  );
+}
+
+function AddVariableGlyph({ className }: GlyphProps) {
+  return (
+    <svg {...baseSvgProps} className={className}>
+      <circle
+        cx={LEFT_CENTER_X}
+        cy={MID_Y}
+        r={12}
+        fill={colors.voidFill}
+        stroke={colors.neutral}
+        strokeWidth={1.6}
+        strokeDasharray="4 3"
+      />
+      <line
+        x1={LEFT_CENTER_X}
+        y1={MID_Y - 8}
+        x2={LEFT_CENTER_X}
+        y2={MID_Y + 8}
+        stroke={colors.neutral}
+        strokeWidth={2}
+        strokeLinecap="round"
+      />
+      <line
+        x1={LEFT_CENTER_X - 8}
+        y1={MID_Y}
+        x2={LEFT_CENTER_X + 8}
+        y2={MID_Y}
+        stroke={colors.neutral}
+        strokeWidth={2}
+        strokeLinecap="round"
+      />
+      <Arrow from={ARROW_FROM_X} to={ARROW_TO_X} />
+      <circle
+        cx={RIGHT_CENTER_X}
+        cy={MID_Y}
+        r={14}
+        fill={colors.atomFill}
+        stroke={colors.atomStroke}
+        strokeWidth={1.8}
+      />
+      <rect
+        x={RIGHT_CENTER_X - 10}
+        y={MID_Y + 10}
+        width={20}
+        height={6}
+        rx={3}
+        fill={colors.squareFill}
+        stroke={colors.squareStroke}
+        strokeWidth={1.2}
       />
     </svg>
   );
@@ -551,19 +759,22 @@ export const ACTION_METADATA: Record<OperationKey, ActionMetadata> = {
   disperse: {
     label: "Disperse",
     hint: "Split context",
-    description: "Push the surrounding round context into each child of the square frame.",
+    description:
+      "Push the surrounding round context into each child of the square frame.",
     Glyph: DisperseGlyph,
   },
   collect: {
     label: "Collect",
     hint: "Merge context",
-    description: "Merge matching round contexts back into a single square frame.",
+    description:
+      "Merge matching round contexts back into a single square frame.",
     Glyph: CollectGlyph,
   },
   cancel: {
     label: "Cancel",
     hint: "Erase pair",
-    description: "Remove a form together with its angled reflection, returning to the void.",
+    description:
+      "Remove a form together with its angled reflection, returning to the void.",
     Glyph: CancelGlyph,
   },
   create: {
@@ -571,6 +782,34 @@ export const ACTION_METADATA: Record<OperationKey, ActionMetadata> = {
     hint: "Spawn pair",
     description: "Create a form plus its angled reflection from empty space.",
     Glyph: CreatePairGlyph,
+  },
+  addRound: {
+    label: "Add Round",
+    hint: "Wrap ○",
+    description:
+      "Insert a new round boundary around the selection or at the chosen parent.",
+    Glyph: AddRoundGlyph,
+  },
+  addSquare: {
+    label: "Add Square",
+    hint: "Wrap □",
+    description:
+      "Insert a new square boundary around the selection or at the chosen parent.",
+    Glyph: AddSquareGlyph,
+  },
+  addAngle: {
+    label: "Add Angle",
+    hint: "Wrap ∠",
+    description:
+      "Insert a new angle boundary around the selection or at the chosen parent for reflection experiments.",
+    Glyph: AddAngleGlyph,
+  },
+  addVariable: {
+    label: "Add Variable",
+    hint: "Insert atom",
+    description:
+      "Insert a labeled atom into the chosen parent or at the root for sandbox prototyping.",
+    Glyph: AddVariableGlyph,
   },
 };
 

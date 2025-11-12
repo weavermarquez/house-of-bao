@@ -1,10 +1,12 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { persist, createJSONStorage } from "zustand/middleware";
 import {
   type Form,
   deepClone,
   canonicalSignatureForest,
   canonicalSignature,
+  createForm,
+  atom,
 } from "../logic/Form";
 import { clarify, enfold } from "../logic/inversion";
 import { disperse, collect } from "../logic/arrangement";
@@ -20,6 +22,7 @@ import {
   type TutorialStep,
   type TutorialTrigger,
 } from "../levels/types";
+import type { OperationKey } from "../operations/types";
 
 type HistoryStack = {
   past: Form[][];
@@ -52,7 +55,14 @@ export type GameOperation =
     }
   | { type: "collect"; targetIds: string[] }
   | { type: "cancel"; targetIds: string[] }
-  | { type: "create"; parentId: string | null; templateIds?: string[] };
+  | { type: "create"; parentId: string | null; templateIds?: string[] }
+  | {
+      type: "addBoundary";
+      targetIds: string[];
+      boundary: "round" | "square" | "angle";
+      parentId?: string | null;
+    }
+  | { type: "addVariable"; label: string; parentId?: string | null };
 
 export type GameState = {
   level: LevelDefinition | null;
@@ -78,11 +88,37 @@ export type GameState = {
   skipTutorialForLevel: () => void;
   toggleTutorialEnabled: () => void;
   checkAndTriggerTutorial: (trigger: TutorialTrigger) => void;
+  sandboxEnabled: boolean;
+  setSandboxEnabled: (enabled: boolean) => void;
 };
 
 type LocatedNode = {
   node: Form;
   parent: Form | null;
+};
+
+const fallbackStorageMap = new Map<string, string>();
+const fallbackStorage: Storage = {
+  get length() {
+    return fallbackStorageMap.size;
+  },
+  clear() {
+    fallbackStorageMap.clear();
+  },
+  getItem(key: string) {
+    return fallbackStorageMap.has(key)
+      ? fallbackStorageMap.get(key) ?? null
+      : null;
+  },
+  key(index: number) {
+    return [...fallbackStorageMap.keys()][index] ?? null;
+  },
+  removeItem(key: string) {
+    fallbackStorageMap.delete(key);
+  },
+  setItem(key: string, value: string) {
+    fallbackStorageMap.set(key, value);
+  },
 };
 
 function cloneForest(forms: Form[]): Form[] {
@@ -328,6 +364,56 @@ function isAllowed(allowed: AxiomType[] | undefined, type: AxiomType): boolean {
   return allowed.includes(type);
 }
 
+function operationKeyFor(operation: GameOperation): OperationKey {
+  switch (operation.type) {
+    case "clarify":
+      return "clarify";
+    case "enfold":
+      return operation.variant === "mark" ? "enfoldMark" : "enfoldFrame";
+    case "disperse":
+      return "disperse";
+    case "collect":
+      return "collect";
+    case "cancel":
+      return "cancel";
+    case "create":
+      return "create";
+    case "addBoundary":
+      switch (operation.boundary) {
+        case "square":
+          return "addSquare";
+        case "angle":
+          return "addAngle";
+        case "round":
+        default:
+          return "addRound";
+      }
+    case "addVariable":
+      return "addVariable";
+    default:
+      return "clarify";
+  }
+}
+
+function isOperationAllowed(
+  allowed: OperationKey[] | undefined,
+  operation: GameOperation,
+): boolean {
+  const key = operationKeyFor(operation);
+  if (
+    key === "addRound" ||
+    key === "addSquare" ||
+    key === "addAngle" ||
+    key === "addVariable"
+  ) {
+    return true;
+  }
+  if (!allowed || allowed.length === 0) {
+    return true;
+  }
+  return allowed.includes(key);
+}
+
 /**
  * Adds new child forms to a parent form or the root forest.
  * Does not remove any existing children.
@@ -403,13 +489,17 @@ export function formsEqual(left: Form[], right: Form[]): boolean {
 export function previewOperation(
   forest: Form[],
   operation: GameOperation,
-  allowed?: AxiomType[],
+  allowedAxioms?: AxiomType[],
+  allowedOperations?: OperationKey[],
 ): Form[] | null {
+  if (!isOperationAllowed(allowedOperations, operation)) {
+    return null;
+  }
   let nextForms: Form[] | null = null;
 
   switch (operation.type) {
     case "clarify": {
-      if (!isAllowed(allowed, "inversion")) {
+      if (!isAllowed(allowedAxioms, "inversion")) {
         return null;
       }
       nextForms = applySingleTarget(forest, operation.targetId, (form) =>
@@ -418,7 +508,7 @@ export function previewOperation(
       break;
     }
     case "enfold": {
-      if (!isAllowed(allowed, "inversion")) {
+      if (!isAllowed(allowedAxioms, "inversion")) {
         return null;
       }
       const variant = operation.variant ?? "frame";
@@ -435,7 +525,7 @@ export function previewOperation(
       break;
     }
     case "disperse": {
-      if (!isAllowed(allowed, "arrangement")) {
+      if (!isAllowed(allowedAxioms, "arrangement")) {
         return null;
       }
       if (operation.frameId) {
@@ -451,7 +541,7 @@ export function previewOperation(
       break;
     }
     case "collect": {
-      if (!isAllowed(allowed, "arrangement")) {
+      if (!isAllowed(allowedAxioms, "arrangement")) {
         return null;
       }
       const uniqueTargets = [...new Set(operation.targetIds)];
@@ -540,7 +630,7 @@ export function previewOperation(
       break;
     }
     case "cancel": {
-      if (!isAllowed(allowed, "reflection")) {
+      if (!isAllowed(allowedAxioms, "reflection")) {
         return null;
       }
       const augmentedIds = ensureCancelPairs(forest, operation.targetIds);
@@ -553,7 +643,7 @@ export function previewOperation(
       break;
     }
     case "create": {
-      if (!isAllowed(allowed, "reflection")) {
+      if (!isAllowed(allowedAxioms, "reflection")) {
         return null;
       }
       const templateIds = operation.templateIds ?? [];
@@ -575,6 +665,31 @@ export function previewOperation(
       const parentId = operation.parentId ?? inferredParent ?? null;
 
       nextForms = addChild(forest, parentId, created);
+      break;
+    }
+    case "addBoundary": {
+      const targetIds = [...new Set(operation.targetIds)];
+      const parentId = operation.parentId ?? null;
+      const boundary = operation.boundary;
+
+      if (targetIds.length === 0) {
+        const created = createForm(boundary);
+        nextForms = addChild(forest, parentId, [created]);
+      } else {
+        nextForms = applySiblingOperation(forest, targetIds, (nodes) => [
+          createForm(boundary, ...nodes),
+        ]);
+      }
+      break;
+    }
+    case "addVariable": {
+      const label = operation.label.trim();
+      if (label.length === 0) {
+        return null;
+      }
+      const parentId = operation.parentId ?? null;
+      const created = atom(label);
+      nextForms = addChild(forest, parentId, [created]);
       break;
     }
     default:
@@ -601,6 +716,7 @@ export const useGameStore = create<GameState>()(
         currentStepIndex: 0,
         dismissedForCurrentLevel: false,
       },
+      sandboxEnabled: false,
       loadLevel: (level: LevelDefinition) => {
         const start = cloneForest(level.start);
         const goal = cloneForest(level.goal);
@@ -650,9 +766,22 @@ export const useGameStore = create<GameState>()(
         if (state.status === "idle") {
           return;
         }
+        if (
+          (operation.type === "addBoundary" ||
+            operation.type === "addVariable") &&
+          !state.sandboxEnabled
+        ) {
+          return;
+        }
 
         const allowed = state.level?.allowedAxioms;
-        const nextForms = previewOperation(state.currentForms, operation, allowed);
+        const allowedOps = state.level?.allowedOperations;
+        const nextForms = previewOperation(
+          state.currentForms,
+          operation,
+          allowed,
+          allowedOps,
+        );
 
         if (!nextForms || formsEqual(nextForms, state.currentForms)) {
           return;
@@ -808,9 +937,17 @@ export const useGameStore = create<GameState>()(
 
         state.showTutorialStep(candidates[0]);
       },
+      setSandboxEnabled: (enabled: boolean) => {
+        set({ sandboxEnabled: enabled });
+      },
     }),
     {
       name: "house-of-bao-storage",
+      storage: createJSONStorage(() =>
+        typeof window !== "undefined" && window.localStorage
+          ? window.localStorage
+          : fallbackStorage,
+      ),
       partialize: (state) => ({
         tutorial: {
           enabled: state.tutorial.enabled,
