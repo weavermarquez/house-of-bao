@@ -6,6 +6,9 @@ export const OPERATION_KEYS = [
   "collect",
   "cancel",
   "create",
+  "addRound",
+  "addSquare",
+  "addAngle",
 ] as const;
 
 export type OperationKey = (typeof OPERATION_KEYS)[number];

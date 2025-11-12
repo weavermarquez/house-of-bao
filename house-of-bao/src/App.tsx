@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useShallow } from "zustand/shallow";
 import "./App.css";
 import { levels } from "./levels";
+import { formatFormsAsJson } from "./levels/serializer";
 import { type AxiomType } from "./levels/types";
 import { useGameStore, type GameState } from "./store/gameStore";
 import { canonicalSignature, type Form } from "./logic/Form";
@@ -137,6 +138,8 @@ function App() {
   const clearSelection = useGameStore(selectClearSelection);
   const selectParent = useGameStore(selectParentSelection);
   const clearParentSelection = useGameStore(selectClearParentSelection);
+  const sandboxEnabled = useGameStore((state) => state.sandboxEnabled);
+  const setSandboxEnabled = useGameStore((state) => state.setSandboxEnabled);
   const undo = useGameStore(selectUndo);
   const redo = useGameStore(selectRedo);
   const checkAndTriggerTutorial = useGameStore(
@@ -244,6 +247,14 @@ function App() {
     ? ACTION_METADATA[previewState.operation]
     : null;
   const PreviewGlyph = previewMetadata?.Glyph;
+  const currentFormsJson = useMemo(
+    () => formatFormsAsJson(currentForms),
+    [currentForms],
+  );
+  const goalFormsJson = useMemo(
+    () => formatFormsAsJson(goalForms),
+    [goalForms],
+  );
 
   return (
     <div className="app-shell">
@@ -370,6 +381,7 @@ function App() {
               showInversionActions={showInversionActions}
               showArrangementActions={showArrangementActions}
               showReflectionActions={showReflectionActions}
+              showSandboxActions={sandboxEnabled}
               selectedNodeIds={selectedNodeIds}
               firstSelected={firstSelected}
               parentIdForOps={parentIdForOps}
@@ -400,6 +412,45 @@ function App() {
               </div>
               {status === "won" ? (
                 <p className="goal-complete">Goal satisfied — nice work!</p>
+              ) : null}
+            </section>
+            <section className="info-card sandbox-card">
+              <div className="section-heading">
+                <h2>Sandbox Mode</h2>
+              </div>
+              <label className="sandbox-toggle">
+                <input
+                  type="checkbox"
+                  checked={sandboxEnabled}
+                  onChange={(event) => setSandboxEnabled(event.target.checked)}
+                />
+                <span>Enable sandbox actions</span>
+              </label>
+              <p className="sandbox-copy">
+                Add standalone boundaries and export the forest for raw level
+                definitions.
+              </p>
+              {sandboxEnabled ? (
+                <div className="sandbox-export">
+                  <label className="sandbox-export-label" htmlFor="sandbox-current">
+                    Current forms (use for `start`)
+                  </label>
+                  <textarea
+                    id="sandbox-current"
+                    className="sandbox-export-textarea"
+                    value={currentFormsJson}
+                    readOnly
+                  />
+                  <label className="sandbox-export-label" htmlFor="sandbox-goal">
+                    Goal forms
+                  </label>
+                  <textarea
+                    id="sandbox-goal"
+                    className="sandbox-export-textarea"
+                    value={goalFormsJson}
+                    readOnly
+                  />
+                </div>
               ) : null}
             </section>
 

@@ -1,10 +1,11 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { persist, createJSONStorage } from "zustand/middleware";
 import {
   type Form,
   deepClone,
   canonicalSignatureForest,
   canonicalSignature,
+  createForm,
 } from "../logic/Form";
 import { clarify, enfold } from "../logic/inversion";
 import { disperse, collect } from "../logic/arrangement";
@@ -53,7 +54,13 @@ export type GameOperation =
     }
   | { type: "collect"; targetIds: string[] }
   | { type: "cancel"; targetIds: string[] }
-  | { type: "create"; parentId: string | null; templateIds?: string[] };
+  | { type: "create"; parentId: string | null; templateIds?: string[] }
+  | {
+      type: "addBoundary";
+      targetIds: string[];
+      boundary: "round" | "square" | "angle";
+      parentId?: string | null;
+    };
 
 export type GameState = {
   level: LevelDefinition | null;
@@ -79,11 +86,37 @@ export type GameState = {
   skipTutorialForLevel: () => void;
   toggleTutorialEnabled: () => void;
   checkAndTriggerTutorial: (trigger: TutorialTrigger) => void;
+  sandboxEnabled: boolean;
+  setSandboxEnabled: (enabled: boolean) => void;
 };
 
 type LocatedNode = {
   node: Form;
   parent: Form | null;
+};
+
+const fallbackStorageMap = new Map<string, string>();
+const fallbackStorage: Storage = {
+  get length() {
+    return fallbackStorageMap.size;
+  },
+  clear() {
+    fallbackStorageMap.clear();
+  },
+  getItem(key: string) {
+    return fallbackStorageMap.has(key)
+      ? fallbackStorageMap.get(key) ?? null
+      : null;
+  },
+  key(index: number) {
+    return [...fallbackStorageMap.keys()][index] ?? null;
+  },
+  removeItem(key: string) {
+    fallbackStorageMap.delete(key);
+  },
+  setItem(key: string, value: string) {
+    fallbackStorageMap.set(key, value);
+  },
 };
 
 function cloneForest(forms: Form[]): Form[] {
@@ -343,6 +376,16 @@ function operationKeyFor(operation: GameOperation): OperationKey {
       return "cancel";
     case "create":
       return "create";
+    case "addBoundary":
+      switch (operation.boundary) {
+        case "square":
+          return "addSquare";
+        case "angle":
+          return "addAngle";
+        case "round":
+        default:
+          return "addRound";
+      }
     default:
       return "clarify";
   }
@@ -352,10 +395,13 @@ function isOperationAllowed(
   allowed: OperationKey[] | undefined,
   operation: GameOperation,
 ): boolean {
+  const key = operationKeyFor(operation);
+  if (key === "addRound" || key === "addSquare" || key === "addAngle") {
+    return true;
+  }
   if (!allowed || allowed.length === 0) {
     return true;
   }
-  const key = operationKeyFor(operation);
   return allowed.includes(key);
 }
 
@@ -612,6 +658,21 @@ export function previewOperation(
       nextForms = addChild(forest, parentId, created);
       break;
     }
+    case "addBoundary": {
+      const targetIds = [...new Set(operation.targetIds)];
+      const parentId = operation.parentId ?? null;
+      const boundary = operation.boundary;
+
+      if (targetIds.length === 0) {
+        const created = createForm(boundary);
+        nextForms = addChild(forest, parentId, [created]);
+      } else {
+        nextForms = applySiblingOperation(forest, targetIds, (nodes) => [
+          createForm(boundary, ...nodes),
+        ]);
+      }
+      break;
+    }
     default:
       nextForms = null;
   }
@@ -636,6 +697,7 @@ export const useGameStore = create<GameState>()(
         currentStepIndex: 0,
         dismissedForCurrentLevel: false,
       },
+      sandboxEnabled: false,
       loadLevel: (level: LevelDefinition) => {
         const start = cloneForest(level.start);
         const goal = cloneForest(level.goal);
@@ -683,6 +745,9 @@ export const useGameStore = create<GameState>()(
       applyOperation: (operation: GameOperation) => {
         const state = get();
         if (state.status === "idle") {
+          return;
+        }
+        if (operation.type === "addBoundary" && !state.sandboxEnabled) {
           return;
         }
 
@@ -849,9 +914,17 @@ export const useGameStore = create<GameState>()(
 
         state.showTutorialStep(candidates[0]);
       },
+      setSandboxEnabled: (enabled: boolean) => {
+        set({ sandboxEnabled: enabled });
+      },
     }),
     {
       name: "house-of-bao-storage",
+      storage: createJSONStorage(() =>
+        typeof window !== "undefined" && window.localStorage
+          ? window.localStorage
+          : fallbackStorage,
+      ),
       partialize: (state) => ({
         tutorial: {
           enabled: state.tutorial.enabled,

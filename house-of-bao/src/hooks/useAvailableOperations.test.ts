@@ -12,6 +12,7 @@ function baseContext(): EvaluationInput {
     status: "playing",
     allowedAxioms: undefined,
     allowedOperations: undefined,
+    sandboxEnabled: false,
   };
 }
 
@@ -87,5 +88,44 @@ describe("useAvailableOperations/evaluateOperationAvailability", () => {
       "This level locks Clarify to focus on other actions.",
     );
     expect(availability.enfoldFrame.reason ?? "").not.toContain("locks");
+  });
+
+  it("disables sandbox actions until sandbox mode is enabled", () => {
+    const availability = evaluateOperationAvailability({
+      ...baseContext(),
+      sandboxEnabled: false,
+    });
+
+    expect(availability.addRound.available).toBe(false);
+    expect(availability.addRound.reason).toContain("Enable sandbox mode");
+    expect(availability.addSquare.reason).toContain("Enable sandbox mode");
+    expect(availability.addAngle.reason).toContain("Enable sandbox mode");
+  });
+
+  it("marks addRound as available when sandbox mode is enabled", () => {
+    const availability = evaluateOperationAvailability({
+      ...baseContext(),
+      sandboxEnabled: true,
+    });
+
+    expect(availability.addRound.available).toBe(true);
+  });
+
+  it("requires sibling selections for sandbox wrapping", () => {
+    const frame = round(square(atom("inner")), atom("solo"));
+    const squareChild = [...frame.children][0]!;
+    const innerLeaf = [...squareChild.children][0]!;
+
+    const availability = evaluateOperationAvailability({
+      ...baseContext(),
+      currentForms: [frame],
+      selectedNodeIds: [squareChild.id, innerLeaf.id],
+      sandboxEnabled: true,
+    });
+
+    expect(availability.addSquare.available).toBe(false);
+    expect(availability.addSquare.reason).toBe(
+      "Select sibling nodes that share the same parent.",
+    );
   });
 });

@@ -29,6 +29,7 @@ type AxiomActionPanelProps = {
   showInversionActions: boolean;
   showArrangementActions: boolean;
   showReflectionActions: boolean;
+  showSandboxActions: boolean;
   selectedNodeIds: string[];
   firstSelected?: string;
   parentIdForOps: string | null;
@@ -50,6 +51,7 @@ export function AxiomActionPanel({
   showInversionActions,
   showArrangementActions,
   showReflectionActions,
+  showSandboxActions,
   selectedNodeIds,
   firstSelected,
   parentIdForOps,
@@ -460,6 +462,104 @@ export function AxiomActionPanel({
             </div>
           </div>
         )}
+        {showSandboxActions && (
+          <div className="axiom-group">
+            <div className="axiom-group-heading">
+              <div className="axiom-heading-copy">
+                <span>Sandbox</span>
+              </div>
+              <div className="axiom-group-visual">
+                <SandboxGlyph />
+              </div>
+            </div>
+            <div className="axiom-group-actions">
+              {renderActionControl(
+                "addRound",
+                () => ({
+                  type: "addBoundary",
+                  targetIds: selectedNodeIds,
+                  boundary: "round",
+                  parentId: parentIdForOps,
+                }),
+                {
+                  onClick: () => {
+                    if (!operationAvailability.addRound.available) {
+                      return;
+                    }
+                    applyOperation({
+                      type: "addBoundary",
+                      targetIds: selectedNodeIds,
+                      boundary: "round",
+                      parentId: parentIdForOps,
+                    });
+                    lockPreviewFor("addRound");
+                  },
+                  disabled: !operationAvailability.addRound.available,
+                  title: getOperationTooltip("addRound"),
+                  className: newlyAvailable.has("addRound")
+                    ? "button-newly-available"
+                    : "",
+                },
+              )}
+              {renderActionControl(
+                "addSquare",
+                () => ({
+                  type: "addBoundary",
+                  targetIds: selectedNodeIds,
+                  boundary: "square",
+                  parentId: parentIdForOps,
+                }),
+                {
+                  onClick: () => {
+                    if (!operationAvailability.addSquare.available) {
+                      return;
+                    }
+                    applyOperation({
+                      type: "addBoundary",
+                      targetIds: selectedNodeIds,
+                      boundary: "square",
+                      parentId: parentIdForOps,
+                    });
+                    lockPreviewFor("addSquare");
+                  },
+                  disabled: !operationAvailability.addSquare.available,
+                  title: getOperationTooltip("addSquare"),
+                  className: newlyAvailable.has("addSquare")
+                    ? "button-newly-available"
+                    : "",
+                },
+              )}
+              {renderActionControl(
+                "addAngle",
+                () => ({
+                  type: "addBoundary",
+                  targetIds: selectedNodeIds,
+                  boundary: "angle",
+                  parentId: parentIdForOps,
+                }),
+                {
+                  onClick: () => {
+                    if (!operationAvailability.addAngle.available) {
+                      return;
+                    }
+                    applyOperation({
+                      type: "addBoundary",
+                      targetIds: selectedNodeIds,
+                      boundary: "angle",
+                      parentId: parentIdForOps,
+                    });
+                    lockPreviewFor("addAngle");
+                  },
+                  disabled: !operationAvailability.addAngle.available,
+                  title: getOperationTooltip("addAngle"),
+                  className: newlyAvailable.has("addAngle")
+                    ? "button-newly-available"
+                    : "",
+                },
+              )}
+            </div>
+          </div>
+        )}
       </div>
       {/*
         TODO(bao-preview-copy): Reintroduce the action-feedback text if future UX testing
@@ -658,6 +758,61 @@ function ReflectionGlyph() {
         r={6}
         fill={roundFill}
         stroke={roundStroke}
+        strokeWidth={1.4}
+      />
+    </svg>
+  );
+}
+
+function SandboxGlyph() {
+  const roundFill = "#fde68a";
+  const roundStroke = "#b45309";
+  const squareFill = "#bfdbfe";
+  const squareStroke = "#1d4ed8";
+  const angleFill = "#e9d5ff";
+  const angleStroke = "#7c3aed";
+  return (
+    <svg width={100} height={42} viewBox="0 0 100 42" aria-hidden>
+      <rect
+        x={10}
+        y={12}
+        width={24}
+        height={18}
+        rx={4}
+        fill={squareFill}
+        stroke={squareStroke}
+        strokeWidth={2}
+      />
+      <circle
+        cx={22}
+        cy={18}
+        r={5}
+        fill={roundFill}
+        stroke={roundStroke}
+        strokeWidth={1.4}
+      />
+      <polygon
+        points="58,8 82,21 58,34"
+        fill={angleFill}
+        stroke={angleStroke}
+        strokeWidth={2}
+      />
+      <circle
+        cx={74}
+        cy={16}
+        r={5}
+        fill={roundFill}
+        stroke={roundStroke}
+        strokeWidth={1.4}
+      />
+      <rect
+        x={68}
+        y={22}
+        width={12}
+        height={10}
+        rx={3}
+        fill={squareFill}
+        stroke={squareStroke}
         strokeWidth={1.4}
       />
     </svg>

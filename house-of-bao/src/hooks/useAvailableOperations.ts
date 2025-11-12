@@ -31,6 +31,9 @@ const AXIOM_REASONS: Record<AxiomType, string> = {
   reflection: "This level disables reflection actions.",
 };
 
+const SANDBOX_DISABLED_REASON =
+  "Enable sandbox mode to add standalone boundaries.";
+
 const FALLBACK_REASONS = {
   clarify: "Select a round-square pair to clarify.",
   enfoldFrame: "Select sibling forms or choose a parent to add a frame.",
@@ -39,6 +42,9 @@ const FALLBACK_REASONS = {
   collect: "Select round frames that share the same context to collect.",
   cancel: "Select a form and its reflection (or an empty angle) to cancel.",
   create: "Choose a parent or template to create a reflection pair.",
+  addRound: "Enable sandbox mode and select siblings to wrap with a round boundary.",
+  addSquare: "Enable sandbox mode and select siblings to wrap with a square boundary.",
+  addAngle: "Enable sandbox mode and select siblings to wrap with an angle boundary.",
 } as const;
 
 const OPERATION_DISABLED_REASONS: Record<OperationKey, string> = {
@@ -49,6 +55,9 @@ const OPERATION_DISABLED_REASONS: Record<OperationKey, string> = {
   collect: "This level locks Collect to focus on other actions.",
   cancel: "This level locks Cancel to focus on other actions.",
   create: "This level locks Create to focus on other actions.",
+  addRound: "This level locks Add Round to focus on other actions.",
+  addSquare: "This level locks Add Square to focus on other actions.",
+  addAngle: "This level locks Add Angle to focus on other actions.",
 };
 
 export type OperationAvailability = {
@@ -65,6 +74,7 @@ type OperationEvaluationContext = {
   status: GameStatus;
   allowedAxioms?: AxiomType[];
   allowedOperations?: OperationKey[];
+  sandboxEnabled: boolean;
 };
 
 const selectHookState = (state: GameState) => ({
@@ -74,6 +84,7 @@ const selectHookState = (state: GameState) => ({
   status: state.status,
   allowedAxioms: state.level?.allowedAxioms,
   allowedOperations: state.level?.allowedOperations,
+  sandboxEnabled: state.sandboxEnabled,
 });
 
 export function useAvailableOperations(): OperationAvailabilityMap {
@@ -88,6 +99,7 @@ export function useAvailableOperations(): OperationAvailabilityMap {
         status: snapshot.status,
         allowedAxioms: snapshot.allowedAxioms,
         allowedOperations: snapshot.allowedOperations,
+        sandboxEnabled: snapshot.sandboxEnabled,
       }),
     [
       snapshot.currentForms,
@@ -96,6 +108,7 @@ export function useAvailableOperations(): OperationAvailabilityMap {
       snapshot.status,
       snapshot.allowedAxioms,
       snapshot.allowedOperations,
+      snapshot.sandboxEnabled,
     ],
   );
 }
@@ -325,6 +338,46 @@ export function evaluateOperationAvailability(
     }
   }
 
+  const evaluateAddBoundary = (
+    key: OperationKey,
+    boundary: "round" | "square" | "angle",
+  ) => {
+    if (guardOperation(key)) {
+      return;
+    }
+    if (!context.sandboxEnabled) {
+      availability[key] = {
+        available: false,
+        reason: SANDBOX_DISABLED_REASON,
+      };
+      return;
+    }
+    if (guardParent(key)) {
+      return;
+    }
+    if (
+      context.selectedNodeIds.length > 0 &&
+      guardSiblingSelection(key)
+    ) {
+      return;
+    }
+
+    if (
+      previewChange({
+        type: "addBoundary",
+        targetIds: context.selectedNodeIds,
+        parentId: parentIdForOps ?? null,
+        boundary,
+      })
+    ) {
+      availability[key] = { available: true };
+    }
+  };
+
+  evaluateAddBoundary("addRound", "round");
+  evaluateAddBoundary("addSquare", "square");
+  evaluateAddBoundary("addAngle", "angle");
+
   return availability;
 }
 
@@ -355,6 +408,9 @@ function allowsOperation(
   allowed: OperationKey[] | undefined,
   key: OperationKey,
 ): boolean {
+  if (key === "addRound" || key === "addSquare" || key === "addAngle") {
+    return true;
+  }
   if (!allowed || allowed.length === 0) {
     return true;
   }
