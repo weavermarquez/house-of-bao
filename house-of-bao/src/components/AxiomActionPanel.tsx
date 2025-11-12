@@ -6,7 +6,10 @@ import {
   useGameStore,
   type GameOperation,
 } from "../store/gameStore";
-import { useAvailableOperations, type OperationKey } from "../hooks/useAvailableOperations";
+import {
+  useAvailableOperations,
+  type OperationKey,
+} from "../hooks/useAvailableOperations";
 import { ACTION_METADATA } from "./ActionGlyphs";
 
 const AXIOM_METADATA = {
@@ -35,14 +38,12 @@ type AxiomActionPanelProps = {
   currentForms: Form[];
   allowedAxioms?: AxiomType[];
   onPreviewChange?: (
-    payload:
-      | {
-          forms?: Form[];
-          description: string;
-          operation: OperationKey;
-          note?: string;
-        }
-      | null
+    payload: {
+      forms?: Form[];
+      description: string;
+      operation: OperationKey;
+      note?: string;
+    } | null,
   ) => void;
 };
 
@@ -104,10 +105,7 @@ export function AxiomActionPanel({
   );
 
   const createInteractionHandlers = useCallback(
-    (
-      key: OperationKey,
-      buildOperation?: () => GameOperation | null,
-    ) => {
+    (key: OperationKey, buildOperation?: () => GameOperation | null) => {
       const showPreview = () => {
         const metadata = ACTION_METADATA[key];
         const availability = operationAvailability[key];
@@ -145,95 +143,6 @@ export function AxiomActionPanel({
         }
       };
 
-<<<<<<< HEAD
-      if (previewLock === key) {
-        onPreviewChange?.(null);
-        return;
-      }
-      if (!buildOperation) {
-        emitPreview(undefined, availability.reason);
-        return;
-      }
-      const operation = buildOperation();
-      if (!operation) {
-        emitPreview(undefined, availability.reason);
-        return;
-      }
-      if (availability.available) {
-        const preview = computePreview(operation);
-        if (preview) {
-          emitPreview(preview);
-        } else {
-          emitPreview();
-        }
-      } else {
-        emitPreview(undefined, availability.reason);
-      }
-    };
-
-    return {
-      onMouseEnter: () => {
-        checkAndTriggerTutorial("button_hover");
-        showPreview();
-      },
-      onFocus: () => {
-        checkAndTriggerTutorial("button_hover");
-        showPreview();
-      },
-      onMouseLeave: () => {
-        onPreviewChange?.(null);
-        setPreviewLock((current) => (current === key ? null : current));
-      },
-      onBlur: () => {
-        onPreviewChange?.(null);
-        setPreviewLock((current) => (current === key ? null : current));
-      },
-    };
-  };
-||||||| e51f7ed
-      if (previewLock === key) {
-        onPreviewChange?.(null);
-        return;
-      }
-      if (!buildOperation) {
-        emitPreview(undefined, availability.reason);
-        return;
-      }
-      const operation = buildOperation();
-      if (!operation) {
-        emitPreview(undefined, availability.reason);
-        return;
-      }
-      if (availability.available) {
-        const preview = computePreview(operation);
-        if (preview) {
-          emitPreview(preview);
-        } else {
-          emitPreview();
-        }
-      } else {
-        emitPreview(undefined, availability.reason);
-      }
-    };
-
-    return {
-      onMouseEnter: () => {
-        showPreview();
-      },
-      onFocus: () => {
-        showPreview();
-      },
-      onMouseLeave: () => {
-        onPreviewChange?.(null);
-        setPreviewLock((current) => (current === key ? null : current));
-      },
-      onBlur: () => {
-        onPreviewChange?.(null);
-        setPreviewLock((current) => (current === key ? null : current));
-      },
-    };
-  };
-=======
       return {
         onMouseEnter: () => {
           checkAndTriggerTutorial("button_hover");
@@ -262,12 +171,11 @@ export function AxiomActionPanel({
       setPreviewLock,
     ],
   );
->>>>>>> main
 
   const getOperationTooltip = (key: OperationKey) =>
     operationAvailability[key].available
       ? undefined
-      : operationAvailability[key].reason ?? undefined;
+      : (operationAvailability[key].reason ?? undefined);
 
   const renderButtonContent = (key: OperationKey) => {
     const metadata = ACTION_METADATA[key];
@@ -531,7 +439,9 @@ export function AxiomActionPanel({
                       type: "create",
                       parentId: parentIdForOps,
                       templateIds:
-                        selectedNodeIds.length > 0 ? selectedNodeIds : undefined,
+                        selectedNodeIds.length > 0
+                          ? selectedNodeIds
+                          : undefined,
                     });
                     lockPreviewFor("create");
                   },
@@ -572,7 +482,14 @@ function InversionGlyph() {
         stroke={squareStroke}
         strokeWidth={2}
       />
-      <circle cx={18} cy={20} r={9} fill={roundFill} stroke={roundStroke} strokeWidth={2} />
+      <circle
+        cx={18}
+        cy={20}
+        r={9}
+        fill={roundFill}
+        stroke={roundStroke}
+        strokeWidth={2}
+      />
       <circle
         cx={52}
         cy={20}
@@ -603,7 +520,14 @@ function ArrangementGlyph() {
   const contentFill = "#fcd34d";
   return (
     <svg width={120} height={42} viewBox="0 0 120 42" aria-hidden>
-      <circle cx={24} cy={21} r={18} fill={roundFill} stroke={roundStroke} strokeWidth={2} />
+      <circle
+        cx={24}
+        cy={21}
+        r={18}
+        fill={roundFill}
+        stroke={roundStroke}
+        strokeWidth={2}
+      />
       <rect
         x={12}
         y={11}
@@ -614,13 +538,62 @@ function ArrangementGlyph() {
         stroke={squareStroke}
         strokeWidth={1.8}
       />
-      <circle cx={24} cy={16} r={3} fill={contentFill} stroke={roundStroke} strokeWidth={1} />
-      <circle cx={24} cy={26} r={3} fill={contentFill} stroke={roundStroke} strokeWidth={1} />
-      <circle cx={70} cy={14} r={4} fill={contentFill} stroke={roundStroke} strokeWidth={1} />
-      <circle cx={94} cy={14} r={4} fill={contentFill} stroke={roundStroke} strokeWidth={1} />
-      <circle cx={70} cy={28} r={4} fill={contentFill} stroke={roundStroke} strokeWidth={1} />
-      <circle cx={94} cy={28} r={4} fill={contentFill} stroke={roundStroke} strokeWidth={1} />
-      <circle cx={70} cy={21} r={13} fill={roundFill} stroke={roundStroke} strokeWidth={1.6} />
+      <circle
+        cx={24}
+        cy={16}
+        r={3}
+        fill={contentFill}
+        stroke={roundStroke}
+        strokeWidth={1}
+      />
+      <circle
+        cx={24}
+        cy={26}
+        r={3}
+        fill={contentFill}
+        stroke={roundStroke}
+        strokeWidth={1}
+      />
+      <circle
+        cx={70}
+        cy={14}
+        r={4}
+        fill={contentFill}
+        stroke={roundStroke}
+        strokeWidth={1}
+      />
+      <circle
+        cx={94}
+        cy={14}
+        r={4}
+        fill={contentFill}
+        stroke={roundStroke}
+        strokeWidth={1}
+      />
+      <circle
+        cx={70}
+        cy={28}
+        r={4}
+        fill={contentFill}
+        stroke={roundStroke}
+        strokeWidth={1}
+      />
+      <circle
+        cx={94}
+        cy={28}
+        r={4}
+        fill={contentFill}
+        stroke={roundStroke}
+        strokeWidth={1}
+      />
+      <circle
+        cx={70}
+        cy={21}
+        r={13}
+        fill={roundFill}
+        stroke={roundStroke}
+        strokeWidth={1.6}
+      />
       <rect
         x={62}
         y={15}
@@ -631,7 +604,14 @@ function ArrangementGlyph() {
         stroke={squareStroke}
         strokeWidth={1.4}
       />
-      <circle cx={94} cy={21} r={13} fill={roundFill} stroke={roundStroke} strokeWidth={1.6} />
+      <circle
+        cx={94}
+        cy={21}
+        r={13}
+        fill={roundFill}
+        stroke={roundStroke}
+        strokeWidth={1.6}
+      />
       <rect
         x={86}
         y={15}
@@ -653,14 +633,28 @@ function ReflectionGlyph() {
   const roundStroke = "#b45309";
   return (
     <svg width={100} height={42} viewBox="0 0 100 42" aria-hidden>
-      <circle cx={24} cy={21} r={12} fill={roundFill} stroke={roundStroke} strokeWidth={2} />
+      <circle
+        cx={24}
+        cy={21}
+        r={12}
+        fill={roundFill}
+        stroke={roundStroke}
+        strokeWidth={2}
+      />
       <polygon
         points="64,7 90,21 64,35"
         fill={angleFill}
         stroke={angleStroke}
         strokeWidth={2}
       />
-      <circle cx={76} cy={21} r={6} fill={roundFill} stroke={roundStroke} strokeWidth={1.4} />
+      <circle
+        cx={76}
+        cy={21}
+        r={6}
+        fill={roundFill}
+        stroke={roundStroke}
+        strokeWidth={1.4}
+      />
     </svg>
   );
 }
