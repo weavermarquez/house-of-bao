@@ -163,6 +163,7 @@ function App() {
     [selectedNodeIds],
   );
   const allowedAxioms = level?.allowedAxioms;
+  const allowedOperations = level?.allowedOperations;
   const allowsAxiom = useMemo<(type: AxiomType) => boolean>(() => {
     if (!allowedAxioms || allowedAxioms.length === 0) {
       return () => true;
@@ -416,6 +417,7 @@ function App() {
               parentIdForOps={parentIdForOps}
               currentForms={currentForms}
               allowedAxioms={allowedAxioms}
+              allowedOperations={allowedOperations}
               applyOperation={applyOperation}
               onPreviewChange={handlePreviewChange}
             />

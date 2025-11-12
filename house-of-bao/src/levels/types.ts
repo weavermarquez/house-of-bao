@@ -1,5 +1,14 @@
 import { type BoundaryType, type Form } from "../logic";
 
+export type OperationKey =
+  | "clarify"
+  | "enfoldFrame"
+  | "enfoldMark"
+  | "disperse"
+  | "collect"
+  | "cancel"
+  | "create";
+
 export type AxiomType = "inversion" | "arrangement" | "reflection";
 
 export type RawFormNode = {
@@ -16,6 +25,7 @@ export type RawLevelDefinition = {
   goal: RawFormNode[];
   maxMoves?: number;
   allowedAxioms?: AxiomType[];
+  allowedOperations?: OperationKey[];
   difficulty: 1 | 2 | 3 | 4 | 5;
 };
 
@@ -27,6 +37,7 @@ export type LevelDefinition = {
   goal: Form[];
   maxMoves?: number;
   allowedAxioms?: AxiomType[];
+  allowedOperations?: OperationKey[];
   difficulty: 1 | 2 | 3 | 4 | 5;
   tutorialSteps?: TutorialStep[]; // Optional step list for contextual guidance
   hints?: string[]; // Progressive hint strings when players are stuck

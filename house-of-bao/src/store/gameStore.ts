@@ -17,6 +17,7 @@ import { checkWinCondition } from "../logic/win";
 import {
   type LevelDefinition,
   type AxiomType,
+  type OperationKey,
   type TutorialStep,
   type TutorialTrigger,
 } from "../levels/types";
@@ -328,6 +329,16 @@ function isAllowed(allowed: AxiomType[] | undefined, type: AxiomType): boolean {
   return allowed.includes(type);
 }
 
+function isOperationPermitted(
+  allowed: OperationKey[] | undefined,
+  type: OperationKey,
+): boolean {
+  if (!allowed || allowed.length === 0) {
+    return true;
+  }
+  return allowed.includes(type);
+}
+
 /**
  * Adds new child forms to a parent form or the root forest.
  * Does not remove any existing children.
@@ -403,13 +414,18 @@ export function formsEqual(left: Form[], right: Form[]): boolean {
 export function previewOperation(
   forest: Form[],
   operation: GameOperation,
-  allowed?: AxiomType[],
+  allowedAxioms?: AxiomType[],
+  allowedOperations?: OperationKey[],
 ): Form[] | null {
+  if (!isOperationPermitted(allowedOperations, operation.type)) {
+    return null;
+  }
+
   let nextForms: Form[] | null = null;
 
   switch (operation.type) {
     case "clarify": {
-      if (!isAllowed(allowed, "inversion")) {
+      if (!isAllowed(allowedAxioms, "inversion")) {
         return null;
       }
       nextForms = applySingleTarget(forest, operation.targetId, (form) =>
@@ -418,7 +434,7 @@ export function previewOperation(
       break;
     }
     case "enfold": {
-      if (!isAllowed(allowed, "inversion")) {
+      if (!isAllowed(allowedAxioms, "inversion")) {
         return null;
       }
       const variant = operation.variant ?? "frame";
@@ -435,7 +451,7 @@ export function previewOperation(
       break;
     }
     case "disperse": {
-      if (!isAllowed(allowed, "arrangement")) {
+      if (!isAllowed(allowedAxioms, "arrangement")) {
         return null;
       }
       if (operation.frameId) {
@@ -451,7 +467,7 @@ export function previewOperation(
       break;
     }
     case "collect": {
-      if (!isAllowed(allowed, "arrangement")) {
+      if (!isAllowed(allowedAxioms, "arrangement")) {
         return null;
       }
       const uniqueTargets = [...new Set(operation.targetIds)];
@@ -540,7 +556,7 @@ export function previewOperation(
       break;
     }
     case "cancel": {
-      if (!isAllowed(allowed, "reflection")) {
+      if (!isAllowed(allowedAxioms, "reflection")) {
         return null;
       }
       const augmentedIds = ensureCancelPairs(forest, operation.targetIds);
@@ -553,7 +569,7 @@ export function previewOperation(
       break;
     }
     case "create": {
-      if (!isAllowed(allowed, "reflection")) {
+      if (!isAllowed(allowedAxioms, "reflection")) {
         return null;
       }
       const templateIds = operation.templateIds ?? [];
@@ -652,7 +668,13 @@ export const useGameStore = create<GameState>()(
         }
 
         const allowed = state.level?.allowedAxioms;
-        const nextForms = previewOperation(state.currentForms, operation, allowed);
+        const allowedOps = state.level?.allowedOperations;
+        const nextForms = previewOperation(
+          state.currentForms,
+          operation,
+          allowed,
+          allowedOps,
+        );
 
         if (!nextForms || formsEqual(nextForms, state.currentForms)) {
           return;

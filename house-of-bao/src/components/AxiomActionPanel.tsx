@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Form } from "../logic/Form";
-import type { AxiomType } from "../levels/types";
+import type { AxiomType, OperationKey } from "../levels/types";
 import {
   previewOperation,
   useGameStore,
   type GameOperation,
 } from "../store/gameStore";
-import { useAvailableOperations, type OperationKey } from "../hooks/useAvailableOperations";
+import { useAvailableOperations } from "../hooks/useAvailableOperations";
 import { ACTION_METADATA } from "./ActionGlyphs";
 
 const AXIOM_METADATA = {
@@ -34,6 +34,7 @@ type AxiomActionPanelProps = {
   applyOperation: (operation: GameOperation) => void;
   currentForms: Form[];
   allowedAxioms?: AxiomType[];
+  allowedOperations?: OperationKey[];
   onPreviewChange?: (
     payload:
       | {
@@ -55,6 +56,7 @@ export function AxiomActionPanel({
   parentIdForOps,
   currentForms,
   allowedAxioms,
+  allowedOperations,
   applyOperation,
   onPreviewChange,
 }: AxiomActionPanelProps) {
@@ -90,9 +92,14 @@ export function AxiomActionPanel({
 
   const computePreview = useCallback(
     (operation: GameOperation): Form[] | null => {
-      return previewOperation(currentForms, operation, allowedAxioms);
+      return previewOperation(
+        currentForms,
+        operation,
+        allowedAxioms,
+        allowedOperations,
+      );
     },
-    [currentForms, allowedAxioms],
+    [currentForms, allowedAxioms, allowedOperations],
   );
 
   const lockPreviewFor = useCallback(
@@ -197,6 +204,7 @@ export function AxiomActionPanel({
     return (
       <div
         className="action-button-wrapper"
+        data-action-key={key}
         onMouseEnter={handlers.onMouseEnter}
         onMouseLeave={handlers.onMouseLeave}
       >
