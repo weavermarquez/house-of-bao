@@ -18,6 +18,7 @@ export type RawLevelDefinition = {
   maxMoves?: number;
   allowedAxioms?: AxiomType[];
   allowedOperations?: OperationKey[];
+  tutorialSteps?: TutorialStep[]; // Optional step list for contextual guidance
   difficulty: 1 | 2 | 3 | 4 | 5;
 };
 
