@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 import {
   type Form,
   deepClone,
@@ -13,11 +14,24 @@ import {
   isCancelApplicable,
 } from "../logic/reflection";
 import { checkWinCondition } from "../logic/win";
-import { type LevelDefinition, type AxiomType } from "../levels/types";
+import {
+  type LevelDefinition,
+  type AxiomType,
+  type TutorialStep,
+  type TutorialTrigger,
+} from "../levels/types";
 
 type HistoryStack = {
   past: Form[][];
   future: Form[][];
+};
+
+type TutorialState = {
+  enabled: boolean;
+  completedSteps: string[];
+  currentStep: TutorialStep | null;
+  currentStepIndex: number;
+  dismissedForCurrentLevel: boolean;
 };
 
 export type GameStatus = "idle" | "playing" | "won";
@@ -48,6 +62,7 @@ export type GameState = {
   selectedNodeIds: string[];
   selectedParentId: string | null;
   history: HistoryStack;
+  tutorial: TutorialState;
   loadLevel: (level: LevelDefinition) => void;
   resetLevel: () => void;
   applyOperation: (operation: GameOperation) => void;
@@ -57,6 +72,12 @@ export type GameState = {
   clearSelection: () => void;
   selectParent: (nodeId: string | null) => void;
   clearParentSelection: () => void;
+  showTutorialStep: (step: TutorialStep) => void;
+  dismissTutorialStep: () => void;
+  completeTutorialStep: (stepId: string) => void;
+  skipTutorialForLevel: () => void;
+  toggleTutorialEnabled: () => void;
+  checkAndTriggerTutorial: (trigger: TutorialTrigger) => void;
 };
 
 type LocatedNode = {
@@ -563,119 +584,251 @@ export function previewOperation(
   return nextForms;
 }
 
-export const useGameStore = create<GameState>((set, get) => ({
-  level: null,
-  currentForms: [],
-  goalForms: [],
-  status: "idle",
-  selectedNodeIds: [],
-  selectedParentId: null,
-  history: { past: [], future: [] },
-  loadLevel: (level: LevelDefinition) => {
-    const start = cloneForest(level.start);
-    const goal = cloneForest(level.goal);
-    set({
-      level,
-      currentForms: start,
-      goalForms: goal,
-      status: checkWinCondition(start, goal) ? "won" : "playing",
+export const useGameStore = create<GameState>()(
+  persist(
+    (set, get) => ({
+      level: null,
+      currentForms: [],
+      goalForms: [],
+      status: "idle",
       selectedNodeIds: [],
       selectedParentId: null,
       history: { past: [], future: [] },
-    });
-  },
-  resetLevel: () => {
-    const state = get();
-    if (!state.level) {
-      return;
-    }
-    const start = cloneForest(state.level.start);
-    set({
-      currentForms: start,
-      goalForms: cloneForest(state.level.goal),
-      status: checkWinCondition(start, state.goalForms) ? "won" : "playing",
-      selectedNodeIds: [],
-      selectedParentId: null,
-      history: { past: [], future: [] },
-    });
-  },
-  applyOperation: (operation: GameOperation) => {
-    const state = get();
-    if (state.status === "idle") {
-      return;
-    }
+      tutorial: {
+        enabled: true,
+        completedSteps: [],
+        currentStep: null,
+        currentStepIndex: 0,
+        dismissedForCurrentLevel: false,
+      },
+      loadLevel: (level: LevelDefinition) => {
+        const start = cloneForest(level.start);
+        const goal = cloneForest(level.goal);
+        set((state) => ({
+          level,
+          currentForms: start,
+          goalForms: goal,
+          status: checkWinCondition(start, goal) ? "won" : "playing",
+          selectedNodeIds: [],
+          selectedParentId: null,
+          history: { past: [], future: [] },
+          tutorial: {
+            ...state.tutorial,
+            currentStep: null,
+            currentStepIndex: 0,
+            dismissedForCurrentLevel: false,
+          },
+        }));
 
-    const allowed = state.level?.allowedAxioms;
-    const nextForms = previewOperation(state.currentForms, operation, allowed);
+        setTimeout(() => {
+          get().checkAndTriggerTutorial("level_start");
+        }, 500);
+      },
+      resetLevel: () => {
+        const state = get();
+        if (!state.level) {
+          return;
+        }
+        const start = cloneForest(state.level.start);
+        set({
+          currentForms: start,
+          goalForms: cloneForest(state.level.goal),
+          status: checkWinCondition(start, state.goalForms) ? "won" : "playing",
+          selectedNodeIds: [],
+          selectedParentId: null,
+          history: { past: [], future: [] },
+          tutorial: {
+            ...state.tutorial,
+            currentStep: null,
+            currentStepIndex: 0,
+            dismissedForCurrentLevel: false,
+          },
+        });
+      },
+      applyOperation: (operation: GameOperation) => {
+        const state = get();
+        if (state.status === "idle") {
+          return;
+        }
 
-    if (!nextForms || formsEqual(nextForms, state.currentForms)) {
-      return;
-    }
+        const allowed = state.level?.allowedAxioms;
+        const nextForms = previewOperation(state.currentForms, operation, allowed);
 
-    const past = [...state.history.past, cloneForest(state.currentForms)];
-    const future: Form[][] = [];
-    const won = checkWinCondition(nextForms, state.goalForms);
+        if (!nextForms || formsEqual(nextForms, state.currentForms)) {
+          return;
+        }
 
-    set({
-      currentForms: nextForms,
-      history: { past, future },
-      status: won ? "won" : "playing",
-      selectedNodeIds: [],
-      selectedParentId: null,
-    });
-  },
-  undo: () => {
-    const state = get();
-    if (state.history.past.length === 0) {
-      return;
-    }
+        const past = [...state.history.past, cloneForest(state.currentForms)];
+        const future: Form[][] = [];
+        const won = checkWinCondition(nextForms, state.goalForms);
 
-    const previous = state.history.past[state.history.past.length - 1];
-    const past = state.history.past.slice(0, -1);
-    const future = [cloneForest(state.currentForms), ...state.history.future];
+        set({
+          currentForms: nextForms,
+          history: { past, future },
+          status: won ? "won" : "playing",
+          selectedNodeIds: [],
+          selectedParentId: null,
+        });
+      },
+      undo: () => {
+        const state = get();
+        if (state.history.past.length === 0) {
+          return;
+        }
 
-    set({
-      currentForms: previous.map((form) => deepClone(form)),
-      history: { past, future },
-      status: checkWinCondition(previous, state.goalForms) ? "won" : "playing",
-      selectedNodeIds: [],
-      selectedParentId: null,
-    });
-  },
-  redo: () => {
-    const state = get();
-    if (state.history.future.length === 0) {
-      return;
-    }
+        const previous = state.history.past[state.history.past.length - 1];
+        const past = state.history.past.slice(0, -1);
+        const future = [cloneForest(state.currentForms), ...state.history.future];
 
-    const [next, ...rest] = state.history.future;
-    const past = [...state.history.past, cloneForest(state.currentForms)];
+        set({
+          currentForms: previous.map((form) => deepClone(form)),
+          history: { past, future },
+          status: checkWinCondition(previous, state.goalForms) ? "won" : "playing",
+          selectedNodeIds: [],
+          selectedParentId: null,
+        });
+      },
+      redo: () => {
+        const state = get();
+        if (state.history.future.length === 0) {
+          return;
+        }
 
-    set({
-      currentForms: next.map((form) => deepClone(form)),
-      history: { past, future: rest },
-      status: checkWinCondition(next, state.goalForms) ? "won" : "playing",
-      selectedNodeIds: [],
-      selectedParentId: null,
-    });
-  },
-  toggleSelection: (nodeId: string) => {
-    const state = get();
-    const already = new Set(state.selectedNodeIds);
-    if (already.has(nodeId)) {
-      already.delete(nodeId);
-    } else {
-      already.add(nodeId);
-    }
-    set({ selectedNodeIds: [...already] });
-  },
-  clearSelection: () => {
-    set({ selectedNodeIds: [] });
-  },
-  selectParent: (nodeId: string | null) => {
-    set({ selectedParentId: nodeId });
-  },
-  clearParentSelection: () => {
-    set({ selectedParentId: null });
-  },
-}));
+        const [next, ...rest] = state.history.future;
+        const past = [...state.history.past, cloneForest(state.currentForms)];
+
+        set({
+          currentForms: next.map((form) => deepClone(form)),
+          history: { past, future: rest },
+          status: checkWinCondition(next, state.goalForms) ? "won" : "playing",
+          selectedNodeIds: [],
+          selectedParentId: null,
+        });
+      },
+      toggleSelection: (nodeId: string) => {
+        const state = get();
+        const already = new Set(state.selectedNodeIds);
+        if (already.has(nodeId)) {
+          already.delete(nodeId);
+        } else {
+          already.add(nodeId);
+        }
+        set({ selectedNodeIds: [...already] });
+      },
+      clearSelection: () => {
+        set({ selectedNodeIds: [] });
+      },
+      selectParent: (nodeId: string | null) => {
+        set({ selectedParentId: nodeId });
+      },
+      clearParentSelection: () => {
+        set({ selectedParentId: null });
+      },
+      showTutorialStep: (step: TutorialStep) => {
+        const level = get().level;
+        const index =
+          level?.tutorialSteps?.findIndex((entry) => entry.id === step.id) ?? -1;
+        set((state) => ({
+          tutorial: {
+            ...state.tutorial,
+            currentStep: step,
+            currentStepIndex:
+              index >= 0 ? index : state.tutorial.currentStepIndex,
+          },
+        }));
+      },
+      dismissTutorialStep: () => {
+        set((state) => ({
+          tutorial: {
+            ...state.tutorial,
+            currentStep: null,
+          },
+        }));
+      },
+      completeTutorialStep: (stepId: string) => {
+        set((state) => {
+          const alreadyCompleted = state.tutorial.completedSteps.includes(stepId);
+          return {
+            tutorial: {
+              ...state.tutorial,
+              currentStep: null,
+              currentStepIndex: state.tutorial.currentStepIndex + 1,
+              completedSteps: alreadyCompleted
+                ? state.tutorial.completedSteps
+                : [...state.tutorial.completedSteps, stepId],
+            },
+          };
+        });
+      },
+      skipTutorialForLevel: () => {
+        set((state) => ({
+          tutorial: {
+            ...state.tutorial,
+            currentStep: null,
+            dismissedForCurrentLevel: true,
+          },
+        }));
+      },
+      toggleTutorialEnabled: () => {
+        set((state) => {
+          const enabled = !state.tutorial.enabled;
+          return {
+            tutorial: {
+              ...state.tutorial,
+              enabled,
+              currentStep: enabled ? state.tutorial.currentStep : null,
+            },
+          };
+        });
+      },
+      checkAndTriggerTutorial: (trigger: TutorialTrigger) => {
+        const state = get();
+        const { level, tutorial } = state;
+
+        if (
+          !tutorial.enabled ||
+          !level?.tutorialSteps ||
+          tutorial.dismissedForCurrentLevel ||
+          tutorial.currentStep
+        ) {
+          return;
+        }
+
+        const candidates = level.tutorialSteps
+          .filter((step) => step.trigger === trigger)
+          .filter((step) => !tutorial.completedSteps.includes(step.id));
+
+        if (candidates.length === 0) {
+          return;
+        }
+
+        candidates.sort(
+          (a, b) => (a.priority ?? 0) - (b.priority ?? 0),
+        );
+
+        state.showTutorialStep(candidates[0]);
+      },
+    }),
+    {
+      name: "house-of-bao-storage",
+      partialize: (state) => ({
+        tutorial: {
+          enabled: state.tutorial.enabled,
+          completedSteps: state.tutorial.completedSteps,
+        },
+      }),
+      merge: (persistedState, currentState) => {
+        const safePersistedState =
+          (persistedState ?? {}) as Partial<GameState>;
+        return {
+          ...currentState,
+          ...safePersistedState,
+          tutorial: {
+            ...currentState.tutorial,
+            ...(safePersistedState.tutorial ?? {}),
+          },
+        };
+      },
+    },
+  ),
+);

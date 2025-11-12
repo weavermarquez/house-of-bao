@@ -1,4 +1,11 @@
+import { useGameStore } from "../store/gameStore";
+
 export function Footer() {
+  const tutorialEnabled = useGameStore((state) => state.tutorial.enabled);
+  const toggleTutorialEnabled = useGameStore(
+    (state) => state.toggleTutorialEnabled,
+  );
+
   return (
     <footer className="app-footer">
       <div className="footer-content">
@@ -31,6 +38,18 @@ export function Footer() {
             </a>
           </div>
         </div>
+      </div>
+
+      <div className="footer-settings">
+        <label className="setting-toggle">
+          <input
+            type="checkbox"
+            checked={tutorialEnabled}
+            onChange={() => toggleTutorialEnabled()}
+            aria-label="Toggle tutorial overlays"
+          />
+          <span>Show tutorial overlays</span>
+        </label>
       </div>
 
       <div className="footer-credits">

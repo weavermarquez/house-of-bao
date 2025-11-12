@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Form } from "../logic/Form";
 import type { AxiomType } from "../levels/types";
-import { previewOperation, type GameOperation } from "../store/gameStore";
+import {
+  previewOperation,
+  useGameStore,
+  type GameOperation,
+} from "../store/gameStore";
 import { useAvailableOperations, type OperationKey } from "../hooks/useAvailableOperations";
 import { ACTION_METADATA } from "./ActionGlyphs";
 
@@ -54,6 +58,9 @@ export function AxiomActionPanel({
   applyOperation,
   onPreviewChange,
 }: AxiomActionPanelProps) {
+  const checkAndTriggerTutorial = useGameStore(
+    (state) => state.checkAndTriggerTutorial,
+  );
   const operationAvailability = useAvailableOperations();
   const [newlyAvailable, setNewlyAvailable] = useState<Set<OperationKey>>(
     () => new Set(),
@@ -96,64 +103,76 @@ export function AxiomActionPanel({
     [onPreviewChange],
   );
 
-  const createInteractionHandlers = (
-    key: OperationKey,
-    buildOperation?: () => GameOperation | null,
-  ) => {
-    const showPreview = () => {
-      const metadata = ACTION_METADATA[key];
-      const availability = operationAvailability[key];
-      const emitPreview = (forms?: Form[], note?: string) => {
-        onPreviewChange?.({
-          forms,
-          description: metadata.description,
-          operation: key,
-          note,
-        });
+  const createInteractionHandlers = useCallback(
+    (
+      key: OperationKey,
+      buildOperation?: () => GameOperation | null,
+    ) => {
+      const showPreview = () => {
+        const metadata = ACTION_METADATA[key];
+        const availability = operationAvailability[key];
+        const emitPreview = (forms?: Form[], note?: string) => {
+          onPreviewChange?.({
+            forms,
+            description: metadata.description,
+            operation: key,
+            note,
+          });
+        };
+
+        if (previewLock === key) {
+          onPreviewChange?.(null);
+          return;
+        }
+        if (!buildOperation) {
+          emitPreview(undefined, availability.reason);
+          return;
+        }
+        const operation = buildOperation();
+        if (!operation) {
+          emitPreview(undefined, availability.reason);
+          return;
+        }
+        if (availability.available) {
+          const preview = computePreview(operation);
+          if (preview) {
+            emitPreview(preview);
+          } else {
+            emitPreview();
+          }
+        } else {
+          emitPreview(undefined, availability.reason);
+        }
       };
 
-      if (previewLock === key) {
-        onPreviewChange?.(null);
-        return;
-      }
-      if (!buildOperation) {
-        emitPreview(undefined, availability.reason);
-        return;
-      }
-      const operation = buildOperation();
-      if (!operation) {
-        emitPreview(undefined, availability.reason);
-        return;
-      }
-      if (availability.available) {
-        const preview = computePreview(operation);
-        if (preview) {
-          emitPreview(preview);
-        } else {
-          emitPreview();
-        }
-      } else {
-        emitPreview(undefined, availability.reason);
-      }
-    };
-
-    return {
-      onMouseEnter: () => {
-        showPreview();
-      },
-      onFocus: () => {
-        showPreview();
-      },
-      onMouseLeave: () => {
-        onPreviewChange?.(null);
-        setPreviewLock((current) => (current === key ? null : current));
-      },
-      onBlur: () => {
-        onPreviewChange?.(null);
-        setPreviewLock((current) => (current === key ? null : current));
-      },
-    };
-  };
+      return {
+        onMouseEnter: () => {
+          checkAndTriggerTutorial("button_hover");
+          showPreview();
+        },
+        onFocus: () => {
+          checkAndTriggerTutorial("button_hover");
+          showPreview();
+        },
+        onMouseLeave: () => {
+          onPreviewChange?.(null);
+          setPreviewLock((current) => (current === key ? null : current));
+        },
+        onBlur: () => {
+          onPreviewChange?.(null);
+          setPreviewLock((current) => (current === key ? null : current));
+        },
+      };
+    },
+    [
+      checkAndTriggerTutorial,
+      computePreview,
+      onPreviewChange,
+      operationAvailability,
+      previewLock,
+      setPreviewLock,
+    ],
+  );
 
   const getOperationTooltip = (key: OperationKey) =>
     operationAvailability[key].available
