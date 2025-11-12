@@ -4,6 +4,7 @@ import { ROOT_NODE_ID } from "../dialects/network";
 import { type Form } from "../logic/Form";
 import { isClarifyApplicable } from "../logic/inversion";
 import { type AxiomType } from "../levels/types";
+import { OPERATION_KEYS, type OperationKey } from "../operations/types";
 import {
   formsEqual,
   previewOperation,
@@ -40,17 +41,15 @@ const FALLBACK_REASONS = {
   create: "Choose a parent or template to create a reflection pair.",
 } as const;
 
-const OPERATION_KEYS = [
-  "clarify",
-  "enfoldFrame",
-  "enfoldMark",
-  "disperse",
-  "collect",
-  "cancel",
-  "create",
-] as const;
-
-export type OperationKey = (typeof OPERATION_KEYS)[number];
+const OPERATION_DISABLED_REASONS: Record<OperationKey, string> = {
+  clarify: "This level locks Clarify to focus on other actions.",
+  enfoldFrame: "This level locks Enfold Frame to focus on other actions.",
+  enfoldMark: "This level locks Enfold Mark to focus on other actions.",
+  disperse: "This level locks Disperse to focus on other actions.",
+  collect: "This level locks Collect to focus on other actions.",
+  cancel: "This level locks Cancel to focus on other actions.",
+  create: "This level locks Create to focus on other actions.",
+};
 
 export type OperationAvailability = {
   available: boolean;
@@ -65,6 +64,7 @@ type OperationEvaluationContext = {
   selectedParentId: string | null;
   status: GameStatus;
   allowedAxioms?: AxiomType[];
+  allowedOperations?: OperationKey[];
 };
 
 const selectHookState = (state: GameState) => ({
@@ -73,6 +73,7 @@ const selectHookState = (state: GameState) => ({
   selectedParentId: state.selectedParentId,
   status: state.status,
   allowedAxioms: state.level?.allowedAxioms,
+  allowedOperations: state.level?.allowedOperations,
 });
 
 export function useAvailableOperations(): OperationAvailabilityMap {
@@ -86,6 +87,7 @@ export function useAvailableOperations(): OperationAvailabilityMap {
         selectedParentId: snapshot.selectedParentId,
         status: snapshot.status,
         allowedAxioms: snapshot.allowedAxioms,
+        allowedOperations: snapshot.allowedOperations,
       }),
     [
       snapshot.currentForms,
@@ -93,6 +95,7 @@ export function useAvailableOperations(): OperationAvailabilityMap {
       snapshot.selectedParentId,
       snapshot.status,
       snapshot.allowedAxioms,
+      snapshot.allowedOperations,
     ],
   );
 }
@@ -113,6 +116,7 @@ export function evaluateOperationAvailability(
   const parentIdForOps =
     context.selectedParentId === ROOT_NODE_ID ? null : context.selectedParentId;
   const allowedAxioms = context.allowedAxioms;
+  const allowedOperations = context.allowedOperations;
   const firstSelected = context.selectedNodeIds[0];
 
   const previewChange = (operation: GameOperation | null): boolean => {
@@ -123,6 +127,7 @@ export function evaluateOperationAvailability(
       context.currentForms,
       operation,
       allowedAxioms,
+      allowedOperations,
     );
     if (!result) {
       return false;
@@ -140,6 +145,17 @@ export function evaluateOperationAvailability(
     availability[key] = {
       available: false,
       reason: AXIOM_REASONS[requirement],
+    };
+    return true;
+  };
+
+  const guardOperation = (key: OperationKey): boolean => {
+    if (allowsOperation(allowedOperations, key)) {
+      return false;
+    }
+    availability[key] = {
+      available: false,
+      reason: OPERATION_DISABLED_REASONS[key],
     };
     return true;
   };
@@ -180,7 +196,7 @@ export function evaluateOperationAvailability(
   };
 
   // Clarify
-  if (!guardAxiom("clarify", "inversion")) {
+  if (!guardOperation("clarify") && !guardAxiom("clarify", "inversion")) {
     if (!firstSelected) {
       availability.clarify = {
         available: false,
@@ -207,7 +223,11 @@ export function evaluateOperationAvailability(
   }
 
   // Enfold Frame
-  if (!guardAxiom("enfoldFrame", "inversion") && !guardParent("enfoldFrame")) {
+  if (
+    !guardOperation("enfoldFrame") &&
+    !guardAxiom("enfoldFrame", "inversion") &&
+    !guardParent("enfoldFrame")
+  ) {
     if (
       !guardSiblingSelection("enfoldFrame") &&
       previewChange({
@@ -222,7 +242,11 @@ export function evaluateOperationAvailability(
   }
 
   // Enfold Mark
-  if (!guardAxiom("enfoldMark", "inversion") && !guardParent("enfoldMark")) {
+  if (
+    !guardOperation("enfoldMark") &&
+    !guardAxiom("enfoldMark", "inversion") &&
+    !guardParent("enfoldMark")
+  ) {
     if (
       !guardSiblingSelection("enfoldMark") &&
       previewChange({
@@ -237,7 +261,11 @@ export function evaluateOperationAvailability(
   }
 
   // Disperse
-  if (!guardAxiom("disperse", "arrangement") && !guardParent("disperse")) {
+  if (
+    !guardOperation("disperse") &&
+    !guardAxiom("disperse", "arrangement") &&
+    !guardParent("disperse")
+  ) {
     if (
       previewChange({
         type: "disperse",
@@ -250,7 +278,7 @@ export function evaluateOperationAvailability(
   }
 
   // Collect
-  if (!guardAxiom("collect", "arrangement")) {
+  if (!guardOperation("collect") && !guardAxiom("collect", "arrangement")) {
     const selectionHasFrames = context.selectedNodeIds.some((id) => {
       const entry = indexById.get(id);
       return entry?.node.boundary === "round";
@@ -269,7 +297,7 @@ export function evaluateOperationAvailability(
   }
 
   // Cancel
-  if (!guardAxiom("cancel", "reflection")) {
+  if (!guardOperation("cancel") && !guardAxiom("cancel", "reflection")) {
     if (
       previewChange({ type: "cancel", targetIds: context.selectedNodeIds })
     ) {
@@ -278,7 +306,11 @@ export function evaluateOperationAvailability(
   }
 
   // Create
-  if (!guardAxiom("create", "reflection") && !guardParent("create")) {
+  if (
+    !guardOperation("create") &&
+    !guardAxiom("create", "reflection") &&
+    !guardParent("create")
+  ) {
     if (
       previewChange({
         type: "create",
@@ -317,6 +349,16 @@ function allowsAxiom(
     return true;
   }
   return allowed.includes(type);
+}
+
+function allowsOperation(
+  allowed: OperationKey[] | undefined,
+  key: OperationKey,
+): boolean {
+  if (!allowed || allowed.length === 0) {
+    return true;
+  }
+  return allowed.includes(key);
 }
 
 function indexForms(forest: Form[]): Map<string, IndexedEntry> {

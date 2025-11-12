@@ -1,5 +1,5 @@
 import type { JSX } from "react";
-import type { OperationKey } from "../hooks/useAvailableOperations";
+import type { OperationKey } from "../operations/types";
 
 type GlyphProps = {
   className?: string;

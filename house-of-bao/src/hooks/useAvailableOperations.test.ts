@@ -11,6 +11,7 @@ function baseContext(): EvaluationInput {
     selectedParentId: null,
     status: "playing",
     allowedAxioms: undefined,
+    allowedOperations: undefined,
   };
 }
 
@@ -69,5 +70,22 @@ describe("useAvailableOperations/evaluateOperationAvailability", () => {
     expect(availability.disperse.reason).toBe(
       "This level disables arrangement actions.",
     );
+  });
+
+  it("surfaces per-operation locks", () => {
+    const frame = round(square(atom("a")));
+
+    const availability = evaluateOperationAvailability({
+      ...baseContext(),
+      currentForms: [frame],
+      selectedNodeIds: [frame.id],
+      allowedOperations: ["enfoldFrame"],
+    });
+
+    expect(availability.clarify.available).toBe(false);
+    expect(availability.clarify.reason).toBe(
+      "This level locks Clarify to focus on other actions.",
+    );
+    expect(availability.enfoldFrame.reason ?? "").not.toContain("locks");
   });
 });

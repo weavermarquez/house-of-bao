@@ -10,7 +10,7 @@ import { AxiomActionPanel } from "./components/AxiomActionPanel";
 import { FormPreview } from "./components/FormPreview";
 import { Footer } from "./components/Footer";
 import { TutorialOverlay } from "./components/TutorialOverlay";
-import type { OperationKey } from "./hooks/useAvailableOperations";
+import type { OperationKey } from "./operations/types";
 import { ACTION_METADATA } from "./components/ActionGlyphs";
 
 type LegendShape = "round" | "square" | "angle";
@@ -416,6 +416,7 @@ function App() {
               parentIdForOps={parentIdForOps}
               currentForms={currentForms}
               allowedAxioms={allowedAxioms}
+              allowedOperations={level?.allowedOperations}
               applyOperation={applyOperation}
               onPreviewChange={handlePreviewChange}
             />
