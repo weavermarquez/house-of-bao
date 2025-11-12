@@ -18,46 +18,35 @@ function findReflectionPair(forms: Form[]): ReflectionPair | null {
   }
 
   const canonicalCache = forms.map((form) => canonicalSignature(form));
-  const reflectionsBySignature = new Map<
-    string,
-    Array<{ angleIndex: number; childIndex: number }>
-  >();
 
-  forms.forEach((form, index) => {
-    if (form.boundary !== "angle") {
-      return;
-    }
-
-    const children = [...form.children];
-    children.forEach((child, childIndex) => {
-      const innerSignature = canonicalSignature(child);
-      const existing = reflectionsBySignature.get(innerSignature);
-      if (existing) {
-        existing.push({ angleIndex: index, childIndex });
-      } else {
-        reflectionsBySignature.set(innerSignature, [
-          { angleIndex: index, childIndex },
-        ]);
-      }
-    });
-  });
-
-  for (let baseIndex = 0; baseIndex < forms.length; baseIndex += 1) {
-    const baseSignature = canonicalCache[baseIndex];
-    const candidates = reflectionsBySignature.get(baseSignature);
-    if (!candidates) {
+  for (let angleIndex = forms.length - 1; angleIndex >= 0; angleIndex -= 1) {
+    const candidate = forms[angleIndex];
+    if (candidate.boundary !== "angle") {
       continue;
     }
 
-    const match = candidates.find(
-      ({ angleIndex }) => angleIndex !== baseIndex,
-    );
-    if (match) {
-      return {
-        baseIndex,
-        reflectionIndex: match.angleIndex,
-        reflectionChildIndex: match.childIndex,
-      };
+    const children = [...candidate.children];
+    for (let childIndex = 0; childIndex < children.length; childIndex += 1) {
+      const childSignature = canonicalSignature(children[childIndex]);
+
+      let baseIndex = -1;
+      for (let idx = forms.length - 1; idx >= 0; idx -= 1) {
+        if (idx === angleIndex) {
+          continue;
+        }
+        if (canonicalCache[idx] === childSignature) {
+          baseIndex = idx;
+          break;
+        }
+      }
+
+      if (baseIndex !== -1) {
+        return {
+          baseIndex,
+          reflectionIndex: angleIndex,
+          reflectionChildIndex: childIndex,
+        };
+      }
     }
   }
 

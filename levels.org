@@ -1,3 +1,248 @@
+* Thinking Deeply about Levels
+
+- Ki-Sho-Ten-Ketsu
+  : R M ⇀ ⇌ M R
+  - Introduce, Develop, Twist, Conclude
+  - Ki (起) - Introduction: This is the beginning, where the setting, characters, and initial situation are introduced.
+  - Shō (承) - Development: The story develops from the introduction, expanding on the characters, setting, and initial situation.
+  - Ten (転) - Twist: An unexpected turn, event, or new element is introduced that changes the direction of the story. This isn't always a dramatic twist but can be a significant change or revelation.
+  - Ketsu (結) - Conclusion: The story wraps up, reconciling the twist with the beginning and providing a sense of closure that ties all the elements together. 
+
+** Twists
+Clarify
+- Things don't always 
+Enfold
+Cancel
+- You can cancel even when angle doesn't match exactly.
+- Angles can merge together on the same level.
+- Promotion Theorem
+- You can cancel angles from nothing.
+Create
+- You can create angles from nothing.
+Disperse
+Collect
+
+* Deep Analysis of Level Structure
+
+** The Current State
+
+Looking at your level progression, I see a learning curve that's trying to do too much too fast. Let me map what's actually happening:
+
+*** What Players Actually Learn (Current)
+1. *Level 0*: "Here's void" (but void isn't even in the system?)
+2. *Level 1*: Clarify (inversion)
+3. *Level 2*: Disperse (arrangement intro)
+4. *Level 2.5*: Missing - should teach Collect
+5. *Level 3*: Create (but from what mental model?)
+6. *Level 4*: "Void Sandwich" - too abstract
+7. *Level 5*: Cancel (reflection)
+
+The problem: *You're teaching operations before teaching what they operate on*.
+
+** Ki-Sho-Ten-Ketsu Applied to Tutorial Arc
+
+*** Ki (起) - Introduction: What Are These Things?
+*Levels 0-2: Building Intuition for Containment*
+
+*Level 0: "The Forest"*
+- Start: nothing
+- Goal: =() () [] []=
+- Actions: Only Enfold Frame, Enfold Mark
+- Tutorial: 
+  - "This is a space where forms exist."
+  - "Tap anywhere to create a Round container: ()"
+  - "Tap again to create a Square container: []"
+  - "Notice: Nothing becomes something. Order doesn't matter."
+  - "These are the building blocks. Let's see what they do."
+
+*Level 0.5: "Nesting"*
+- Start: =() [] =
+- Goal: =([]) [()]=
+- Actions: Enfold only
+- Tutorial:
+  - "Containers can hold other containers."
+  - "Select Round, then Enfold with Square."
+  - "Now select Square, then Enfold with Round."
+  - "Same pieces, different arrangements. This matters."
+
+*Level 1: "The First Law"*
+- Start: =([])=
+- Goal: void
+- Actions: Only Clarify
+- Tutorial:
+  - "Round containing Square (or Square containing Round) is special."
+  - "They're opposites. They cancel each other."
+  - "Tap the outer Round to select the whole form."
+  - "Press Clarify."
+  - "Opposites annihilate. This is Inversion."
+
+*** Shō (承) - Development: Learning the Operations
+
+*Level 2: "Frames Have Contents"*
+- Start: =([() ()])=
+- Goal: =() ()=
+- Actions: Clarify, Disperse
+- Tutorial:
+  - "The Square is a Frame. It holds multiple things."
+  - "Clarify the Round-Square pair..."
+  - "Now the contents are free."
+  - "Frames organize. Removing frames releases."
+
+*Level 2.5: "Gathering"*
+- Start: =([()]) ([()])=
+- Goal: =([ () () ])=
+- Actions: Only Collect
+- Tutorial:
+  - "These two forms share a pattern: Round-Frame-with-one-Round."
+  - "Select both outer Rounds."
+  - "Press Collect."
+  - "Shared context merges into one Frame."
+  - "This is Arrangement - gathering similar forms."
+
+*Level 3: "Making Pairs"*
+- Start: =()=
+- Goal: =() <()>=
+- Actions: Only Create (with template)
+- Tutorial:
+  - "Select the Round."
+  - "Press Create."
+  - "The Angle bracket <> marks a reflection."
+  - "Every form has a reflection. They're like mirrors."
+
+*Level 4: "Pairs Vanish"*
+- Start: =() <()>=
+- Goal: void
+- Actions: Only Cancel
+- Tutorial:
+  - "A form and its reflection are opposites."
+  - "Select both."
+  - "Press Cancel."
+  - "They annihilate. This is Reflection."
+
+*** Ten (転) - Twist: Combining Laws
+
+*Level 5: "The Void Equivalence"*
+- Start: =([()]) ([()])= (looks complex!)
+- Goal: void
+- Tutorial:
+  - "This looks complicated, but..."
+  - "Each Round contains Frame-Round, which is ([])."
+  - "Clarify one: ([()]) → () → void? No, it's just ()."
+  - "Wait - both Clarify to (). Now you have () ()."
+  - "Create reflections: () <()> () <()>"
+  - "Cancel each pair."
+  - "Complexity collapses. Many paths to void."
+
+*Level 5.5: "Frames Are Fungible"*
+- Start: =() () [] []=
+- Goal: =([() ()]) [(() ())]= (or the reverse)
+- Actions: Enfold Frame, Enfold Mark
+- Tutorial:
+  - "Select the two Rounds."
+  - "Enfold Frame: =([() ()])="
+  - "Or Enfold Mark: =[(() ())]="
+  - "Different boundaries, same meaning - until you add more."
+  - "Frames organize. Marks organize differently."
+
+*Level 6: "Double Arrangement"*
+- Start: =([() ()]) ([() ()])=
+- Goal: =([ ([]) ([]) ])=
+- Actions: Clarify, Collect, Enfold
+- Tutorial:
+  - "Two identical forms: =([() ()])= each."
+  - "Collect them: =([ ([() ()]) ([() ()]) ])="
+  - "Hmm, that's not the goal..."
+  - "Wait - the goal has =([])= inside. Where does that come from?"
+  - "Clarify the inner pairs! =() ()= → =([])= when enfolded."
+  - "This is composition: operations build on operations."
+
+*** Ketsu (結) - Conclusion: The System Reveals Itself
+
+*Level 7: "Context Is Shared"*
+- Start: =A ([B C])=
+- Goal: =([A B]) ([A C])=
+- Actions: Disperse only
+- Tutorial:
+  - "Now we introduce atoms: A, B, C."
+  - "The Round contains A and a Frame with B and C."
+  - "Disperse: A gets copied to each Frame sibling."
+  - "Context flows into Frames. This is how distribution works."
+
+*Level 7.5: "Collecting Context"*
+- Start: =([A B]) ([A C])=
+- Goal: =A ([B C])=
+- Actions: Collect only
+- Tutorial:
+  - "Reverse the last level."
+  - "Notice: Both Rounds share A."
+  - "Collect pulls shared context out."
+  - "Distribution and collection are inverses."
+
+*Level 8: "The First Real Puzzle"*
+- Start: =(A []) (A [()])=
+- Goal: =(A [()])=
+- Actions: All enabled
+- Tutorial (hint only):
+  - "Hint: =void + A = A="
+  - "One of these Rounds has an empty Frame..."
+  - "What happens to empty things?"
+
+** Why This Works
+
+*** Cognitive Load Management
+- *Levels 0-1*: One action at a time
+- *Levels 2-4*: Introduce each axiom separately
+- *Levels 5-6*: Combine two operations
+- *Levels 7+*: Full system available
+
+*** Discovery Over Instruction
+- *Level 0*: Players create forms physically (enfold only)
+- *Level 1*: Players destroy forms (clarify only)
+- *Level 5*: Players discover void-equivalence themselves
+- *Level 8*: First "real" puzzle with minimal hint
+
+*** Narrative Arc
+1. *Ki*: "What are these containers?"
+2. *Shō*: "Oh, I can transform them with these three laws."
+3. *Ten*: "Wait, these laws combine in unexpected ways!"
+4. *Ketsu*: "I'm starting to see patterns... this is math, but different."
+
+** Implementation Notes
+
+*** Tutorial Text Principles
+- *Show, don't tell*: "Press this" > "This operation does X because Y"
+- *One sentence at a time*: Each popup = one action or concept
+- *Progressive disclosure*: Only explain when relevant
+- *Celebrate discovery*: "Wait..." / "Huh!" moments are good
+
+*** Action Restrictions
+- *Allowlist, not blocklist*: Specify =allowedActions: ['clarify']= not =blockedActions: [...]=
+- *Teach by constraint*: Restricting actions forces exploration of the one allowed action
+- *Gradual unlock*: Each level introduces 1 new action until all are available
+
+*** Visual Design
+- *Highlight changes*: Animate the transformation, don't just snap
+- *Show causality*: "This became that because..."
+- *Color code operations*: Each axiom gets a color family
+  - Inversion: Purple (annihilation)
+  - Arrangement: Green (movement)
+  - Reflection: Orange (creation)
+
+** Next Steps
+
+1. *Implement Level 0-8 with this structure*
+2. *Playtest specifically for "aha moments"*
+   - Does Level 5 feel like a revelation?
+   - Does Level 7 make atoms click?
+3. *Build Level 9-15* following the same Ki-Sho-Ten-Ketsu at a higher level:
+   - Ki: Here's arithmetic (2+2, 3+1)
+   - Shō: Here's how to manipulate it
+   - Ten: Wait, this is more than arithmetic...
+   - Ketsu: I can solve any problem
+
+Should I detail out Levels 9-15 now, or do you want to iterate on 0-8 first?
+
+
 * Tutorial Framework
 Phase 1. sounds all good. Can you provide info to delegate that out?
 

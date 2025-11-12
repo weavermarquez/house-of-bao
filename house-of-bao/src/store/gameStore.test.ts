@@ -23,11 +23,16 @@ function resetStore(): void {
     status: "idle",
     selectedNodeIds: [],
     history: { past: [], future: [] },
+    sandboxEnabled: false,
   });
+  useGameStore.persist?.clearStorage?.();
 }
 
 describe("game store operations", () => {
   beforeEach(() => {
+    if (typeof localStorage !== "undefined" && typeof localStorage.clear === "function") {
+      localStorage.clear();
+    }
     resetStore();
   });
 
@@ -105,6 +110,194 @@ describe("game store operations", () => {
     const innerSquare = [...wrapper.children][0];
     expect(innerSquare.boundary).toBe("square");
     expect(innerSquare.children.size).toBe(2);
+  });
+
+  it("addBoundary inserts an empty round at the root when sandbox is enabled", () => {
+    const level: LevelDefinition = {
+      id: "test-add-root",
+      name: "Add Root Node",
+      start: [],
+      goal: [],
+      difficulty: 1,
+    };
+
+    loadTestLevel(level);
+    const store = useGameStore.getState();
+    store.setSandboxEnabled(true);
+
+    store.applyOperation({
+      type: "addBoundary",
+      targetIds: [],
+      boundary: "round",
+      parentId: null,
+    });
+
+    const { currentForms } = useGameStore.getState();
+    expect(canonicalSignatureForest(currentForms)).toEqual(["round:[]"]);
+  });
+
+  it("addBoundary wraps selected siblings with a new boundary", () => {
+    const start = [round(), square()];
+    const level: LevelDefinition = {
+      id: "test-add-wrap",
+      name: "Add Wrap",
+      start,
+      goal: [],
+      difficulty: 1,
+    };
+
+    loadTestLevel(level);
+    const store = useGameStore.getState();
+    const first = store.currentForms[0];
+    const second = store.currentForms[1];
+    store.setSandboxEnabled(true);
+
+    store.applyOperation({
+      type: "addBoundary",
+      targetIds: [first.id, second.id],
+      boundary: "square",
+    });
+
+    const after = useGameStore.getState().currentForms;
+    expect(after).toHaveLength(1);
+    expect(canonicalSignatureForest(after)).toEqual([
+      "square:[round:[],square:[]]",
+    ]);
+  });
+
+  it("addBoundary respects the selected parent when inserting new nodes", () => {
+    const parent = round();
+    const level: LevelDefinition = {
+      id: "test-add-parent",
+      name: "Add Parent Node",
+      start: [parent],
+      goal: [],
+      difficulty: 1,
+    };
+
+    loadTestLevel(level);
+    const store = useGameStore.getState();
+    const parentId = store.currentForms[0].id;
+    store.setSandboxEnabled(true);
+
+    store.applyOperation({
+      type: "addBoundary",
+      targetIds: [],
+      boundary: "angle",
+      parentId,
+    });
+
+    const updatedParent = useGameStore.getState().currentForms[0];
+    const childSignatures = canonicalSignatureForest(updatedParent.children);
+    expect(childSignatures).toContain("angle:[]");
+  });
+
+  it("ignores addBoundary requests while sandbox mode is disabled", () => {
+    const level: LevelDefinition = {
+      id: "test-add-disabled",
+      name: "Add Disabled",
+      start: [],
+      goal: [],
+      difficulty: 1,
+    };
+
+    loadTestLevel(level);
+    const before = useGameStore.getState().currentForms;
+
+    useGameStore
+      .getState()
+      .applyOperation({ type: "addBoundary", targetIds: [], boundary: "round" });
+
+    const after = useGameStore.getState().currentForms;
+    expect(canonicalSignatureForest(after)).toEqual(
+      canonicalSignatureForest(before),
+    );
+  });
+
+  it("addVariable inserts a labeled atom at the root when sandbox is enabled", () => {
+    const level: LevelDefinition = {
+      id: "test-var-root",
+      name: "Add Variable Root",
+      start: [],
+      goal: [],
+      difficulty: 1,
+    };
+
+    loadTestLevel(level);
+    const store = useGameStore.getState();
+    store.setSandboxEnabled(true);
+
+    store.applyOperation({ type: "addVariable", label: "foo" });
+
+    const added = useGameStore.getState().currentForms;
+    expect(added).toHaveLength(1);
+    const [variable] = added;
+    expect(variable.boundary).toBe("atom");
+    expect(variable.label).toBe("foo");
+  });
+
+  it("addVariable inserts into the selected parent when provided", () => {
+    const container = round();
+    const level: LevelDefinition = {
+      id: "test-var-parent",
+      name: "Add Variable Parent",
+      start: [container],
+      goal: [],
+      difficulty: 1,
+    };
+
+    loadTestLevel(level);
+    const store = useGameStore.getState();
+    const parentId = store.currentForms[0].id;
+    store.setSandboxEnabled(true);
+
+    store.applyOperation({ type: "addVariable", label: "bar", parentId });
+
+    const updatedParent = useGameStore.getState().currentForms[0];
+    const childAtoms = [...updatedParent.children].filter(
+      (child) => child.boundary === "atom",
+    );
+    expect(childAtoms).toHaveLength(1);
+    expect(childAtoms[0]?.label).toBe("bar");
+  });
+
+  it("trims variable labels before insertion", () => {
+    const level: LevelDefinition = {
+      id: "test-var-trim",
+      name: "Trim Variable Label",
+      start: [],
+      goal: [],
+      difficulty: 1,
+    };
+
+    loadTestLevel(level);
+    const store = useGameStore.getState();
+    store.setSandboxEnabled(true);
+
+    store.applyOperation({ type: "addVariable", label: "  Zap  " });
+
+    const [variable] = useGameStore.getState().currentForms;
+    expect(variable?.label).toBe("Zap");
+  });
+
+  it("ignores addVariable requests while sandbox mode is disabled", () => {
+    const level: LevelDefinition = {
+      id: "test-var-disabled",
+      name: "Add Variable Disabled",
+      start: [],
+      goal: [],
+      difficulty: 1,
+    };
+
+    loadTestLevel(level);
+    const before = useGameStore.getState().currentForms;
+
+    useGameStore.getState().applyOperation({ type: "addVariable", label: "q" });
+
+    const after = useGameStore.getState().currentForms;
+    expect(canonicalSignatureForest(after)).toEqual(
+      canonicalSignatureForest(before),
+    );
   });
 
   it("disperse splits selection of square contents", () => {
