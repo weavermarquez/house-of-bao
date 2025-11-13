@@ -10,17 +10,32 @@ Let's eradicate mathphobia together.
 
 * What is House of Bao?
 
-The House of Bao is a puzzle game where you play with boundaries: numbers look like what they mean!
+The House of Bao is a puzzle game where you play with containers: numbers that look like what they mean!
 
 Experience the history of mathematics with an innovative and intuitive system with only three simple rules, designed for human understanding.
 
 Using three simple rules, players learn and understand mathematics at its finest. Building the experience to seamlessly tackle any math problem in day to day life.
 
+* Quick Start
+
+#+begin_src bash
+npm install
+npm run dev
+#+end_src
+
+Open http://localhost:5173 to play locally.
+
+Available commands:
+- ~npm run dev~ - Start development server
+- ~npm run build~ - Build for production
+- ~npm run test~ - Run tests
+- ~npm run preview~ - Preview production build
+
 * Credits
 
 Based on the pioneering work of George Spencer-Brown, William Bricken, and Jeffrey James.
 
-Maintained by [[https://github.com/kwal-0][Valerie Kim]]. 
+Maintained by [[https://github.com/weavermarquez][Valerie Kim]]. 
 
 links:
 - [[https://lof50.com][George Spencer Brown Society]]
