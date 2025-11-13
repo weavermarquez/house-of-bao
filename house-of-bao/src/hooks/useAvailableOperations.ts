@@ -40,7 +40,8 @@ const FALLBACK_REASONS = {
   enfoldMark: "Select sibling forms or choose a parent to add a mark.",
   disperse: "Select a square (or its contents) within a single frame to disperse.",
   collect: "Select round frames that share the same context to collect.",
-  cancel: "Select a form and its reflection (or an empty angle) to cancel.",
+  cancel:
+    "Select a reflection angle (or its contents) alongside its matching form to cancel.",
   create: "Choose a parent or template to create a reflection pair.",
   addRound: "Enable sandbox mode and select siblings to wrap with a round boundary.",
   addSquare: "Enable sandbox mode and select siblings to wrap with a square boundary.",
@@ -315,9 +316,11 @@ export function evaluateOperationAvailability(
 
   // Cancel
   if (!guardOperation("cancel") && !guardAxiom("cancel", "reflection")) {
-    if (
-      previewChange({ type: "cancel", targetIds: context.selectedNodeIds })
-    ) {
+    const cancelOperation = buildCancelOperation(
+      indexById,
+      context.selectedNodeIds,
+    );
+    if (cancelOperation && previewChange(cancelOperation)) {
       availability.cancel = { available: true };
     }
   }
@@ -480,6 +483,59 @@ export function createDisperseOperationForSelection(
 ): GameOperation | null {
   const index = indexForms(forest);
   return buildDisperseOperation(index, selectedNodeIds, parentIdForOps);
+}
+
+function normalizeCancelTargets(
+  index: Map<string, IndexedEntry>,
+  selectedNodeIds: string[],
+): string[] {
+  const normalized: string[] = [];
+
+  selectedNodeIds.forEach((id) => {
+    const entry = index.get(id);
+    if (!entry) {
+      return;
+    }
+
+    if (entry.node.boundary === "angle") {
+      normalized.push(entry.node.id);
+      return;
+    }
+
+    if (entry.parentId) {
+      const parentEntry = index.get(entry.parentId);
+      if (parentEntry?.node.boundary === "angle") {
+        normalized.push(parentEntry.node.id);
+        return;
+      }
+    }
+
+    normalized.push(entry.node.id);
+  });
+
+  return [...new Set(normalized)];
+}
+
+function buildCancelOperation(
+  index: Map<string, IndexedEntry>,
+  selectedNodeIds: string[],
+): GameOperation | null {
+  const targetIds = normalizeCancelTargets(index, selectedNodeIds);
+  if (targetIds.length === 0) {
+    return null;
+  }
+  return {
+    type: "cancel",
+    targetIds,
+  };
+}
+
+export function createCancelOperationForSelection(
+  forest: Form[],
+  selectedNodeIds: string[],
+): GameOperation | null {
+  const index = indexForms(forest);
+  return buildCancelOperation(index, selectedNodeIds);
 }
 
 function createBaseAvailabilityMap(

@@ -17,6 +17,7 @@ import {
 import {
   useAvailableOperations,
   createDisperseOperationForSelection,
+  createCancelOperationForSelection,
 } from "../hooks/useAvailableOperations";
 import type { OperationKey } from "../operations/types";
 import { ACTION_METADATA } from "./ActionGlyphs";
@@ -306,6 +307,10 @@ export function AxiomActionPanel({
     );
   }, [currentForms, selectedNodeIds, parentIdForOps]);
 
+  const buildCancelOperation = useCallback(() => {
+    return createCancelOperationForSelection(currentForms, selectedNodeIds);
+  }, [currentForms, selectedNodeIds]);
+
   return (
     <section className="info-card axiom-actions-panel">
       <div className="axiom-groups">
@@ -482,19 +487,17 @@ export function AxiomActionPanel({
             <div className="axiom-group-actions">
               {renderActionControl(
                 "cancel",
-                () => ({
-                  type: "cancel",
-                  targetIds: selectedNodeIds,
-                }),
+                buildCancelOperation,
                 {
                   onClick: () => {
                     if (!operationAvailability.cancel.available) {
                       return;
                     }
-                    applyOperation({
-                      type: "cancel",
-                      targetIds: selectedNodeIds,
-                    });
+                    const operation = buildCancelOperation();
+                    if (!operation) {
+                      return;
+                    }
+                    applyOperation(operation);
                     lockPreviewFor("cancel");
                   },
                   disabled: !operationAvailability.cancel.available,

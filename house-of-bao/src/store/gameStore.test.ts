@@ -9,6 +9,7 @@ import {
   create as reflectionCreate,
 } from "../logic/reflection";
 import { type LevelDefinition } from "../levels/types";
+import { createCancelOperationForSelection } from "../hooks/useAvailableOperations";
 
 function loadTestLevel(level: LevelDefinition): void {
   const { loadLevel } = useGameStore.getState();
@@ -617,6 +618,44 @@ describe("game store operations", () => {
     expect(canonicalSignatureForest(after)).toEqual(
       canonicalSignatureForest(expectedForest),
     );
+  });
+
+  it("cancel accepts selecting content inside the angle reflection", () => {
+    const base = atom("z");
+    const reflection = angle(atom("z"));
+    const level: LevelDefinition = {
+      id: "test-cancel-angle-content",
+      name: "Cancel Angle Content",
+      start: [base, reflection],
+      goal: [],
+      difficulty: 1,
+      allowedAxioms: ["reflection"],
+    };
+
+    loadTestLevel(level);
+
+    const store = useGameStore.getState();
+    const angleNode = store.currentForms.find(
+      (form) => form.boundary === "angle",
+    );
+    if (!angleNode) {
+      throw new Error("Angle node not found");
+    }
+    const innerChild = [...angleNode.children][0];
+    if (!innerChild) {
+      throw new Error("Angle inner child not found");
+    }
+
+    const operation = createCancelOperationForSelection(
+      useGameStore.getState().currentForms,
+      [innerChild.id],
+    );
+    expect(operation).not.toBeNull();
+
+    store.applyOperation(operation!);
+
+    const { currentForms: after } = useGameStore.getState();
+    expect(after).toHaveLength(0);
   });
 
   it("cancel preserves angle context when reflection holds additional children", () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { atom, round, square } from "../logic";
+import { atom, round, square, angle } from "../logic";
 import { evaluateOperationAvailability } from "./useAvailableOperations";
 
 type EvaluationInput = Parameters<typeof evaluateOperationAvailability>[0];
@@ -114,6 +114,20 @@ describe("useAvailableOperations/evaluateOperationAvailability", () => {
       "This level locks Clarify to focus on other actions.",
     );
     expect(availability.enfoldFrame.reason ?? "").not.toContain("locks");
+  });
+
+  it("marks cancel as available when selecting content inside an angle", () => {
+    const base = atom("z");
+    const reflection = angle(atom("z"));
+    const inner = [...reflection.children][0]!;
+
+    const availability = evaluateOperationAvailability({
+      ...baseContext(),
+      currentForms: [base, reflection],
+      selectedNodeIds: [inner.id],
+    });
+
+    expect(availability.cancel.available).toBe(true);
   });
 
   it("disables sandbox actions until sandbox mode is enabled", () => {
