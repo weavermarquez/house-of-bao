@@ -4,25 +4,15 @@ A puzzle game that teaches mathematics through boundary manipulation.
 
 **Play now**: [house.valeriekim.ca](https://house.valeriekim.ca)
 
-## Quick Start
-
-```bash
-npm install
-npm run dev
-```
-
-Open http://localhost:5173 to play locally.
-
 ## Documentation
 
-See the main [README.org](../README.org) for full documentation, game mechanics, and architecture details.
+See the main [README.org](../README.org) in the repository root for:
+- Quick start and installation
+- How the game works
+- Game mechanics and theory
+- Development information
 
-## Available Commands
-
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run test` - Run tests
-- `npm run preview` - Preview production build
+For technical details, see [ARCHITECTURE.org](../ARCHITECTURE.org).
 
 ## License
 
