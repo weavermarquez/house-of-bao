@@ -18,6 +18,7 @@ import {
   useAvailableOperations,
   createDisperseOperationForSelection,
   createCancelOperationForSelection,
+  createCollectOperationForSelection,
 } from "../hooks/useAvailableOperations";
 import type { OperationKey } from "../operations/types";
 import { ACTION_METADATA } from "./ActionGlyphs";
@@ -311,6 +312,10 @@ export function AxiomActionPanel({
     return createCancelOperationForSelection(currentForms, selectedNodeIds);
   }, [currentForms, selectedNodeIds]);
 
+  const buildCollectOperation = useCallback(() => {
+    return createCollectOperationForSelection(currentForms, selectedNodeIds);
+  }, [currentForms, selectedNodeIds]);
+
   return (
     <section className="info-card axiom-actions-panel">
       <div className="axiom-groups">
@@ -449,19 +454,17 @@ export function AxiomActionPanel({
               )}
               {renderActionControl(
                 "collect",
-                () => ({
-                  type: "collect",
-                  targetIds: selectedNodeIds,
-                }),
+                buildCollectOperation,
                 {
                   onClick: () => {
                     if (!operationAvailability.collect.available) {
                       return;
                     }
-                    applyOperation({
-                      type: "collect",
-                      targetIds: selectedNodeIds,
-                    });
+                    const operation = buildCollectOperation();
+                    if (!operation) {
+                      return;
+                    }
+                    applyOperation(operation);
                     lockPreviewFor("collect");
                   },
                   disabled: !operationAvailability.collect.available,

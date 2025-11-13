@@ -9,7 +9,10 @@ import {
   create as reflectionCreate,
 } from "../logic/reflection";
 import { type LevelDefinition } from "../levels/types";
-import { createCancelOperationForSelection } from "../hooks/useAvailableOperations";
+import {
+  createCancelOperationForSelection,
+  createCollectOperationForSelection,
+} from "../hooks/useAvailableOperations";
 
 function loadTestLevel(level: LevelDefinition): void {
   const { loadLevel } = useGameStore.getState();
@@ -573,6 +576,53 @@ describe("game store operations", () => {
           labels.size === 2 && labels.has("payloadA") && labels.has("payloadB"),
       ),
     ).toBe(true);
+  });
+
+  it("collect accepts square-only selections by promoting parent frames", () => {
+    const frameA = round(square(atom("ctx")), square(atom("payloadA")));
+    const frameB = round(square(atom("ctx")), square(atom("payloadB")));
+    const level: LevelDefinition = {
+      id: "test-collect-squares-only",
+      name: "Collect Squares Only",
+      start: [frameA, frameB],
+      goal: [],
+      difficulty: 1,
+      allowedAxioms: ["arrangement"],
+    };
+
+    loadTestLevel(level);
+
+    const store = useGameStore.getState();
+    const [first, second] = store.currentForms;
+    const squareA = [...first.children].find(
+      (child) =>
+        child.boundary === "square" && [...child.children][0]?.label === "payloadA",
+    );
+    const squareB = [...second.children].find(
+      (child) =>
+        child.boundary === "square" && [...child.children][0]?.label === "payloadB",
+    );
+    if (!squareA || !squareB) {
+      throw new Error("Failed to find payload squares");
+    }
+
+    const expected = arrangementCollect([
+      deepClone(first),
+      deepClone(second),
+    ]);
+
+    const operation = createCollectOperationForSelection(
+      useGameStore.getState().currentForms,
+      [squareA.id, squareB.id],
+    );
+    expect(operation).not.toBeNull();
+
+    store.applyOperation(operation!);
+
+    const { currentForms: after } = useGameStore.getState();
+    expect(canonicalSignatureForest(after)).toEqual(
+      canonicalSignatureForest(expected),
+    );
   });
 
   it("cancel matches reflection cancel behaviour for a base-reflection pair", () => {

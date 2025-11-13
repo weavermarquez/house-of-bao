@@ -39,7 +39,8 @@ const FALLBACK_REASONS = {
   enfoldFrame: "Select sibling forms or choose a parent to add a frame.",
   enfoldMark: "Select sibling forms or choose a parent to add a mark.",
   disperse: "Select a square (or its contents) within a single frame to disperse.",
-  collect: "Select round frames that share the same context to collect.",
+  collect:
+    "Select frames (or their squares) that share the same context to collect.",
   cancel:
     "Select a reflection angle (or its contents) alongside its matching form to cancel.",
   create: "Choose a parent or template to create a reflection pair.",
@@ -297,19 +298,16 @@ export function evaluateOperationAvailability(
 
   // Collect
   if (!guardOperation("collect") && !guardAxiom("collect", "arrangement")) {
-    const selectionHasFrames = context.selectedNodeIds.some((id) => {
-      const entry = indexById.get(id);
-      return entry?.node.boundary === "round";
-    });
-
-    if (!selectionHasFrames) {
+    const collectOperation = buildCollectOperation(
+      indexById,
+      context.selectedNodeIds,
+    );
+    if (!collectOperation) {
       availability.collect = {
         available: false,
         reason: FALLBACK_REASONS.collect,
       };
-    } else if (
-      previewChange({ type: "collect", targetIds: context.selectedNodeIds })
-    ) {
+    } else if (previewChange(collectOperation)) {
       availability.collect = { available: true };
     }
   }
@@ -536,6 +534,68 @@ export function createCancelOperationForSelection(
 ): GameOperation | null {
   const index = indexForms(forest);
   return buildCancelOperation(index, selectedNodeIds);
+}
+
+function buildCollectOperation(
+  index: Map<string, IndexedEntry>,
+  selectedNodeIds: string[],
+): GameOperation | null {
+  const uniqueIds = [...new Set(selectedNodeIds)];
+  if (uniqueIds.length === 0) {
+    return null;
+  }
+
+  const entries = uniqueIds.map((id) => index.get(id));
+  if (entries.some((entry) => entry === undefined)) {
+    return null;
+  }
+
+  const frameIds: string[] = [];
+  const seenFrames = new Set<string>();
+  const squareIds: string[] = [];
+
+  uniqueIds.forEach((id, indexPosition) => {
+    const entry = entries[indexPosition];
+    if (!entry) {
+      return;
+    }
+    if (entry.node.boundary === "round") {
+      if (!seenFrames.has(entry.node.id)) {
+        seenFrames.add(entry.node.id);
+        frameIds.push(entry.node.id);
+      }
+      return;
+    }
+    if (entry.node.boundary === "square") {
+      squareIds.push(entry.node.id);
+      if (entry.parentId) {
+        const parentEntry = index.get(entry.parentId);
+        if (parentEntry?.node.boundary === "round") {
+          if (!seenFrames.has(parentEntry.node.id)) {
+            seenFrames.add(parentEntry.node.id);
+            frameIds.push(parentEntry.node.id);
+          }
+        }
+      }
+    }
+  });
+
+  if (frameIds.length === 0) {
+    return null;
+  }
+
+  return {
+    type: "collect",
+    targetIds: [...frameIds, ...squareIds],
+  };
+}
+
+export function createCollectOperationForSelection(
+  forest: Form[],
+  selectedNodeIds: string[],
+): GameOperation | null {
+  const index = indexForms(forest);
+  return buildCollectOperation(index, selectedNodeIds);
 }
 
 function createBaseAvailabilityMap(

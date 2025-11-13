@@ -67,19 +67,40 @@ describe("useAvailableOperations/evaluateOperationAvailability", () => {
     expect(availability.disperse.available).toBe(true);
   });
 
-  it("explains when collect lacks a frame selection", () => {
-    const frame = round(square(atom("left")));
-    const squareChild = [...frame.children][0]!;
+  it("marks collect as available when selecting squares from frames", () => {
+    const makeFrame = (label: string) =>
+      round(square(atom("ctx"), atom(label)));
+    const frameA = makeFrame("a");
+    const frameB = makeFrame("b");
+    const squareA = [...frameA.children].find(
+      (child) => child.boundary === "square" && child.children.size === 2,
+    )!;
+    const squareB = [...frameB.children].find(
+      (child) => child.boundary === "square" && child.children.size === 2,
+    )!;
+
+    const availability = evaluateOperationAvailability({
+      ...baseContext(),
+      currentForms: [frameA, frameB],
+      selectedNodeIds: [squareA.id, squareB.id],
+    });
+
+    expect(availability.collect.available).toBe(true);
+  });
+
+  it("explains collect fallback when no frames or squares are selected", () => {
+    const frame = round(atom("solo"));
+    const childAtom = [...frame.children][0]!;
 
     const availability = evaluateOperationAvailability({
       ...baseContext(),
       currentForms: [frame],
-      selectedNodeIds: [squareChild.id],
+      selectedNodeIds: [childAtom.id],
     });
 
     expect(availability.collect.available).toBe(false);
     expect(availability.collect.reason).toBe(
-      "Select round frames that share the same context to collect.",
+      "Select frames (or their squares) that share the same context to collect.",
     );
   });
 
