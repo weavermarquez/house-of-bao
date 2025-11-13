@@ -38,7 +38,7 @@ const FALLBACK_REASONS = {
   clarify: "Select a round-square pair to clarify.",
   enfoldFrame: "Select sibling forms or choose a parent to add a frame.",
   enfoldMark: "Select sibling forms or choose a parent to add a mark.",
-  disperse: "Select contents inside a single square to disperse.",
+  disperse: "Select a square (or its contents) within a single frame to disperse.",
   collect: "Select round frames that share the same context to collect.",
   cancel: "Select a form and its reflection (or an empty angle) to cancel.",
   create: "Choose a parent or template to create a reflection pair.",
@@ -284,13 +284,12 @@ export function evaluateOperationAvailability(
     !guardAxiom("disperse", "arrangement") &&
     !guardParent("disperse")
   ) {
-    if (
-      previewChange({
-        type: "disperse",
-        contentIds: context.selectedNodeIds,
-        frameId: parentIdForOps ?? undefined,
-      })
-    ) {
+    const disperseOperation = buildDisperseOperation(
+      indexById,
+      context.selectedNodeIds,
+      parentIdForOps,
+    );
+    if (disperseOperation && previewChange(disperseOperation)) {
       availability.disperse = { available: true };
     }
   }
@@ -429,6 +428,58 @@ function resolveClarifyTarget(
     return parentEntry;
   }
   return null;
+}
+
+function buildDisperseOperation(
+  index: Map<string, IndexedEntry>,
+  selectedNodeIds: string[],
+  parentIdForOps: string | null,
+): GameOperation | null {
+  const uniqueIds = [...new Set(selectedNodeIds)];
+  if (uniqueIds.length === 0) {
+    return null;
+  }
+
+  const entries = uniqueIds.map((id) => index.get(id));
+  if (entries.some((entry) => entry === undefined)) {
+    return null;
+  }
+
+  const squareEntry = entries.find(
+    (entry): entry is IndexedEntry =>
+      entry !== undefined && entry.node.boundary === "square",
+  );
+
+  if (squareEntry && uniqueIds.length === 1) {
+    if (squareEntry.node.children.size === 0) {
+      return null;
+    }
+    if (!squareEntry.parentId) {
+      return null;
+    }
+    const contentIds = [...squareEntry.node.children].map((child) => child.id);
+    return {
+      type: "disperse",
+      contentIds,
+      squareId: squareEntry.node.id,
+      frameId: squareEntry.parentId,
+    };
+  }
+
+  return {
+    type: "disperse",
+    contentIds: uniqueIds,
+    frameId: parentIdForOps ?? undefined,
+  };
+}
+
+export function createDisperseOperationForSelection(
+  forest: Form[],
+  selectedNodeIds: string[],
+  parentIdForOps: string | null,
+): GameOperation | null {
+  const index = indexForms(forest);
+  return buildDisperseOperation(index, selectedNodeIds, parentIdForOps);
 }
 
 function createBaseAvailabilityMap(

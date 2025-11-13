@@ -332,6 +332,40 @@ describe("game store operations", () => {
     });
   });
 
+  it("disperse accepts square selection to disperse all contents", () => {
+    const frame = round(square(round(), round()));
+
+    const level: LevelDefinition = {
+      id: "test-disperse-square",
+      name: "Disperse Square Selection",
+      start: [frame],
+      goal: [],
+      difficulty: 1,
+      allowedAxioms: ["arrangement"],
+    };
+
+    loadTestLevel(level);
+
+    const store = useGameStore.getState();
+    const frameNode = store.currentForms[0];
+    const squareNode = [...frameNode.children][0];
+    const contentIds = [...squareNode.children].map((child) => child.id);
+
+    store.applyOperation({
+      type: "disperse",
+      contentIds,
+      squareId: squareNode.id,
+      frameId: frameNode.id,
+    });
+
+    const { currentForms: dispersed } = useGameStore.getState();
+    expect(dispersed).toHaveLength(2);
+    const signatures = canonicalSignatureForest(dispersed);
+    signatures.forEach((signature) => {
+      expect(signature).toBe("round:[square:[round:[]]]");
+    });
+  });
+
   it("disperse distributes content from specified square in frame", () => {
     const frame = round(
       square(atom("a"), atom("b")),

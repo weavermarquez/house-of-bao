@@ -54,6 +54,19 @@ describe("useAvailableOperations/evaluateOperationAvailability", () => {
     expect(availability.clarify.available).toBe(true);
   });
 
+  it("marks disperse as available when the square boundary is selected", () => {
+    const squareNode = square(round(atom("a")), round(atom("b")));
+    const frame = round(squareNode);
+
+    const availability = evaluateOperationAvailability({
+      ...baseContext(),
+      currentForms: [frame],
+      selectedNodeIds: [squareNode.id],
+    });
+
+    expect(availability.disperse.available).toBe(true);
+  });
+
   it("explains when collect lacks a frame selection", () => {
     const frame = round(square(atom("left")));
     const squareChild = [...frame.children][0]!;

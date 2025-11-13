@@ -14,7 +14,10 @@ import {
   useGameStore,
   type GameOperation,
 } from "../store/gameStore";
-import { useAvailableOperations } from "../hooks/useAvailableOperations";
+import {
+  useAvailableOperations,
+  createDisperseOperationForSelection,
+} from "../hooks/useAvailableOperations";
 import type { OperationKey } from "../operations/types";
 import { ACTION_METADATA } from "./ActionGlyphs";
 
@@ -295,6 +298,14 @@ export function AxiomActionPanel({
     }
   };
 
+  const buildDisperseOperation = useCallback(() => {
+    return createDisperseOperationForSelection(
+      currentForms,
+      selectedNodeIds,
+      parentIdForOps,
+    );
+  }, [currentForms, selectedNodeIds, parentIdForOps]);
+
   return (
     <section className="info-card axiom-actions-panel">
       <div className="axiom-groups">
@@ -411,21 +422,17 @@ export function AxiomActionPanel({
             <div className="axiom-group-actions">
               {renderActionControl(
                 "disperse",
-                () => ({
-                  type: "disperse",
-                  contentIds: selectedNodeIds,
-                  frameId: parentIdForOps ?? undefined,
-                }),
+                buildDisperseOperation,
                 {
                   onClick: () => {
                     if (!operationAvailability.disperse.available) {
                       return;
                     }
-                    applyOperation({
-                      type: "disperse",
-                      contentIds: selectedNodeIds,
-                      frameId: parentIdForOps ?? undefined,
-                    });
+                    const operation = buildDisperseOperation();
+                    if (!operation) {
+                      return;
+                    }
+                    applyOperation(operation);
                     lockPreviewFor("disperse");
                   },
                   disabled: !operationAvailability.disperse.available,
