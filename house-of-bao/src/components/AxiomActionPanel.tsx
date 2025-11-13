@@ -14,7 +14,12 @@ import {
   useGameStore,
   type GameOperation,
 } from "../store/gameStore";
-import { useAvailableOperations } from "../hooks/useAvailableOperations";
+import {
+  useAvailableOperations,
+  createDisperseOperationForSelection,
+  createCancelOperationForSelection,
+  createCollectOperationForSelection,
+} from "../hooks/useAvailableOperations";
 import type { OperationKey } from "../operations/types";
 import { ACTION_METADATA } from "./ActionGlyphs";
 
@@ -295,6 +300,22 @@ export function AxiomActionPanel({
     }
   };
 
+  const buildDisperseOperation = useCallback(() => {
+    return createDisperseOperationForSelection(
+      currentForms,
+      selectedNodeIds,
+      parentIdForOps,
+    );
+  }, [currentForms, selectedNodeIds, parentIdForOps]);
+
+  const buildCancelOperation = useCallback(() => {
+    return createCancelOperationForSelection(currentForms, selectedNodeIds);
+  }, [currentForms, selectedNodeIds]);
+
+  const buildCollectOperation = useCallback(() => {
+    return createCollectOperationForSelection(currentForms, selectedNodeIds);
+  }, [currentForms, selectedNodeIds]);
+
   return (
     <section className="info-card axiom-actions-panel">
       <div className="axiom-groups">
@@ -411,21 +432,17 @@ export function AxiomActionPanel({
             <div className="axiom-group-actions">
               {renderActionControl(
                 "disperse",
-                () => ({
-                  type: "disperse",
-                  contentIds: selectedNodeIds,
-                  frameId: parentIdForOps ?? undefined,
-                }),
+                buildDisperseOperation,
                 {
                   onClick: () => {
                     if (!operationAvailability.disperse.available) {
                       return;
                     }
-                    applyOperation({
-                      type: "disperse",
-                      contentIds: selectedNodeIds,
-                      frameId: parentIdForOps ?? undefined,
-                    });
+                    const operation = buildDisperseOperation();
+                    if (!operation) {
+                      return;
+                    }
+                    applyOperation(operation);
                     lockPreviewFor("disperse");
                   },
                   disabled: !operationAvailability.disperse.available,
@@ -437,19 +454,17 @@ export function AxiomActionPanel({
               )}
               {renderActionControl(
                 "collect",
-                () => ({
-                  type: "collect",
-                  targetIds: selectedNodeIds,
-                }),
+                buildCollectOperation,
                 {
                   onClick: () => {
                     if (!operationAvailability.collect.available) {
                       return;
                     }
-                    applyOperation({
-                      type: "collect",
-                      targetIds: selectedNodeIds,
-                    });
+                    const operation = buildCollectOperation();
+                    if (!operation) {
+                      return;
+                    }
+                    applyOperation(operation);
                     lockPreviewFor("collect");
                   },
                   disabled: !operationAvailability.collect.available,
@@ -475,19 +490,17 @@ export function AxiomActionPanel({
             <div className="axiom-group-actions">
               {renderActionControl(
                 "cancel",
-                () => ({
-                  type: "cancel",
-                  targetIds: selectedNodeIds,
-                }),
+                buildCancelOperation,
                 {
                   onClick: () => {
                     if (!operationAvailability.cancel.available) {
                       return;
                     }
-                    applyOperation({
-                      type: "cancel",
-                      targetIds: selectedNodeIds,
-                    });
+                    const operation = buildCancelOperation();
+                    if (!operation) {
+                      return;
+                    }
+                    applyOperation(operation);
                     lockPreviewFor("cancel");
                   },
                   disabled: !operationAvailability.cancel.available,

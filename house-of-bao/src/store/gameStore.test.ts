@@ -9,6 +9,10 @@ import {
   create as reflectionCreate,
 } from "../logic/reflection";
 import { type LevelDefinition } from "../levels/types";
+import {
+  createCancelOperationForSelection,
+  createCollectOperationForSelection,
+} from "../hooks/useAvailableOperations";
 
 function loadTestLevel(level: LevelDefinition): void {
   const { loadLevel } = useGameStore.getState();
@@ -332,6 +336,86 @@ describe("game store operations", () => {
     });
   });
 
+  it("disperse keeps multi-selected contents grouped within a frame", () => {
+    const frame = round(atom("ctx"), square(atom("a"), atom("b"), atom("c"), atom("d")));
+
+    const level: LevelDefinition = {
+      id: "test-disperse-grouped",
+      name: "Disperse Grouped Selection",
+      start: [frame],
+      goal: [],
+      difficulty: 1,
+      allowedAxioms: ["arrangement"],
+    };
+
+    loadTestLevel(level);
+
+    const store = useGameStore.getState();
+    const frameNode = store.currentForms[0];
+    const payloadSquare = [...frameNode.children].find(
+      (child) => child.boundary === "square",
+    );
+    if (!payloadSquare) {
+      throw new Error("Failed to locate payload square");
+    }
+    const payloadChildren = [...payloadSquare.children];
+    const selectedIds = payloadChildren
+      .filter((child) => child.label === "a" || child.label === "b")
+      .map((child) => child.id);
+
+    store.applyOperation({
+      type: "disperse",
+      contentIds: selectedIds,
+      frameId: frameNode.id,
+    });
+
+    const { currentForms: dispersed } = useGameStore.getState();
+    expect(dispersed).toHaveLength(2);
+    const signatures = canonicalSignatureForest(dispersed);
+    const expectedSelected = canonicalSignatureForest([
+      round(atom("ctx"), square(atom("a"), atom("b"))),
+    ])[0];
+    const expectedRemainder = canonicalSignatureForest([
+      round(atom("ctx"), square(atom("c"), atom("d"))),
+    ])[0];
+    expect(signatures).toContain(expectedSelected);
+    expect(signatures).toContain(expectedRemainder);
+  });
+
+  it("disperse accepts square selection to disperse all contents", () => {
+    const frame = round(square(round(), round()));
+
+    const level: LevelDefinition = {
+      id: "test-disperse-square",
+      name: "Disperse Square Selection",
+      start: [frame],
+      goal: [],
+      difficulty: 1,
+      allowedAxioms: ["arrangement"],
+    };
+
+    loadTestLevel(level);
+
+    const store = useGameStore.getState();
+    const frameNode = store.currentForms[0];
+    const squareNode = [...frameNode.children][0];
+    const contentIds = [...squareNode.children].map((child) => child.id);
+
+    store.applyOperation({
+      type: "disperse",
+      contentIds,
+      squareId: squareNode.id,
+      frameId: frameNode.id,
+    });
+
+    const { currentForms: dispersed } = useGameStore.getState();
+    expect(dispersed).toHaveLength(2);
+    const signatures = canonicalSignatureForest(dispersed);
+    signatures.forEach((signature) => {
+      expect(signature).toBe("round:[square:[round:[]]]");
+    });
+  });
+
   it("disperse distributes content from specified square in frame", () => {
     const frame = round(
       square(atom("a"), atom("b")),
@@ -401,6 +485,32 @@ describe("game store operations", () => {
     const expected = clarify(deepClone(target));
 
     store.applyOperation({ type: "clarify", targetId: target.id });
+
+    const { currentForms: after } = useGameStore.getState();
+    expect(canonicalSignatureForest(after)).toEqual(
+      canonicalSignatureForest(expected),
+    );
+  });
+
+  it("clarify uses the parent when the child of an invertible pair is selected", () => {
+    const startForm = round(square(atom("y")));
+    const level: LevelDefinition = {
+      id: "test-clarify-child-selection",
+      name: "Clarify Child Selection",
+      start: [startForm],
+      goal: [],
+      difficulty: 1,
+      allowedAxioms: ["inversion"],
+    };
+
+    loadTestLevel(level);
+
+    const store = useGameStore.getState();
+    const parent = store.currentForms[0];
+    const child = [...parent.children][0];
+    const expected = clarify(deepClone(parent));
+
+    store.applyOperation({ type: "clarify", targetId: child.id });
 
     const { currentForms: after } = useGameStore.getState();
     expect(canonicalSignatureForest(after)).toEqual(
@@ -514,6 +624,53 @@ describe("game store operations", () => {
     ).toBe(true);
   });
 
+  it("collect accepts square-only selections by promoting parent frames", () => {
+    const frameA = round(square(atom("ctx")), square(atom("payloadA")));
+    const frameB = round(square(atom("ctx")), square(atom("payloadB")));
+    const level: LevelDefinition = {
+      id: "test-collect-squares-only",
+      name: "Collect Squares Only",
+      start: [frameA, frameB],
+      goal: [],
+      difficulty: 1,
+      allowedAxioms: ["arrangement"],
+    };
+
+    loadTestLevel(level);
+
+    const store = useGameStore.getState();
+    const [first, second] = store.currentForms;
+    const squareA = [...first.children].find(
+      (child) =>
+        child.boundary === "square" && [...child.children][0]?.label === "payloadA",
+    );
+    const squareB = [...second.children].find(
+      (child) =>
+        child.boundary === "square" && [...child.children][0]?.label === "payloadB",
+    );
+    if (!squareA || !squareB) {
+      throw new Error("Failed to find payload squares");
+    }
+
+    const expected = arrangementCollect([
+      deepClone(first),
+      deepClone(second),
+    ]);
+
+    const operation = createCollectOperationForSelection(
+      useGameStore.getState().currentForms,
+      [squareA.id, squareB.id],
+    );
+    expect(operation).not.toBeNull();
+
+    store.applyOperation(operation!);
+
+    const { currentForms: after } = useGameStore.getState();
+    expect(canonicalSignatureForest(after)).toEqual(
+      canonicalSignatureForest(expected),
+    );
+  });
+
   it("cancel matches reflection cancel behaviour for a base-reflection pair", () => {
     const base = atom("z");
     const reflection = reflectionCreate(base)[1];
@@ -557,6 +714,44 @@ describe("game store operations", () => {
     expect(canonicalSignatureForest(after)).toEqual(
       canonicalSignatureForest(expectedForest),
     );
+  });
+
+  it("cancel accepts selecting content inside the angle reflection", () => {
+    const base = atom("z");
+    const reflection = angle(atom("z"));
+    const level: LevelDefinition = {
+      id: "test-cancel-angle-content",
+      name: "Cancel Angle Content",
+      start: [base, reflection],
+      goal: [],
+      difficulty: 1,
+      allowedAxioms: ["reflection"],
+    };
+
+    loadTestLevel(level);
+
+    const store = useGameStore.getState();
+    const angleNode = store.currentForms.find(
+      (form) => form.boundary === "angle",
+    );
+    if (!angleNode) {
+      throw new Error("Angle node not found");
+    }
+    const innerChild = [...angleNode.children][0];
+    if (!innerChild) {
+      throw new Error("Angle inner child not found");
+    }
+
+    const operation = createCancelOperationForSelection(
+      useGameStore.getState().currentForms,
+      [innerChild.id],
+    );
+    expect(operation).not.toBeNull();
+
+    store.applyOperation(operation!);
+
+    const { currentForms: after } = useGameStore.getState();
+    expect(after).toHaveLength(0);
   });
 
   it("cancel preserves angle context when reflection holds additional children", () => {

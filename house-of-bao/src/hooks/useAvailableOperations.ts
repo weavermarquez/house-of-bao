@@ -38,9 +38,11 @@ const FALLBACK_REASONS = {
   clarify: "Select a round-square pair to clarify.",
   enfoldFrame: "Select sibling forms or choose a parent to add a frame.",
   enfoldMark: "Select sibling forms or choose a parent to add a mark.",
-  disperse: "Select contents inside a single square to disperse.",
-  collect: "Select round frames that share the same context to collect.",
-  cancel: "Select a form and its reflection (or an empty angle) to cancel.",
+  disperse: "Select a square (or its contents) within a single frame to disperse.",
+  collect:
+    "Select frames (or their squares) that share the same context to collect.",
+  cancel:
+    "Select a reflection angle (or its contents) alongside its matching form to cancel.",
   create: "Choose a parent or template to create a reflection pair.",
   addRound: "Enable sandbox mode and select siblings to wrap with a round boundary.",
   addSquare: "Enable sandbox mode and select siblings to wrap with a square boundary.",
@@ -218,21 +220,24 @@ export function evaluateOperationAvailability(
         reason: FALLBACK_REASONS.clarify,
       };
     } else {
-      const target = indexById.get(firstSelected);
-      if (!target) {
+      const targetEntry = indexById.get(firstSelected);
+      if (!targetEntry) {
         availability.clarify = {
           available: false,
           reason: SELECTION_STALE_REASON,
         };
-      } else if (!isClarifyApplicable(target.node)) {
-        availability.clarify = {
-          available: false,
-          reason: FALLBACK_REASONS.clarify,
-        };
-      } else if (
-        previewChange({ type: "clarify", targetId: target.node.id })
-      ) {
-        availability.clarify = { available: true };
+      } else {
+        const clarifyTarget = resolveClarifyTarget(indexById, targetEntry);
+        if (!clarifyTarget) {
+          availability.clarify = {
+            available: false,
+            reason: FALLBACK_REASONS.clarify,
+          };
+        } else if (
+          previewChange({ type: "clarify", targetId: clarifyTarget.node.id })
+        ) {
+          availability.clarify = { available: true };
+        }
       }
     }
   }
@@ -281,41 +286,39 @@ export function evaluateOperationAvailability(
     !guardAxiom("disperse", "arrangement") &&
     !guardParent("disperse")
   ) {
-    if (
-      previewChange({
-        type: "disperse",
-        contentIds: context.selectedNodeIds,
-        frameId: parentIdForOps ?? undefined,
-      })
-    ) {
+    const disperseOperation = buildDisperseOperation(
+      indexById,
+      context.selectedNodeIds,
+      parentIdForOps,
+    );
+    if (disperseOperation && previewChange(disperseOperation)) {
       availability.disperse = { available: true };
     }
   }
 
   // Collect
   if (!guardOperation("collect") && !guardAxiom("collect", "arrangement")) {
-    const selectionHasFrames = context.selectedNodeIds.some((id) => {
-      const entry = indexById.get(id);
-      return entry?.node.boundary === "round";
-    });
-
-    if (!selectionHasFrames) {
+    const collectOperation = buildCollectOperation(
+      indexById,
+      context.selectedNodeIds,
+    );
+    if (!collectOperation) {
       availability.collect = {
         available: false,
         reason: FALLBACK_REASONS.collect,
       };
-    } else if (
-      previewChange({ type: "collect", targetIds: context.selectedNodeIds })
-    ) {
+    } else if (previewChange(collectOperation)) {
       availability.collect = { available: true };
     }
   }
 
   // Cancel
   if (!guardOperation("cancel") && !guardAxiom("cancel", "reflection")) {
-    if (
-      previewChange({ type: "cancel", targetIds: context.selectedNodeIds })
-    ) {
+    const cancelOperation = buildCancelOperation(
+      indexById,
+      context.selectedNodeIds,
+    );
+    if (cancelOperation && previewChange(cancelOperation)) {
       availability.cancel = { available: true };
     }
   }
@@ -409,6 +412,190 @@ export function evaluateOperationAvailability(
   evaluateAddVariable();
 
   return availability;
+}
+
+function resolveClarifyTarget(
+  index: Map<string, IndexedEntry>,
+  entry: IndexedEntry,
+): IndexedEntry | null {
+  if (isClarifyApplicable(entry.node)) {
+    return entry;
+  }
+  if (!entry.parentId) {
+    return null;
+  }
+  const parentEntry = index.get(entry.parentId);
+  if (parentEntry && isClarifyApplicable(parentEntry.node)) {
+    return parentEntry;
+  }
+  return null;
+}
+
+function buildDisperseOperation(
+  index: Map<string, IndexedEntry>,
+  selectedNodeIds: string[],
+  parentIdForOps: string | null,
+): GameOperation | null {
+  const uniqueIds = [...new Set(selectedNodeIds)];
+  if (uniqueIds.length === 0) {
+    return null;
+  }
+
+  const entries = uniqueIds.map((id) => index.get(id));
+  if (entries.some((entry) => entry === undefined)) {
+    return null;
+  }
+
+  const squareEntry = entries.find(
+    (entry): entry is IndexedEntry =>
+      entry !== undefined && entry.node.boundary === "square",
+  );
+
+  if (squareEntry && uniqueIds.length === 1) {
+    if (squareEntry.node.children.size === 0) {
+      return null;
+    }
+    if (!squareEntry.parentId) {
+      return null;
+    }
+    const contentIds = [...squareEntry.node.children].map((child) => child.id);
+    return {
+      type: "disperse",
+      contentIds,
+      squareId: squareEntry.node.id,
+      frameId: squareEntry.parentId,
+    };
+  }
+
+  return {
+    type: "disperse",
+    contentIds: uniqueIds,
+    frameId: parentIdForOps ?? undefined,
+  };
+}
+
+export function createDisperseOperationForSelection(
+  forest: Form[],
+  selectedNodeIds: string[],
+  parentIdForOps: string | null,
+): GameOperation | null {
+  const index = indexForms(forest);
+  return buildDisperseOperation(index, selectedNodeIds, parentIdForOps);
+}
+
+function normalizeCancelTargets(
+  index: Map<string, IndexedEntry>,
+  selectedNodeIds: string[],
+): string[] {
+  const normalized: string[] = [];
+
+  selectedNodeIds.forEach((id) => {
+    const entry = index.get(id);
+    if (!entry) {
+      return;
+    }
+
+    if (entry.node.boundary === "angle") {
+      normalized.push(entry.node.id);
+      return;
+    }
+
+    if (entry.parentId) {
+      const parentEntry = index.get(entry.parentId);
+      if (parentEntry?.node.boundary === "angle") {
+        normalized.push(parentEntry.node.id);
+        return;
+      }
+    }
+
+    normalized.push(entry.node.id);
+  });
+
+  return [...new Set(normalized)];
+}
+
+function buildCancelOperation(
+  index: Map<string, IndexedEntry>,
+  selectedNodeIds: string[],
+): GameOperation | null {
+  const targetIds = normalizeCancelTargets(index, selectedNodeIds);
+  if (targetIds.length === 0) {
+    return null;
+  }
+  return {
+    type: "cancel",
+    targetIds,
+  };
+}
+
+export function createCancelOperationForSelection(
+  forest: Form[],
+  selectedNodeIds: string[],
+): GameOperation | null {
+  const index = indexForms(forest);
+  return buildCancelOperation(index, selectedNodeIds);
+}
+
+function buildCollectOperation(
+  index: Map<string, IndexedEntry>,
+  selectedNodeIds: string[],
+): GameOperation | null {
+  const uniqueIds = [...new Set(selectedNodeIds)];
+  if (uniqueIds.length === 0) {
+    return null;
+  }
+
+  const entries = uniqueIds.map((id) => index.get(id));
+  if (entries.some((entry) => entry === undefined)) {
+    return null;
+  }
+
+  const frameIds: string[] = [];
+  const seenFrames = new Set<string>();
+  const squareIds: string[] = [];
+
+  uniqueIds.forEach((_id, indexPosition) => {
+    const entry = entries[indexPosition];
+    if (!entry) {
+      return;
+    }
+    if (entry.node.boundary === "round") {
+      if (!seenFrames.has(entry.node.id)) {
+        seenFrames.add(entry.node.id);
+        frameIds.push(entry.node.id);
+      }
+      return;
+    }
+    if (entry.node.boundary === "square") {
+      squareIds.push(entry.node.id);
+      if (entry.parentId) {
+        const parentEntry = index.get(entry.parentId);
+        if (parentEntry?.node.boundary === "round") {
+          if (!seenFrames.has(parentEntry.node.id)) {
+            seenFrames.add(parentEntry.node.id);
+            frameIds.push(parentEntry.node.id);
+          }
+        }
+      }
+    }
+  });
+
+  if (frameIds.length === 0) {
+    return null;
+  }
+
+  return {
+    type: "collect",
+    targetIds: [...frameIds, ...squareIds],
+  };
+}
+
+export function createCollectOperationForSelection(
+  forest: Form[],
+  selectedNodeIds: string[],
+): GameOperation | null {
+  const index = indexForms(forest);
+  return buildCollectOperation(index, selectedNodeIds);
 }
 
 function createBaseAvailabilityMap(

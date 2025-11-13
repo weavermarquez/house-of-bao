@@ -8,7 +8,7 @@ import {
   createForm,
   atom,
 } from "../logic/Form";
-import { clarify, enfold } from "../logic/inversion";
+import { clarify, enfold, isClarifyApplicable } from "../logic/inversion";
 import { disperse, collect } from "../logic/arrangement";
 import {
   cancel,
@@ -502,8 +502,31 @@ export function previewOperation(
       if (!isAllowed(allowedAxioms, "inversion")) {
         return null;
       }
-      nextForms = applySingleTarget(forest, operation.targetId, (form) =>
-        clarify(form),
+      const attempt = applySingleTarget(
+        forest,
+        operation.targetId,
+        (form) => clarify(form),
+      );
+      if (attempt && !formsEqual(attempt, forest)) {
+        nextForms = attempt;
+        break;
+      }
+
+      const locations = locateNodes(
+        forest,
+        new Set<string>([operation.targetId]),
+      );
+      const located = locations.get(operation.targetId);
+      if (!located || !located.parent) {
+        return null;
+      }
+      if (!isClarifyApplicable(located.parent)) {
+        return null;
+      }
+      nextForms = applySingleTarget(
+        forest,
+        located.parent.id,
+        (form) => clarify(form),
       );
       break;
     }

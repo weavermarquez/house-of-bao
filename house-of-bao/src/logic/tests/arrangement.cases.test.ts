@@ -69,20 +69,42 @@ describe("Arrangement Axiom", () => {
       const c = atom("c");
       const form = round(context, square(a, b, c));
 
-      const result = disperse(form, { contentIds: [c.id] });
+    const result = disperse(form, { contentIds: [c.id] });
+
+    expect(result).toHaveLength(2);
+
+    const signatures = new Set(result.map(canonicalSignature));
+    expect(signatures.size).toBe(2);
+    const expectedRemainder = canonicalSignature(
+      round(atom("x"), square(atom("a"), atom("b"))),
+    );
+    const expectedSelected = canonicalSignature(
+      round(atom("x"), square(atom("c"))),
+    );
+    expect(signatures.has(expectedRemainder)).toBe(true);
+    expect(signatures.has(expectedSelected)).toBe(true);
+  });
+
+    it("groups multiple selected contents when dispersing a subset", () => {
+      const context = atom("x");
+      const a = atom("a");
+      const b = atom("b");
+      const c = atom("c");
+      const d = atom("d");
+      const form = round(context, square(a, b, c, d));
+
+      const result = disperse(form, { contentIds: [a.id, b.id] });
 
       expect(result).toHaveLength(2);
-
-      const signatures = new Set(result.map(canonicalSignature));
-      expect(signatures.size).toBe(2);
-      const expectedRemainder = canonicalSignature(
+      const signatures = result.map(canonicalSignature);
+      const expectedSelected = canonicalSignature(
         round(atom("x"), square(atom("a"), atom("b"))),
       );
-      const expectedSelected = canonicalSignature(
-        round(atom("x"), square(atom("c"))),
+      const expectedRemainder = canonicalSignature(
+        round(atom("x"), square(atom("c"), atom("d"))),
       );
-      expect(signatures.has(expectedRemainder)).toBe(true);
-      expect(signatures.has(expectedSelected)).toBe(true);
+      expect(signatures).toContain(expectedSelected);
+      expect(signatures).toContain(expectedRemainder);
     });
 
     it("returns void for (x [ ])", () => {

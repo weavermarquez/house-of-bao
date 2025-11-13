@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { atom, round, square } from "../logic";
+import { atom, round, square, angle } from "../logic";
 import { evaluateOperationAvailability } from "./useAvailableOperations";
 
 type EvaluationInput = Parameters<typeof evaluateOperationAvailability>[0];
@@ -41,19 +41,66 @@ describe("useAvailableOperations/evaluateOperationAvailability", () => {
     expect(availability.clarify.available).toBe(true);
   });
 
-  it("explains when collect lacks a frame selection", () => {
-    const frame = round(square(atom("left")));
-    const squareChild = [...frame.children][0]!;
+  it("marks clarify as available when the clarifiable child is selected", () => {
+    const clarifiable = round(square(atom("x")));
+    const child = [...clarifiable.children][0]!;
+
+    const availability = evaluateOperationAvailability({
+      ...baseContext(),
+      currentForms: [clarifiable],
+      selectedNodeIds: [child.id],
+    });
+
+    expect(availability.clarify.available).toBe(true);
+  });
+
+  it("marks disperse as available when the square boundary is selected", () => {
+    const squareNode = square(round(atom("a")), round(atom("b")));
+    const frame = round(squareNode);
 
     const availability = evaluateOperationAvailability({
       ...baseContext(),
       currentForms: [frame],
-      selectedNodeIds: [squareChild.id],
+      selectedNodeIds: [squareNode.id],
+    });
+
+    expect(availability.disperse.available).toBe(true);
+  });
+
+  it("marks collect as available when selecting squares from frames", () => {
+    const makeFrame = (label: string) =>
+      round(square(atom("ctx"), atom(label)));
+    const frameA = makeFrame("a");
+    const frameB = makeFrame("b");
+    const squareA = [...frameA.children].find(
+      (child) => child.boundary === "square" && child.children.size === 2,
+    )!;
+    const squareB = [...frameB.children].find(
+      (child) => child.boundary === "square" && child.children.size === 2,
+    )!;
+
+    const availability = evaluateOperationAvailability({
+      ...baseContext(),
+      currentForms: [frameA, frameB],
+      selectedNodeIds: [squareA.id, squareB.id],
+    });
+
+    expect(availability.collect.available).toBe(true);
+  });
+
+  it("explains collect fallback when no frames or squares are selected", () => {
+    const frame = round(atom("solo"));
+    const childAtom = [...frame.children][0]!;
+
+    const availability = evaluateOperationAvailability({
+      ...baseContext(),
+      currentForms: [frame],
+      selectedNodeIds: [childAtom.id],
     });
 
     expect(availability.collect.available).toBe(false);
     expect(availability.collect.reason).toBe(
-      "Select round frames that share the same context to collect.",
+      "Select frames (or their squares) that share the same context to collect.",
     );
   });
 
@@ -88,6 +135,20 @@ describe("useAvailableOperations/evaluateOperationAvailability", () => {
       "This level locks Clarify to focus on other actions.",
     );
     expect(availability.enfoldFrame.reason ?? "").not.toContain("locks");
+  });
+
+  it("marks cancel as available when selecting content inside an angle", () => {
+    const base = atom("z");
+    const reflection = angle(atom("z"));
+    const inner = [...reflection.children][0]!;
+
+    const availability = evaluateOperationAvailability({
+      ...baseContext(),
+      currentForms: [base, reflection],
+      selectedNodeIds: [inner.id],
+    });
+
+    expect(availability.cancel.available).toBe(true);
   });
 
   it("disables sandbox actions until sandbox mode is enabled", () => {
