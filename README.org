@@ -6,6 +6,8 @@
 
 One third of American adults do not understand fractions. One half of OECD adults do not understand fractions.
 
+But here's the thing: *people actually want this*. Players are upset at games like Hero Wars and Top War Battle Game for false advertising—because the advertised gameplay was about basic arithmetic, and people genuinely wanted to play that. The demand is real.
+
 Let's eradicate mathphobia together.
 
 * What is House of Bao?
@@ -15,6 +17,12 @@ The House of Bao is a puzzle game where you play with containers: numbers that l
 Experience the history of mathematics with an innovative and intuitive system with only three simple rules, designed for human understanding.
 
 Using three simple rules, players learn and understand mathematics at its finest. Building the experience to seamlessly tackle any math problem in day to day life.
+
+** The Vision
+
+A touch-based casual mobile game where people can play with mathematical forms and gain intuition for math. The goal is to make touch interactions feel *better* at representing this system than real physical objects ever could—because physical objects aren't elastic.
+
+This system opens up unique design opportunities through experiential dialects (paths, rooms, boundaries) that haven't been commonly known before. People crave creative reimaginings of math notation. Let's give them one that actually works.
 
 * How It Works
 
@@ -62,57 +70,43 @@ links:
 
 * For Developers
 
-*Tech Stack*: React + TypeScript, PixiJS v8, Zustand, Vite
+*Current Tech Stack*:
+- React + TypeScript (SVG-based rendering)
+- Zustand (state management)
+- Vite (build tool)
+- PWA-ready (vite-plugin-pwa)
 
-See [[file:ARCHITECTURE.org][ARCHITECTURE.org]] for complete technical documentation, system design, and architectural decisions.
+*Future Considerations*: Canvas-based rendering with PixiJS for advanced visual dialects, touch physics, and animation.
+
+See [[file:ARCHITECTURE.org][ARCHITECTURE.org]] for complete technical documentation, roadmap, and design considerations.
 
 * Development Roadmap
-** Phase 1: Core Engine (2-3 weeks)
-- [X] Set up Vite + React + TypeScript project
-- [X] Implement Form data structures
-- [X] Implement 3 axioms (Inversion, Arrangement, Reflection)
-- [X] Write unit tests for axiom operations
-- [ ] Implement win condition checker
-- [ ] Implement undo/redo system
 
-** Phase 2: Rendering (2-3 weeks)
-- [ ] Set up PixiJS integration with React
-- [ ] Implement basic node rendering (circles, squares, diamonds)
-- [ ] Implement edge rendering with bezier curves
-- [ ] Implement hierarchical layout algorithm
-- [ ] Add basic click/hover interaction
-- [ ] Test with sample forms
+** Current Status (v0.x - Playable Prototype)
+- [X] Core engine: Form data structures, 3 axioms, win condition
+- [X] React + SVG rendering with FormPreview component
+- [X] Zustand state management (game state, history, tutorial)
+- [X] Undo/redo system with history stack
+- [X] Interactive UI: AxiomActionPanel, ActionGlyphs
+- [X] Level system with loader and serialization
+- [X] Tutorial overlay system
+- [X] LocalStorage persistence
+- [X] PWA support
+- [X] Deployed to [[https://house.valeriekim.ca][house.valeriekim.ca]]
 
-** Phase 3: Game Loop (2 weeks)
-- [X] Implement Zustand stores (game + progress)
-- [ ] Create GameCanvas component
-- [ ] Create ActionMenu component
-- [ ] Create HUD component (move counter, undo/redo)
-- [ ] Wire up interaction: click → menu → action → animation
-- [ ] Implement LocalStorage persistence
+** Next Phase: Content & Polish
+- [ ] Expand level library (currently ~30 levels)
+- [ ] Refine tutorial flow based on playtests
+- [ ] Improve visual feedback for operations
+- [ ] Mobile touch interaction refinements
+- [ ] Responsive design improvements
 
-** Phase 4: Content (2-3 weeks)
-- [ ] Design and implement 30 levels in JSON
-- [ ] Create level progression system
-- [ ] Implement LoadingScreen component
-- [ ] Implement LevelSelect component
-- [ ] Implement WinScreen component
-- [ ] Playtest and balance difficulty
-
-** Phase 5: Polish (1-2 weeks)
-- [ ] Create Bauhaus dumpling sprites
-- [ ] Implement smooth animations for axiom transformations
-- [ ] Add visual feedback (hover, selection, illegal moves)
-- [ ] Add sound effects (optional)
-- [ ] Responsive design for different screen sizes
-- [ ] Performance optimization (60fps target)
-
-** Phase 6: Testing & Launch (1 week)
-- [ ] Cross-browser testing (Chrome, Firefox, Safari)
-- [ ] Mobile testing (touch interactions)
-- [ ] Bug fixing
-- [ ] Deploy to web (Vercel, Netlify, or similar)
-- [ ] Soft launch for feedback
+** Future: Advanced Rendering & Interaction
+- [ ] Migrate to canvas-based rendering (PixiJS)
+- [ ] Elastic, physics-based touch interactions
+- [ ] Advanced visual dialects (path, room, bucket)
+- [ ] Smooth animations for transformations
+- [ ] "Enchanted spaces" and "mirror world" visual effects
 
 *
 

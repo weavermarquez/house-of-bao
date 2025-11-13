@@ -5,10 +5,13 @@ This document contains the technical details, system design, and architectural d
 For general information, see [[file:README.org][README.org]].
 
 * Technical Stack
-** Core Technologies
-*** Rendering Engine: PixiJS v8
-*** Frontend Framework: React in TypeScript with PixiJS rendering engine
-- PixiJS runs in React-managed canvas container
+
+** Current Implementation (v0.x)
+*** Rendering: React + SVG
+- Pure React components with SVG rendering
+- FormPreview.tsx for visual representation
+- Simpler to iterate on, works across all devices
+
 *** State Management: Zustand
 - Lightweight, modern alternative to Redux
 - Perfect for game state (current form, move history, level progress)
@@ -16,21 +19,33 @@ For general information, see [[file:README.org][README.org]].
 - Works seamlessly with React and vanilla JS
 
 *** Build System: Vite
-** Supporting Libraries
-*** Geometry & Math
-- Custom tree utilities for form manipulation with the three axioms
-- PixiJS built-in math utilities (Point, Rectangle, Matrix)
-- Simple collision detection for tap/click targeting
+- Fast development server and builds
+- PWA support via vite-plugin-pwa
 
-*** Animation
+** Current Data & Logic
+*** Core Logic
+- Custom tree utilities for form manipulation with the three axioms
+- JSON serialization for level data and save states
+
+*** Storage
+- LocalStorage for progress persistence (via Zustand)
+- No backend required
+
+** Future Considerations
+*** Rendering Engine: PixiJS v8
+- Canvas-based rendering for performance
+- Advanced visual effects (elastic boundaries, mirror worlds)
+- Touch physics and smooth animations
+- PixiJS would run in React-managed canvas container
+
+*** Animation Libraries
 - GSAP for smooth transitions
 - Custom interpolation for form morphing (node splitting/merging)
 - Spring physics for tactile feedback
 
-*** Data Storage
-- LocalStorage for progress persistence
-- JSON serialization for level data and save states
-- No backend required for MVP
+*** Advanced Geometry
+- PixiJS built-in math utilities (Point, Rectangle, Matrix)
+- Collision detection for tap/click targeting
 
 * Project Roadmap 
 ** MVP Features:
