@@ -13,24 +13,24 @@
 
 **Check for ready work:**
 ```bash
-bd ready --json
+bd --no-daemon ready --json
 ```
 
 **Create new issues:**
 ```bash
-bd create "Issue title" -t bug|feature|task -p 0-4 --json
-bd create "Issue title" -p 1 --deps discovered-from:bd-123 --json
+bd --no-daemon create "Issue title" -t bug|feature|task -p 0-4 --json
+bd --no-daemon create "Issue title" -p 1 --deps discovered-from:bd-123 --json
 ```
 
 **Claim and update:**
 ```bash
-bd update bd-42 --status in_progress --json
-bd update bd-42 --priority 1 --json
+bd --no-daemon update bd-42 --status in_progress --json
+bd --no-daemon update bd-42 --priority 1 --json
 ```
 
 **Complete work:**
 ```bash
-bd close bd-42 --reason "Completed" --json
+bd --no-daemon close bd-42 --reason "Completed" --json
 ```
 
 ### Issue Types
@@ -88,6 +88,7 @@ Then use `mcp__beads__*` functions instead of CLI commands.
 ### Important Rules
 
 - ✅ Use bd for ALL task tracking
+- ✅ Always prefix commands with `bd --no-daemon` to skip the slow daemon startup
 - ✅ Always use `--json` flag for programmatic use
 - ✅ Link discovered work with `discovered-from` dependencies
 - ✅ Check `bd ready` before asking "what should I work on?"
