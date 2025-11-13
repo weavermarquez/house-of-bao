@@ -554,7 +554,7 @@ function buildCollectOperation(
   const seenFrames = new Set<string>();
   const squareIds: string[] = [];
 
-  uniqueIds.forEach((id, indexPosition) => {
+  uniqueIds.forEach((_id, indexPosition) => {
     const entry = entries[indexPosition];
     if (!entry) {
       return;
