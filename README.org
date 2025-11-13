@@ -1,14 +1,26 @@
 #+title: House of Bao
 
-* Blurb
+*Try it now*: [[https://house.valeriekim.ca][house.valeriekim.ca]]
+
+* The Problem
+
+One third of American adults do not understand fractions. One half of OECD adults do not understand fractions.
+
+Let's eradicate mathphobia together.
+
+* What is House of Bao?
+
 The House of Bao is a puzzle game where you play with boundaries: numbers look like what they mean!
 
 Experience the history of mathematics with an innovative and intuitive system with only three simple rules, designed for human understanding.
 
 Using three simple rules, players learn and understand mathematics at its finest. Building the experience to seamlessly tackle any math problem in day to day life.
 
-** Special Thanks
-Based on the work of George Spencer Brown, William Bricken, and Jeffrey James. 
+* Credits
+
+Based on the pioneering work of George Spencer-Brown, William Bricken, and Jeffrey James.
+
+Maintained by [[https://github.com/kwal-0][Valerie Kim]]. 
 
 links:
 - [[https://lof50.com][George Spencer Brown Society]]
