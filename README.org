@@ -1,6 +1,6 @@
 #+title: House of Bao
 
-*Try it now*: [[https://house.valeriekim.ca][house.valeriekim.ca]]
+*Try it now:* [[https://house.valeriekim.ca][house.valeriekim.ca]]
 
 ** The Problem
 
@@ -85,7 +85,7 @@ Available commands:
 
 ** Technical Stack
 
-**Current Implementation:**
+*Current Implementation:*
 - Frontend: React 19 + TypeScript
 - Rendering: SVG with React components (FormPreview)
 - State: Zustand (lightweight, fast)
@@ -93,7 +93,7 @@ Available commands:
 - Testing: Vitest + React Testing Library
 - PWA: Full service worker support via vite-plugin-pwa
 
-**Future Considerations:**
+*Future Considerations:*
 - Rendering: PixiJS v8 for canvas-based visuals
 - Animation: GSAP for smooth transitions
 - Physics: Custom spring systems for tactile feedback
@@ -131,7 +131,7 @@ The inversion container might access a "mirror world" where colors invert. The r
 
 Target devices: Mobile phones (iOS/Android) first, tablets naturally follow. The goal is to make algebra feel more natural than memorizing times tables.
 
----
+-----
 
-**For developers:* See [[file:ARCHITECTURE.org][ARCHITECTURE.org]] for the complete technical documentation and [[file:levels.org][levels.org]] for the pedagogical design philosophy.
+*For developers:* See [[file:ARCHITECTURE.org][ARCHITECTURE.org]] for the complete technical documentation and [[file:levels.org][levels.org]] for the pedagogical design philosophy.
 
