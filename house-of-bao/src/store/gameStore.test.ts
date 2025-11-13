@@ -336,6 +336,52 @@ describe("game store operations", () => {
     });
   });
 
+  it("disperse keeps multi-selected contents grouped within a frame", () => {
+    const frame = round(atom("ctx"), square(atom("a"), atom("b"), atom("c"), atom("d")));
+
+    const level: LevelDefinition = {
+      id: "test-disperse-grouped",
+      name: "Disperse Grouped Selection",
+      start: [frame],
+      goal: [],
+      difficulty: 1,
+      allowedAxioms: ["arrangement"],
+    };
+
+    loadTestLevel(level);
+
+    const store = useGameStore.getState();
+    const frameNode = store.currentForms[0];
+    const payloadSquare = [...frameNode.children].find(
+      (child) => child.boundary === "square",
+    );
+    if (!payloadSquare) {
+      throw new Error("Failed to locate payload square");
+    }
+    const payloadChildren = [...payloadSquare.children];
+    const selectedIds = payloadChildren
+      .filter((child) => child.label === "a" || child.label === "b")
+      .map((child) => child.id);
+
+    store.applyOperation({
+      type: "disperse",
+      contentIds: selectedIds,
+      frameId: frameNode.id,
+    });
+
+    const { currentForms: dispersed } = useGameStore.getState();
+    expect(dispersed).toHaveLength(2);
+    const signatures = canonicalSignatureForest(dispersed);
+    const expectedSelected = canonicalSignatureForest([
+      round(atom("ctx"), square(atom("a"), atom("b"))),
+    ])[0];
+    const expectedRemainder = canonicalSignatureForest([
+      round(atom("ctx"), square(atom("c"), atom("d"))),
+    ])[0];
+    expect(signatures).toContain(expectedSelected);
+    expect(signatures).toContain(expectedRemainder);
+  });
+
   it("disperse accepts square selection to disperse all contents", () => {
     const frame = round(square(round(), round()));
 

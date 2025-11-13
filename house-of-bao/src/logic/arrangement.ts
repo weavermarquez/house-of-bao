@@ -211,6 +211,24 @@ export function disperse(form: Form, options?: DisperseOptions): Form[] {
     (child) => child !== targetSquare,
   );
 
+  const totalContents = frameContents.length;
+  const pickedCount = pickedContents.length;
+
+  if (pickedCount === totalContents) {
+    return pickedContents.map((content) =>
+      cloneFrame(frameContext, [content]),
+    );
+  }
+
+  if (pickedCount > 1) {
+    const pickedFrame = cloneFrame(frameContext, pickedContents);
+    if (remainingContents.length === 0) {
+      return [pickedFrame];
+    }
+    const remainderFrame = cloneFrame(frameContext, remainingContents);
+    return [remainderFrame, pickedFrame];
+  }
+
   const distributedFrames = pickedContents.map((content) =>
     cloneFrame(frameContext, [content]),
   );
