@@ -41,6 +41,19 @@ describe("useAvailableOperations/evaluateOperationAvailability", () => {
     expect(availability.clarify.available).toBe(true);
   });
 
+  it("marks clarify as available when the clarifiable child is selected", () => {
+    const clarifiable = round(square(atom("x")));
+    const child = [...clarifiable.children][0]!;
+
+    const availability = evaluateOperationAvailability({
+      ...baseContext(),
+      currentForms: [clarifiable],
+      selectedNodeIds: [child.id],
+    });
+
+    expect(availability.clarify.available).toBe(true);
+  });
+
   it("explains when collect lacks a frame selection", () => {
     const frame = round(square(atom("left")));
     const squareChild = [...frame.children][0]!;

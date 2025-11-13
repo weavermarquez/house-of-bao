@@ -218,21 +218,24 @@ export function evaluateOperationAvailability(
         reason: FALLBACK_REASONS.clarify,
       };
     } else {
-      const target = indexById.get(firstSelected);
-      if (!target) {
+      const targetEntry = indexById.get(firstSelected);
+      if (!targetEntry) {
         availability.clarify = {
           available: false,
           reason: SELECTION_STALE_REASON,
         };
-      } else if (!isClarifyApplicable(target.node)) {
-        availability.clarify = {
-          available: false,
-          reason: FALLBACK_REASONS.clarify,
-        };
-      } else if (
-        previewChange({ type: "clarify", targetId: target.node.id })
-      ) {
-        availability.clarify = { available: true };
+      } else {
+        const clarifyTarget = resolveClarifyTarget(indexById, targetEntry);
+        if (!clarifyTarget) {
+          availability.clarify = {
+            available: false,
+            reason: FALLBACK_REASONS.clarify,
+          };
+        } else if (
+          previewChange({ type: "clarify", targetId: clarifyTarget.node.id })
+        ) {
+          availability.clarify = { available: true };
+        }
       }
     }
   }
@@ -409,6 +412,23 @@ export function evaluateOperationAvailability(
   evaluateAddVariable();
 
   return availability;
+}
+
+function resolveClarifyTarget(
+  index: Map<string, IndexedEntry>,
+  entry: IndexedEntry,
+): IndexedEntry | null {
+  if (isClarifyApplicable(entry.node)) {
+    return entry;
+  }
+  if (!entry.parentId) {
+    return null;
+  }
+  const parentEntry = index.get(entry.parentId);
+  if (parentEntry && isClarifyApplicable(parentEntry.node)) {
+    return parentEntry;
+  }
+  return null;
 }
 
 function createBaseAvailabilityMap(

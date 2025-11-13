@@ -408,6 +408,32 @@ describe("game store operations", () => {
     );
   });
 
+  it("clarify uses the parent when the child of an invertible pair is selected", () => {
+    const startForm = round(square(atom("y")));
+    const level: LevelDefinition = {
+      id: "test-clarify-child-selection",
+      name: "Clarify Child Selection",
+      start: [startForm],
+      goal: [],
+      difficulty: 1,
+      allowedAxioms: ["inversion"],
+    };
+
+    loadTestLevel(level);
+
+    const store = useGameStore.getState();
+    const parent = store.currentForms[0];
+    const child = [...parent.children][0];
+    const expected = clarify(deepClone(parent));
+
+    store.applyOperation({ type: "clarify", targetId: child.id });
+
+    const { currentForms: after } = useGameStore.getState();
+    expect(canonicalSignatureForest(after)).toEqual(
+      canonicalSignatureForest(expected),
+    );
+  });
+
   it("clarify does nothing when inversion is disallowed", () => {
     const startForm = round(square(atom("x")));
     const level: LevelDefinition = {
