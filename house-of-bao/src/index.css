@@ -1,4 +1,5 @@
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Serif+Display:wght@600&display=swap");
+@import './design-tokens.css';
 
 :root {
   font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -16,9 +17,10 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background: radial-gradient(circle at 20% 20%, rgba(59, 130, 246, 0.12), transparent 60%),
-    radial-gradient(circle at 80% 0%, rgba(99, 102, 241, 0.15), transparent 65%),
-    linear-gradient(165deg, #e0f2fe 0%, #f8fafc 45%, #f1f5f9 100%);
+  background:
+    radial-gradient(circle at 20% 20%, rgba(255, 167, 130, 0.08), transparent 60%),
+    radial-gradient(circle at 80% 0%, rgba(95, 165, 220, 0.1), transparent 65%),
+    linear-gradient(165deg, var(--color-sky-light) 0%, var(--color-sky-warm) 45%, var(--color-earth-light) 100%);
 }
 
 a {

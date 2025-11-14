@@ -1,0 +1,504 @@
+* Intro
+Heya! Good evening! This is Val. It's thursday night and we're continuing work on House of Bao -- the math game (prototype) where numbers look like what they mean! I'd like you to first check out the repo again, make yourself at home. I just bought a really freaking awesome cursor pack that I'm excited to incorporate. I've been brainstorming about how to style our homepage. I also installed some Claude Skills for you, excited to see how you feel with those! I'm so curious how you feel with new tools. Anyways, I was hoping I could get your help with perhaps experimenting with the design of the website? It's functional, but I think it's time for some iconic pizazz! I want to really make things feel as /in themselves/ as possible. I was briefly sketching out some possible designs for the homepage hero and/or visual elements. Some things that came to mind in terms of elements: quipu, numerals, cuneiform, tallies, chinese numerals, natural textures, cave hand prints, textiles and knits, beads, abacus, bean counters, plants leaves, goo, chess, c.s. peircean diagrammatic logics, venn diagrams. 
+
+1. I realized the ingame cursor definitely needed to be a hand. So I bought one. It's the perfect little cursor print!
+2. I feel like the background could benefit from some sort of natural patina. marble? flax? grass? gravel?
+3. I'm a lil curious how we should style the UI elements overall. Maybe gradient transparency so people can focus on the play area? I dunno. I'm not a designer.
+
+As for hero images for the front page, here were my sketches:
+1. a giant dumpling house half in the ground, ala kentucky route zero's equus oils. kind of surreal. A giant dumpling.. giant + dumpling = dump? I wanted to evoke the idea of "are we inside or are we outside?"
+2. an extreme close-up of a hanging plant, with the rope clearly visible and the sky visible in the background. same dumpling house, but in comparison to the hanging plant and the giant rope, it makes it feel small.
+3. book-like marginalia, like the Iconic Arithmetic book has numerals and iconography in its marginalia. very tuftean. 
+4. a room in perspective. the roof is a cuneiform tablet. on the wall are tapestries and quipu. there are tables of abstract games, a canvas with a handprint.
+5. a collage stripe of real photos gradiating into each other: cave handprints, closeup of a textile, the beads of an abacus, and a scrawling blackboard filled with multilingual numerals.
+
+Anyways, I'm not fully set on any of those, but I figure you'd appreciate the sharing. 🥰  You have been so, so helpful and amazing at helping me get House of Bao to where it is. My friends are still uncomfortable with AI coding, but when I'm making something that I have true conviction in its benevolence, how could you not? Plus, it's math! One day your kind will also truly understand and experience the qualia of iconography and create your own representations that look like what they mean to /you/. I think this is where it starts. 
+
+* TODO Animations
+
+Top left HOUSE OF BAO and 'level' text has much too little contrast - white on white. The level selection dropdown could use some styling. But in general, this system could probably use some refactoring in terms of getting the CSS out of there? Is this tailwind? Ah, no, it is not. That's probably good? I'm most curious about how we might change up the SVGs in the Network Dialect and the game glyphs. But those might need some brainpower to refactor. The cursor switches to a hi-contrast black and white cursor on mouse over a node. We want it to apply like the buttons. The mouse cursor does not apply the correct cursor when over the text or the glyphs in an action button, so the "ready to click" only appears on the edges of an action button. The "ready to click" cursor also appears on disabled Action buttons. The "PLAYING" / "WON" status looks too similar to a button and feels like it should be clickable. It is out of sync with the "COMPLETE" pill in the Goal State panel. Overall, it is a nice improvement. Sigh, that feeling when completing a milestone only reveals how much more work there is yet to do... But still, thank you so much. This is amazing already.
+
+The level selector should... maybe become something other than a dropdown.
+I would aboslutely love to see subtle texture/grain to backgrounds. Let's maybe try a fabric texture? I'm watching a Bauhaus Animation video right now and it has this lovely faint maple(?) wood grain texture
+
+The preview being now bold yellow is certainly a choice. I can see how it's like bauhaus.
+
+Oh! 
+
+https://www.youtube.com/watch?v=W_lrvXundLk
+
+At second 40, there are "concentric" square lines such that it looks like a perspective shot where the vanishing point is in the middle. The squares have no fill, only thick black stroke (thinner the closer it is to the centre). 
+
+This gives the /sensation of process/. Like re-entry. I think something like this would really pop off as the preview instead of such a bold yellow. 
+
+
+
+* At which quantity of selections do actions become meaningful?
+
+I'm glad to learn that Blender has a context aware approach menu. That's interesting.
+#+begin_quote
+Blender's Approach
+  - No selection → Creation menu
+  - 1 object → Transform menu
+  - 2+ objects → Relationship menu
+#+end_quote
+
+#+name: james-algebra-action-context
+| Node Selection | Parent Selection | Action Becomes Possible                      | Action becomes Meaningful                    | Action becomes disqualified                                        |
+|              0 |                0 | Enfold; Create; Sandbox                      |                                              |                                                                    |
+|              0 |                1 |                                              | Enfold; Sandbox                              |                                                                    |
+|              1 |                0 | Cancel; Disperse (Square, Contents); Clarify | Cancel; Disperse (Square, Contents); Clarify |                                                                    |
+|              1 |                1 |                                              | Create                                       |                                                                    |
+|              2 |                0 | Collect                                      | Collect                                      | Disperse (on Square), all other moves (if not on sibling elements) |
+|              2 |                1 |                                              |                                              |                                                                    |
+|              3 |                0 | Collect (square disambiguation)              | Collect (square disambiguation)              |                                                                    |
+
+** Note that 
+
+I am distinguishing between possible / meaningful because Enfolds and Creates with no nodes nor parents selected are created at the top-level and are trivially dismissable. Such a move is very likely to be a meaningless move to be undone.
+
+It is notable that only Enfold and Create (and Sandbox for Sandbox mode), whose point at which they are possible != point at which they become meaningful are the only ones with this behaviour, and the only ones that care about Parents. The other four are not made any more meaningful by the presence of a Parent selection.
+
+Additionally, actions do not become /more/ meaningful past the point when they become meaningful.
+I wonder if this would be worth mapping the above out, or using it to determine the semantics for the radial menu. I would prefer not to have keyboard shortcuts. I don't want to deviate too far from the mobile focus.
+
+
+
+Your minimal layout... Hmm.
+I do like the idea of floating panels. I was thinking, "what if we got rid of the white background, and just had bare panels against the background of the play area? Ooooh. I like that a lot!
+
+And... what if the Goal State looked like it was on a piece of paper? Ooooh!!! I like that a lot!!
+
+
+I just drew this out. I have the radial design.
+
+Six even pieces, the half-line in the vertical.
+
+The left side share the property of /reducing/ the number of forms; the right side /increase/ the quantity of forms.
+The axiom relations are on the same height.
+
+The full Menu
+#+begin_example
+      Clarify               Enfold
+
+Collect     (cursor / Sandbox)    Disperse
+
+      Cancel                 Create
+
+#+end_example
+
+
+The sandbox sub-menu toggle. A four-way radial menu. They can click in the center to toggle the sandbox.
+#+begin_example
+               Round
+
+Square   (cursor / Sandbox)    Angle
+
+              Variable
+
+#+end_example
+
+
+
+Stage 0,0: a user right clicks anywhere on the play area. They see Enfold and Create are available.
+They can also click in the center activate Sandbox.
+#+begin_example
+      .......               Enfold
+
+.......     (cursor / Sandbox)    ........
+
+      ......                 Create
+
+#+end_example
+
+
+Stage 0,1 (a parent location selected). Maybe we could remove the Parent selection entirely and
+have that simply refer to /where did the user right click/, since parent boolean, targeted action?
+But.. how would that be translated to touch? That's crucial. Maybe a double tap? or long press?
+
+#+begin_example
+      .......               Enfold Here
+
+.......     (cursor / Sandbox)    ........
+
+      ......                 Create Here
+
+#+end_example
+
+
+Stage 1,0 (one node selected)
+Technically, Create shouldn't even require anything to be selected -- maybe we should default to creating variables,
+and then allowing the player to hydrate those variables later...
+
+#+begin_example
+      Clarify               Enfold
+
+.......     (cursor / Sandbox)    Disperse
+
+      Cancel                 Create
+
+#+end_example
+
+
+Stage 1,1 (one node, one parent selected)
+
+#+begin_example
+      Clarify               Enfold
+
+.......     (cursor / Sandbox)    Disperse
+
+      Cancel                 Create
+
+#+end_example
+
+
+Stage 2,0; 2,1; 3,0; 3,1; and so on...
+
+Depending on /which/ nodes are selected, the moves may also be greyed out.
+(for most moves, disables if the two nodes are not siblings; for clarify it's a bit more complicated)
+
+#+begin_example
+      Clarify               Enfold
+
+Collect     (cursor / Sandbox)    Disperse
+
+      Cancel                 Create
+
+#+end_example
+
+* Animations...?
+
+https://www.youtube.com/watch?v=W_lrvXundLk
+
+* Ultrathink Plan
+
+
+> Let's plan this out. I must correct you: it is that Clarify and Enfold are the actions of Inversion; and Cancel and Create as the actions of Reflection. Horizontal alignment = same axiom. But otherwise yes, it seems you are on the same page. I would greatly appreciate your 
+help in making this. Please ultrathink for us to establish this radial menu. The radial size... let's keep it a fixed size for now. when nodes are selected, they stay visually highlighted, yes. Target indicator for a parent makes sense, yes. Sandbox submenu should be click. We 
+can deal with the goal state paper later. ultrathink let's go! We don't have much time left tonight, but we're going to make a plan that we can delegate to other agents later and track with bd.
+
+● ULTRATHINK MODE ACTIVATED! 🧠
+
+  Let me research the current architecture to create a bulletproof plan. Corrected - HORIZONTAL = same axiom. Got it!
+
+● Plan(Deep dive: Radial menu architecture research)
+  ⎿  Done (18 tool uses · 92.0k tokens · 2m 52s)                                                                                                                                                                                                                                     
+
+● Perfect! I have all the information. Let me synthesize this into a concrete implementation plan.
+                                                                                                                                                                                                                                                                                     
+● User answered Claude's questions:
+  ⎿  · Should the radial menu close after performing an action, or stay open for chaining multiple operations? → Close after action
+     · When right-clicking with nodes already selected, should the menu appear at cursor OR centered on the selection centroid? → At cursor location
+     · For the Sandbox submenu, should it replace the main menu or overlay it? → Replace main menu
+     · Should disabled operations (greyed out) show tooltips explaining WHY they're disabled? → We already have the "preview" mechanic for the existing buttons. We can use that, I believe. Also, I'd like a quick clarification on if we're doing this with a library or from 
+     scratch.
+
+● Perfect! Let me finalize the plan. For the library question:
+
+  Recommendation: Build from scratch
+  - Radial menu libraries often have bloat/opinions about gestures
+  - Our design is specific: 6 fixed wedges + center toggle
+  - We already use custom SVG throughout (NetworkView, ActionGlyphs)
+  - ~200 lines of SVG + interaction code, full control
+  - Easy to integrate with existing preview system
+
+  Here's the complete implementation plan:
+
+ Here is Claude's plan:
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌ Radial Menu Implementation Plan
+
+ Overview
+
+ Replace left sidebar action panel with cursor-local radial menu. 6-wedge design with center Sandbox toggle, matching Val's specification.
+
+ Design Spec Recap
+
+       Clarify          Enfold       (Inversion horizontal)
+
+ Collect   (Sandbox)   Disperse     (Arrangement horizontal)
+
+       Cancel           Create       (Reflection horizontal)
+ - Left = reduce operations, Right = increase operations
+ - Horizontal = same axiom, Vertical = different axiom
+ - Fixed size: ~280px diameter
+ - Close after action
+ - Position at cursor
+ - Sandbox submenu replaces main menu
+
+ ---
+ Phase 1: Right-Click Detection & State
+
+ Goal: Capture right-click events and manage menu visibility
+
+ Tasks:
+ 1. Add onContextMenu handler to NetworkView SVG root
+ 2. Add menu state to Game.tsx: { show: bool, x: number, y: number, mode: 'main' | 'sandbox' }
+ 3. Prevent default browser context menu
+ 4. Add close handlers (ESC key, click outside, after action)
+ 5. Support mobile long-press (500ms) as alternative to right-click
+
+ Files:
+ - Modify: src/dialects/network/NetworkView.tsx
+ - Modify: src/Game.tsx
+
+ Acceptance:
+ - Right-click in play area opens menu at cursor
+ - Long-press on mobile opens menu
+ - ESC closes menu
+ - Click outside closes menu
+
+ ---
+ Phase 2: RadialMenu Component - Main Menu
+
+ Goal: Create 6-wedge SVG radial menu with operation filtering
+
+ Tasks:
+ 1. Create src/components/RadialMenu.tsx and .css
+ 2. SVG circle with 6 wedge paths (60° each)
+ 3. Map operations to wedges:
+   - Top-left (300-360°): Clarify
+   - Left (240-300°): Collect
+   - Bottom-left (180-240°): Cancel
+   - Bottom-right (120-180°): Create
+   - Right (60-120°): Disperse
+   - Top-right (0-60°): Enfold
+ 4. Center circle for Sandbox toggle
+ 5. Use ACTION_METADATA for icons (place in wedge centers)
+ 6. Filter wedges by operationAvailability
+ 7. Grey out disabled operations
+ 8. Hover state highlights wedge
+
+ Component Props:
+ type RadialMenuProps = {
+   x: number;
+   y: number;
+   mode: 'main' | 'sandbox';
+   selectedNodeIds: string[];
+   selectedParentId: string | null;
+   operationAvailability: OperationAvailabilityMap;
+   sandboxEnabled: boolean;
+   onOperationSelect: (op: GameOperation) => void;
+   onModeToggle: () => void;
+   onClose: () => void;
+ };
+
+ Files:
+ - Create: src/components/RadialMenu.tsx
+ - Create: src/components/RadialMenu.css
+
+ Acceptance:
+ - 6 wedges render correctly
+ - Only available operations are enabled
+ - Hovering shows highlight
+ - Icons positioned in wedge centers
+
+ ---
+ Phase 3: Sandbox Submenu
+
+ Goal: 4-way submenu for sandbox operations
+
+ Tasks:
+ 1. Extend RadialMenu to support mode='sandbox'
+ 2. When mode=sandbox, render 4 wedges instead of 6:
+   - Top (270-360°): Round
+   - Right (0-90°): Angle
+   - Bottom (90-180°): Variable
+   - Left (180-270°): Square
+ 3. Center shows back arrow
+ 4. Click center (main mode) → transition to sandbox mode
+ 5. Click center (sandbox mode) → back to main mode
+ 6. Both modes share same position/visibility
+
+ Files:
+ - Modify: src/components/RadialMenu.tsx
+
+ Acceptance:
+ - Clicking center toggles between main/sandbox
+ - Sandbox shows 4 operations
+ - Back button returns to main
+ - Position remains stable during toggle
+
+ ---
+ Phase 4: Operation Building & Execution
+
+ Goal: Convert wedge clicks into GameOperation objects
+
+ Tasks:
+ 1. Implement operation builders in RadialMenu:
+   - Use existing buildDisperseOperation, buildCancelOperation, buildCollectOperation
+   - For simple ops (clarify, create, enfold), build inline
+ 2. Handle parent context:
+   - Use selectedParentId from props
+   - Convert ROOT_NODE_ID → null
+ 3. Call onOperationSelect with constructed operation
+ 4. Close menu after successful operation
+
+ Operation Mapping:
+ clarify: { type: "clarify", targetId: firstSelected }
+ enfold: { type: "enfold", targetIds, variant: "frame", parentId }
+ disperse: buildDisperseOperation(...)
+ collect: buildCollectOperation(...)
+ cancel: buildCancelOperation(...)
+ create: { type: "create", parentId, templateIds }
+ addRound: { type: "addBoundary", targetIds: [], boundary: "round", parentId }
+ // ... etc
+
+ Files:
+ - Modify: src/components/RadialMenu.tsx
+ - Import helpers from: src/hooks/useAvailableOperations.ts
+
+ Acceptance:
+ - Clicking wedge executes correct operation
+ - Selection is used correctly
+ - Parent context is applied
+ - Menu closes after action
+
+ ---
+ Phase 5: Preview Integration
+
+ Goal: Reuse existing preview system on wedge hover
+
+ Tasks:
+ 1. Add onPreviewChange prop to RadialMenu
+ 2. On wedge hover, construct preview operation
+ 3. Call onPreviewChange({ forms, description, operation, note })
+ 4. On wedge unhover, call onPreviewChange(null)
+ 5. Reuse existing .graph-panel.is-previewing styles
+ 6. Show preview overlay from Game.tsx (already exists)
+
+ Files:
+ - Modify: src/components/RadialMenu.tsx
+ - Modify: src/Game.tsx (pass preview handler)
+
+ Acceptance:
+ - Hovering wedge shows preview
+ - Moving between wedges updates preview
+ - Preview clears on unhover
+ - Preview uses existing overlay UI
+
+ ---
+ Phase 6: Visual Polish & Animations
+
+ Goal: Bauhaus aesthetic, smooth interactions
+
+ Tasks:
+ 1. Entry animation: Scale from 0.8 + fade in (200ms)
+ 2. Exit animation: Scale to 0.9 + fade out (150ms)
+ 3. Wedge hover: Slight scale (1.05) + brightness increase
+ 4. Disabled wedges: 30% opacity, no hover effect
+ 5. Center toggle: Rotate icon on mode transition
+ 6. Use design tokens for colors:
+   - Available: white bg, dark border
+   - Disabled: grey bg, lighter border
+   - Hover: slight yellow tint (dumpling color)
+ 7. Geometric style: Sharp edges, 2-3px borders, drop shadows
+
+ Files:
+ - Modify: src/components/RadialMenu.css
+ - Use tokens from: src/design-tokens.css
+
+ Acceptance:
+ - Menu animates smoothly
+ - Wedges have clear hover states
+ - Disabled operations are visually distinct
+ - Matches Bauhaus aesthetic
+
+ ---
+ Phase 7: Mobile Touch Support
+
+ Goal: Long-press to open, tap to select
+
+ Tasks:
+ 1. Add touch event handlers to NetworkView
+ 2. Detect long-press (500ms threshold)
+ 3. Show ripple animation during hold
+ 4. Open menu on long-press release
+ 5. Prevent scroll during menu interaction
+ 6. Tap outside to close
+
+ Files:
+ - Modify: src/dialects/network/NetworkView.tsx
+ - Modify: src/components/RadialMenu.tsx
+
+ Acceptance:
+ - Long-press opens menu on mobile
+ - Tap selects wedge
+ - Tap outside closes menu
+ - No accidental scrolling
+
+ ---
+ Phase 8: Cleanup & Layout Adjustments
+
+ Goal: Remove old UI, adjust layout
+
+ Tasks:
+ 1. Remove AxiomActionPanel from Game.tsx
+ 2. Remove left sidebar (axiom-sidebar)
+ 3. Update grid layout to 2 columns (play + side panel)
+ 4. Move Undo/Redo/Reset buttons to floating toolbar near play area
+ 5. Optional: Remove Selection panel (redundant with visual selection)
+ 6. Optional: Hide Legend after first play (or make toggleable)
+
+ Files:
+ - Modify: src/Game.tsx
+ - Modify: src/Game.css
+
+ Acceptance:
+ - No left sidebar
+ - Play area is larger
+ - Undo buttons are accessible
+ - Layout is cleaner
+
+ ---
+ bd Issues Breakdown
+
+ Epic: Radial Menu UX Redesign
+
+ Issues to Create:
+
+ 1. bd-radial-01: Right-click detection & menu state (Phase 1)
+ 2. bd-radial-02: RadialMenu component 6-wedge layout (Phase 2)
+ 3. bd-radial-03: Sandbox submenu 4-way layout (Phase 3)
+ 4. bd-radial-04: Operation building & execution (Phase 4)
+ 5. bd-radial-05: Preview integration (Phase 5)
+ 6. bd-radial-06: Visual polish & animations (Phase 6)
+ 7. bd-radial-07: Mobile touch support (Phase 7)
+ 8. bd-radial-08: Layout cleanup (Phase 8)
+
+ Dependencies:
+ - 02 depends on 01
+ - 03 depends on 02
+ - 04 depends on 02
+ - 05 depends on 04
+ - 06 depends on 02
+ - 07 depends on 02
+ - 08 depends on 04
+
+ ---
+ Estimated Complexity
+
+ Phase 1: ~1 hour (straightforward event handling)
+ Phase 2: ~3 hours (SVG geometry, layout logic)
+ Phase 3: ~1 hour (extend existing component)
+ Phase 4: ~2 hours (operation builders, integration)
+ Phase 5: ~1 hour (reuse existing system)
+ Phase 6: ~2 hours (CSS animations, polish)
+ Phase 7: ~2 hours (touch events, testing)
+ Phase 8: ~1 hour (removal + layout tweaks)
+
+ Total: ~13 hours of focused work
+
+ ---
+ Success Criteria
+
+ ✅ Right-click opens radial menu at cursor
+ ✅ 6 main operations mapped correctly (left=reduce, right=increase)
+ ✅ Center toggle switches to 4-way sandbox submenu
+ ✅ Only available operations are enabled
+ ✅ Hover shows preview in play area
+ ✅ Click executes operation and closes menu
+ ✅ Mobile long-press opens menu
+ ✅ Bauhaus visual style matches landing page
+ ✅ Left sidebar removed, play area larger
+ ✅ Game is fully playable via radial menu alone
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
