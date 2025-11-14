@@ -1,0 +1,125 @@
+/**
+ * Design Tokens for House of Bao
+ * Inspired by Liminal Modernism: Bauhaus precision meets organic forms
+ */
+
+:root {
+  /* Primary Colors - From hero dumplings */
+  --color-dumpling-peach: #ffa782;
+  --color-dumpling-yellow: #ffdf73;
+  --color-dumpling-pink: #f2b3bc;
+
+  /* Bauhaus Geometric Accents */
+  --color-bauhaus-red: #dc4b4b;
+  --color-bauhaus-blue: #5fa5dc;
+  --color-bauhaus-blue-dark: #3470ba;
+
+  /* Sky & Atmosphere */
+  --color-sky-light: #a8d0e6;
+  --color-sky-warm: #fceddc;
+  --color-sky-gradient-start: #a8d0e6;
+  --color-sky-gradient-end: #fceddc;
+
+  /* Earth & Ground */
+  --color-earth-light: #e8ddd3;
+  --color-earth-medium: #b29c85;
+  --color-earth-dark: #8a7c71;
+
+  /* Boundary Form Colors (existing semantic colors, updated) */
+  --color-round-boundary: #fde68a;
+  --color-square-boundary: #bfdbfe;
+  --color-angle-boundary: #e9d5ff;
+
+  /* Neutral Palette */
+  --color-text-primary: #0f172a;
+  --color-text-secondary: #475569;
+  --color-text-tertiary: #64748b;
+  --color-text-on-dark: #f8fafc;
+
+  --color-bg-primary: #ffffff;
+  --color-bg-secondary: #f8fafc;
+  --color-bg-tertiary: #f1f5f9;
+  --color-bg-overlay: rgba(255, 255, 255, 0.75);
+
+  /* Transparency & Glass */
+  --glass-bg: rgba(255, 255, 255, 0.75);
+  --glass-bg-strong: rgba(255, 255, 255, 0.85);
+  --glass-blur: blur(20px);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+
+  /* Spacing Scale */
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2rem;
+  --space-2xl: 3rem;
+  --space-3xl: 4rem;
+
+  /* Border Radius */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+  --radius-full: 9999px;
+
+  /* Typography */
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-serif: 'Noto Serif Display', Georgia, serif;
+  --font-mono: 'Fira Code', 'JetBrains Mono', monospace;
+
+  --font-size-xs: 0.7rem;
+  --font-size-sm: 0.85rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+  --font-size-2xl: 1.5rem;
+  --font-size-3xl: 2rem;
+
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.12);
+  --shadow-xl: 0 8px 32px rgba(0, 0, 0, 0.15);
+  --shadow-inset: inset 0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+
+  /* Transitions */
+  --transition-fast: 0.1s ease;
+  --transition-base: 0.18s ease;
+  --transition-slow: 0.3s ease;
+
+  /* Z-index Scale */
+  --z-base: 1;
+  --z-dropdown: 10;
+  --z-overlay: 20;
+  --z-modal: 30;
+  --z-toast: 40;
+
+  /* Natural Textures (for future use) */
+  --texture-grain-opacity: 0.02;
+  --texture-patina-opacity: 0.03;
+}
+
+/* Dark mode support (future) */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-text-primary: #f8fafc;
+    --color-text-secondary: #cbd5e1;
+    --color-text-tertiary: #94a3b8;
+    --color-text-on-dark: #0f172a;
+
+    --color-bg-primary: #0f172a;
+    --color-bg-secondary: #1e293b;
+    --color-bg-tertiary: #334155;
+    --color-bg-overlay: rgba(15, 23, 42, 0.75);
+
+    --glass-bg: rgba(15, 23, 42, 0.75);
+    --glass-bg-strong: rgba(15, 23, 42, 0.85);
+  }
+}

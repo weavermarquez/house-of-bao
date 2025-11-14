@@ -1,3 +1,24 @@
+/* Custom Hand Cursors */
+* {
+  cursor: url('/cursor/TJ_grey_point-auto.png') 8 0, auto;
+}
+
+button, select, a, .clickable {
+  cursor: url('/cursor/TJ_grey_hover-pointer.png') 8 0, pointer !important;
+}
+
+button:active, .clickable:active {
+  cursor: url('/cursor/TJ_grey_click.png') 8 0, pointer !important;
+}
+
+.graph-panel svg, .network-view-container {
+  cursor: url('/cursor/TJ_grey_hand-open.png') 12 12, grab !important;
+}
+
+.graph-panel svg:active, .network-view-container:active {
+  cursor: url('/cursor/TJ_grey_grab.png') 12 12, grabbing !important;
+}
+
 #root {
   min-height: 100vh;
   margin: 0;
@@ -21,17 +42,15 @@
 .app-card {
   width: 100%;
   max-width: none;
-  background: rgba(255, 255, 255, 0.92);
-  border-radius: 24px;
+  background: var(--glass-bg-strong);
+  border-radius: var(--radius-xl);
   padding: clamp(1.75rem, 2.5vw, 2.5rem) clamp(2rem, 3.5vw, 3.5rem) clamp(2rem, 3vw, 3rem);
   display: flex;
   flex-direction: column;
   gap: clamp(1.75rem, 2.5vw, 2.75rem);
-  box-shadow:
-    0 40px 80px rgba(15, 23, 42, 0.18),
-    0 12px 32px rgba(15, 23, 42, 0.12);
+  box-shadow: var(--shadow-xl);
   border: 1px solid rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(16px);
+  backdrop-filter: var(--glass-blur);
 }
 
 .app-header {
@@ -44,15 +63,16 @@
 
 .header-copy h1 {
   margin: 0;
-  font-size: 2rem;
-  font-weight: 700;
-  color: #0f172a;
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  font-family: var(--font-serif);
 }
 
 .header-copy p {
-  margin: 0.25rem 0 0;
-  color: #475569;
-  font-size: 0.95rem;
+  margin: var(--space-xs) 0 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-base);
 }
 
 .header-controls {
@@ -65,9 +85,9 @@
 .level-select {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
-  font-size: 0.85rem;
-  color: #0f172a;
+  gap: var(--space-xs);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
 }
 
 .level-select select {
