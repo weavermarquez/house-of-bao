@@ -27,15 +27,15 @@ This isn't just another ed-tech app. It's a complete reimagining of mathematical
 House of Bao is built on James Algebra, a system of three axioms that govern all mathematical operations:
 
 1. *Inversion*: Opposite boundaries cancel each other
-   - `([A]) = A`
+   - =([A]) = A=
    - A round container inside a square container (or vice versa) cancels out
 
 2. *Arrangement*: Context distributes across collections
-   - `(A [B C]) = (A [B])(A [C])`
+   - =(A [B C]) = (A [B])(A [C])=
    - A single container can act on multiple forms simultaneously
 
 3. *Reflection*: A form and its mirror annihilate
-   - `A <A> = void`
+   - =A <A> = void=
    - Every form has a reflection that cancels it completely
 
 These rules are all you need to understand arithmetic, algebra, and beyond. See [[file:ARCHITECTURE.org][ARCHITECTURE.org]] for the complete theory.
