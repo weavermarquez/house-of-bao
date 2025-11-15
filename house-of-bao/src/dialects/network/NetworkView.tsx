@@ -1,4 +1,10 @@
-import { useMemo, type MouseEvent } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  type MouseEvent,
+  type TouchEvent,
+} from "react";
 
 import type { Form } from "../../logic/Form";
 import { buildNetworkGraph, ROOT_NODE_ID } from "./layout";
@@ -99,6 +105,7 @@ export interface NetworkViewProps {
   onToggleNode?: (id: string) => void;
   onSelectParent?: (id: string | null) => void;
   onBackgroundClick?: () => void;
+  onContextMenuRequest?: (position: { clientX: number; clientY: number }) => void;
   className?: string;
 }
 
@@ -109,6 +116,7 @@ export function NetworkView({
   onToggleNode,
   onSelectParent,
   onBackgroundClick,
+  onContextMenuRequest,
   className,
 }: NetworkViewProps) {
   const graph = useMemo(() => buildNetworkGraph(forms as Form[]), [forms]);
@@ -155,6 +163,93 @@ export function NetworkView({
       }));
   }, [graph, outgoingCounts]);
 
+  const longPressTimeoutRef = useRef<number | null>(null);
+  const activeTouchIdRef = useRef<number | null>(null);
+  const touchStartPositionRef = useRef<{ x: number; y: number } | null>(null);
+  const touchPositionRef = useRef<{ x: number; y: number } | null>(null);
+
+  const clearTouchTracking = () => {
+    if (longPressTimeoutRef.current !== null) {
+      window.clearTimeout(longPressTimeoutRef.current);
+      longPressTimeoutRef.current = null;
+    }
+    activeTouchIdRef.current = null;
+    touchStartPositionRef.current = null;
+    touchPositionRef.current = null;
+  };
+
+  useEffect(() => () => clearTouchTracking(), []);
+
+  const handleContextMenu = (event: MouseEvent<SVGSVGElement>) => {
+    if (!onContextMenuRequest) {
+      return;
+    }
+    event.preventDefault();
+    onContextMenuRequest({ clientX: event.clientX, clientY: event.clientY });
+  };
+
+  const getActiveTouch = (touches: TouchList): Touch | null => {
+    if (activeTouchIdRef.current === null) {
+      return touches.length > 0 ? touches.item(0) : null;
+    }
+    for (let index = 0; index < touches.length; index += 1) {
+      const touch = touches.item(index);
+      if (touch && touch.identifier === activeTouchIdRef.current) {
+        return touch;
+      }
+    }
+    return null;
+  };
+
+  const handleTouchStart = (event: TouchEvent<SVGSVGElement>) => {
+    if (!onContextMenuRequest || event.touches.length === 0) {
+      return;
+    }
+    const touch = event.touches.item(0);
+    if (!touch) {
+      return;
+    }
+    activeTouchIdRef.current = touch.identifier;
+    const position = { x: touch.clientX, y: touch.clientY };
+    touchStartPositionRef.current = position;
+    touchPositionRef.current = position;
+    if (longPressTimeoutRef.current !== null) {
+      window.clearTimeout(longPressTimeoutRef.current);
+    }
+    longPressTimeoutRef.current = window.setTimeout(() => {
+      const latest = touchPositionRef.current ?? touchStartPositionRef.current;
+      if (latest) {
+        onContextMenuRequest({ clientX: latest.x, clientY: latest.y });
+      }
+      clearTouchTracking();
+    }, 500);
+  };
+
+  const handleTouchMove = (event: TouchEvent<SVGSVGElement>) => {
+    if (!onContextMenuRequest || longPressTimeoutRef.current === null) {
+      return;
+    }
+    const touch = getActiveTouch(event.touches);
+    if (!touch || !touchStartPositionRef.current) {
+      clearTouchTracking();
+      return;
+    }
+    const position = { x: touch.clientX, y: touch.clientY };
+    touchPositionRef.current = position;
+    const dx = position.x - touchStartPositionRef.current.x;
+    const dy = position.y - touchStartPositionRef.current.y;
+    const distance = Math.hypot(dx, dy);
+    if (distance > 12) {
+      clearTouchTracking();
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (longPressTimeoutRef.current !== null) {
+      clearTouchTracking();
+    }
+  };
+
   return (
     <div className={className}>
       <svg
@@ -165,6 +260,11 @@ export function NetworkView({
         onClick={() => {
           onBackgroundClick?.();
         }}
+        onContextMenu={handleContextMenu}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onTouchCancel={handleTouchEnd}
       >
         {graph.edges.map((edge) => {
           const from = nodeMap.get(edge.from);
