@@ -12,7 +12,11 @@ import "./Game.css";
 import { levels } from "./levels";
 import { formatFormsAsJson } from "./levels/serializer";
 import { type AxiomType } from "./levels/types";
-import { useGameStore, type GameState } from "./store/gameStore";
+import {
+  useGameStore,
+  type GameState,
+  type GameOperation,
+} from "./store/gameStore";
 import { canonicalSignature, type Form } from "./logic/Form";
 import { NetworkView, ROOT_NODE_ID } from "./dialects/network";
 import { AxiomActionPanel } from "./components/AxiomActionPanel";
@@ -22,7 +26,12 @@ import { Footer } from "./components/Footer";
 import { TutorialOverlay } from "./components/TutorialOverlay";
 import type { OperationKey } from "./operations/types";
 import { ACTION_METADATA } from "./components/ActionGlyphs";
-import { useAvailableOperations } from "./hooks/useAvailableOperations";
+import {
+  useAvailableOperations,
+  createDisperseOperationForSelection,
+  createCancelOperationForSelection,
+  createCollectOperationForSelection,
+} from "./hooks/useAvailableOperations";
 
 type LegendShape = "round" | "square" | "angle";
 
@@ -330,15 +339,6 @@ export function Game() {
     touchOriginRef.current = null;
     touchTriggeredRef.current = false;
   }, [clearTouchTimer]);
-
-  const handleRadialMenuOperation = useCallback(
-    (operation: OperationKey) => {
-      applyOperation({ type: operation });
-      closeRadialMenu();
-    },
-    [applyOperation, closeRadialMenu],
-  );
-
   const handleRadialMenuModeToggle = useCallback(() => {
     // Sandbox submenu arrives in a later phase.
   }, []);
@@ -400,6 +400,125 @@ export function Game() {
   const parentIdForOps =
     selectedParentId === ROOT_NODE_ID ? null : selectedParentId;
   const selectionCount = selectedNodeIds.length;
+
+  const buildOperationForKey = useCallback(
+    (key: OperationKey): GameOperation | null => {
+      switch (key) {
+        case "clarify": {
+          if (!firstSelected) {
+            return null;
+          }
+          return {
+            type: "clarify",
+            targetId: firstSelected,
+          };
+        }
+        case "enfoldFrame":
+          return {
+            type: "enfold",
+            targetIds: selectedNodeIds,
+            variant: "frame",
+            parentId: parentIdForOps ?? null,
+          };
+        case "enfoldMark":
+          return {
+            type: "enfold",
+            targetIds: selectedNodeIds,
+            variant: "mark",
+            parentId: parentIdForOps ?? null,
+          };
+        case "disperse":
+          return createDisperseOperationForSelection(
+            currentForms,
+            selectedNodeIds,
+            parentIdForOps,
+          );
+        case "collect":
+          return createCollectOperationForSelection(
+            currentForms,
+            selectedNodeIds,
+          );
+        case "cancel":
+          return createCancelOperationForSelection(
+            currentForms,
+            selectedNodeIds,
+          );
+        case "create":
+          return {
+            type: "create",
+            parentId: parentIdForOps ?? null,
+            templateIds:
+              selectedNodeIds.length > 0 ? selectedNodeIds : undefined,
+          };
+        case "addRound":
+          return {
+            type: "addBoundary",
+            targetIds: selectedNodeIds,
+            boundary: "round",
+            parentId: parentIdForOps ?? null,
+          };
+        case "addSquare":
+          return {
+            type: "addBoundary",
+            targetIds: selectedNodeIds,
+            boundary: "square",
+            parentId: parentIdForOps ?? null,
+          };
+        case "addAngle":
+          return {
+            type: "addBoundary",
+            targetIds: selectedNodeIds,
+            boundary: "angle",
+            parentId: parentIdForOps ?? null,
+          };
+        case "addVariable":
+          return {
+            type: "addVariable",
+            label: "sandbox",
+            parentId: parentIdForOps ?? null,
+          };
+        default:
+          return null;
+      }
+    },
+    [
+      currentForms,
+      firstSelected,
+      parentIdForOps,
+      selectedNodeIds,
+    ],
+  );
+
+  const handleRadialMenuOperation = useCallback(
+    (operation: OperationKey) => {
+      let resolved = operation;
+      if (
+        operation === "enfoldFrame" &&
+        !operationAvailability.enfoldFrame.available &&
+        operationAvailability.enfoldMark.available
+      ) {
+        resolved = "enfoldMark";
+      } else if (
+        operation === "enfoldMark" &&
+        !operationAvailability.enfoldMark.available &&
+        operationAvailability.enfoldFrame.available
+      ) {
+        resolved = "enfoldFrame";
+      }
+
+      const gameOperation = buildOperationForKey(resolved);
+      if (gameOperation && operationAvailability[resolved]?.available) {
+        applyOperation(gameOperation);
+      }
+      closeRadialMenu();
+    },
+    [
+      applyOperation,
+      buildOperationForKey,
+      closeRadialMenu,
+      operationAvailability,
+    ],
+  );
 
   const handleToggleNode = useCallback(
     (id: string) => {
@@ -744,4 +863,3 @@ export function Game() {
     </div>
   );
 }
-
