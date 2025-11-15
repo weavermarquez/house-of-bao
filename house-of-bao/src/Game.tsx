@@ -333,10 +333,10 @@ export function Game() {
 
   const handleRadialMenuOperation = useCallback(
     (operation: OperationKey) => {
-      void operation;
+      applyOperation({ type: operation });
       closeRadialMenu();
     },
-    [closeRadialMenu],
+    [applyOperation, closeRadialMenu],
   );
 
   const handleRadialMenuModeToggle = useCallback(() => {
