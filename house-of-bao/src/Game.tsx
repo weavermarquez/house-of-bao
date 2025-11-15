@@ -1,18 +1,37 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type MouseEvent as ReactMouseEvent,
+  type TouchEvent as ReactTouchEvent,
+} from "react";
 import { useShallow } from "zustand/shallow";
 import "./Game.css";
 import { levels } from "./levels";
 import { formatFormsAsJson } from "./levels/serializer";
 import { type AxiomType } from "./levels/types";
-import { useGameStore, type GameState } from "./store/gameStore";
+import {
+  useGameStore,
+  type GameState,
+  type GameOperation,
+} from "./store/gameStore";
 import { canonicalSignature, type Form } from "./logic/Form";
 import { NetworkView, ROOT_NODE_ID } from "./dialects/network";
 import { AxiomActionPanel } from "./components/AxiomActionPanel";
+import { RadialMenu } from "./components/RadialMenu";
 import { FormPreview } from "./components/FormPreview";
 import { Footer } from "./components/Footer";
 import { TutorialOverlay } from "./components/TutorialOverlay";
 import type { OperationKey } from "./operations/types";
 import { ACTION_METADATA } from "./components/ActionGlyphs";
+import {
+  useAvailableOperations,
+  createDisperseOperationForSelection,
+  createCancelOperationForSelection,
+  createCollectOperationForSelection,
+} from "./hooks/useAvailableOperations";
 
 type LegendShape = "round" | "square" | "angle";
 
@@ -43,6 +62,11 @@ const LEGEND_ITEMS: LegendItem[] = [
     description: "Reflection / inversion context",
   },
 ];
+
+const RADIAL_MENU_DIAMETER = 280;
+const RADIAL_MENU_RADIUS = RADIAL_MENU_DIAMETER / 2;
+const LONG_PRESS_DURATION_MS = 500;
+const LONG_PRESS_MOVE_THRESHOLD = 12;
 
 function indexForms(forms: Form[]): Map<string, Form> {
   const map = new Map<string, Form>();
@@ -146,6 +170,7 @@ export function Game() {
     (state) => state.checkAndTriggerTutorial,
   );
   const historyCounts = useGameStore(useShallow(selectHistoryCounts));
+  const operationAvailability = useAvailableOperations();
   const [previewState, setPreviewState] = useState<{
     forms?: Form[];
     description: string;
@@ -153,12 +178,192 @@ export function Game() {
     note?: string;
   } | null>(null);
   const previewTimeoutRef = useRef<number | null>(null);
+  const activeForms = previewState?.forms ?? currentForms;
+  const isPreviewing = Boolean(previewState?.forms);
+  const graphPanelRef = useRef<HTMLDivElement | null>(null);
+  const touchTimerRef = useRef<number | null>(null);
+  const touchOriginRef = useRef<{ x: number; y: number } | null>(null);
+  const touchTriggeredRef = useRef(false);
+  const skipBackgroundClickRef = useRef(false);
+  const [radialMenuState, setRadialMenuState] = useState({
+    visible: false,
+    x: 0,
+    y: 0,
+    mode: "main" as const,
+  });
 
   useEffect(() => {
     if (!level) {
       loadLevel(levels[0]);
     }
   }, [level, loadLevel]);
+
+  const clearTouchTimer = useCallback(() => {
+    if (touchTimerRef.current !== null) {
+      window.clearTimeout(touchTimerRef.current);
+      touchTimerRef.current = null;
+    }
+  }, []);
+
+  const openRadialMenuAt = useCallback(
+    (clientX: number, clientY: number) => {
+      const panel = graphPanelRef.current;
+      if (!panel) {
+        return;
+      }
+      const rect = panel.getBoundingClientRect();
+      const relativeX = clientX - rect.left;
+      const relativeY = clientY - rect.top;
+      const centerX = rect.width / 2;
+      const centerY = rect.height / 2;
+      const safeX =
+        rect.width < RADIAL_MENU_DIAMETER
+          ? centerX
+          : Math.min(
+              Math.max(relativeX, RADIAL_MENU_RADIUS),
+              rect.width - RADIAL_MENU_RADIUS,
+            );
+      const safeY =
+        rect.height < RADIAL_MENU_DIAMETER
+          ? centerY
+          : Math.min(
+              Math.max(relativeY, RADIAL_MENU_RADIUS),
+              rect.height - RADIAL_MENU_RADIUS,
+            );
+
+      skipBackgroundClickRef.current = true;
+      setRadialMenuState({
+        visible: true,
+        x: safeX,
+        y: safeY,
+        mode: "main",
+      });
+    },
+    [setRadialMenuState],
+  );
+
+  const closeRadialMenu = useCallback(() => {
+    setRadialMenuState((state) => {
+      if (!state.visible) {
+        return state;
+      }
+      return {
+        visible: false,
+        x: state.x,
+        y: state.y,
+        mode: "main",
+      };
+    });
+    skipBackgroundClickRef.current = false;
+  }, [setRadialMenuState]);
+
+  const handleContextMenu = useCallback(
+    (event: ReactMouseEvent<SVGSVGElement>) => {
+      event.preventDefault();
+      openRadialMenuAt(event.clientX, event.clientY);
+    },
+    [openRadialMenuAt],
+  );
+
+  const handleBackgroundClick = useCallback(() => {
+    if (skipBackgroundClickRef.current) {
+      skipBackgroundClickRef.current = false;
+      return;
+    }
+    clearSelection();
+    clearParentSelection();
+  }, [clearSelection, clearParentSelection]);
+
+  const handleTouchStart = useCallback(
+    (event: ReactTouchEvent<HTMLDivElement>) => {
+      if (isPreviewing || radialMenuState.visible) {
+        return;
+      }
+      if (event.touches.length !== 1) {
+        return;
+      }
+
+      const touch = event.touches[0];
+      touchOriginRef.current = { x: touch.clientX, y: touch.clientY };
+      touchTriggeredRef.current = false;
+      clearTouchTimer();
+
+      touchTimerRef.current = window.setTimeout(() => {
+        touchTriggeredRef.current = true;
+        event.preventDefault();
+        openRadialMenuAt(touch.clientX, touch.clientY);
+        clearTouchTimer();
+      }, LONG_PRESS_DURATION_MS);
+    },
+    [
+      clearTouchTimer,
+      isPreviewing,
+      openRadialMenuAt,
+      radialMenuState.visible,
+    ],
+  );
+
+  const handleTouchMove = useCallback(
+    (event: ReactTouchEvent<HTMLDivElement>) => {
+      if (!touchOriginRef.current) {
+        return;
+      }
+      const touch = event.touches[0];
+      if (!touch) {
+        return;
+      }
+      const dx = touch.clientX - touchOriginRef.current.x;
+      const dy = touch.clientY - touchOriginRef.current.y;
+      if (Math.hypot(dx, dy) > LONG_PRESS_MOVE_THRESHOLD) {
+        clearTouchTimer();
+        touchOriginRef.current = null;
+      }
+    },
+    [clearTouchTimer],
+  );
+
+  const handleTouchEnd = useCallback(
+    (event: ReactTouchEvent<HTMLDivElement>) => {
+      clearTouchTimer();
+      if (touchTriggeredRef.current) {
+        event.preventDefault();
+        touchTriggeredRef.current = false;
+      }
+      touchOriginRef.current = null;
+    },
+    [clearTouchTimer],
+  );
+
+  const handleTouchCancel = useCallback(() => {
+    clearTouchTimer();
+    touchOriginRef.current = null;
+    touchTriggeredRef.current = false;
+  }, [clearTouchTimer]);
+  const handleRadialMenuModeToggle = useCallback(() => {
+    // Sandbox submenu arrives in a later phase.
+  }, []);
+
+  useEffect(() => {
+    if (!radialMenuState.visible) {
+      return;
+    }
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeRadialMenu();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [closeRadialMenu, radialMenuState.visible]);
+
+  useEffect(() => {
+    return () => {
+      clearTouchTimer();
+    };
+  }, [clearTouchTimer]);
 
   const formIndex = useMemo(() => indexForms(currentForms), [currentForms]);
   const selectionSet = useMemo(
@@ -195,6 +400,125 @@ export function Game() {
   const parentIdForOps =
     selectedParentId === ROOT_NODE_ID ? null : selectedParentId;
   const selectionCount = selectedNodeIds.length;
+
+  const buildOperationForKey = useCallback(
+    (key: OperationKey): GameOperation | null => {
+      switch (key) {
+        case "clarify": {
+          if (!firstSelected) {
+            return null;
+          }
+          return {
+            type: "clarify",
+            targetId: firstSelected,
+          };
+        }
+        case "enfoldFrame":
+          return {
+            type: "enfold",
+            targetIds: selectedNodeIds,
+            variant: "frame",
+            parentId: parentIdForOps ?? null,
+          };
+        case "enfoldMark":
+          return {
+            type: "enfold",
+            targetIds: selectedNodeIds,
+            variant: "mark",
+            parentId: parentIdForOps ?? null,
+          };
+        case "disperse":
+          return createDisperseOperationForSelection(
+            currentForms,
+            selectedNodeIds,
+            parentIdForOps,
+          );
+        case "collect":
+          return createCollectOperationForSelection(
+            currentForms,
+            selectedNodeIds,
+          );
+        case "cancel":
+          return createCancelOperationForSelection(
+            currentForms,
+            selectedNodeIds,
+          );
+        case "create":
+          return {
+            type: "create",
+            parentId: parentIdForOps ?? null,
+            templateIds:
+              selectedNodeIds.length > 0 ? selectedNodeIds : undefined,
+          };
+        case "addRound":
+          return {
+            type: "addBoundary",
+            targetIds: selectedNodeIds,
+            boundary: "round",
+            parentId: parentIdForOps ?? null,
+          };
+        case "addSquare":
+          return {
+            type: "addBoundary",
+            targetIds: selectedNodeIds,
+            boundary: "square",
+            parentId: parentIdForOps ?? null,
+          };
+        case "addAngle":
+          return {
+            type: "addBoundary",
+            targetIds: selectedNodeIds,
+            boundary: "angle",
+            parentId: parentIdForOps ?? null,
+          };
+        case "addVariable":
+          return {
+            type: "addVariable",
+            label: "sandbox",
+            parentId: parentIdForOps ?? null,
+          };
+        default:
+          return null;
+      }
+    },
+    [
+      currentForms,
+      firstSelected,
+      parentIdForOps,
+      selectedNodeIds,
+    ],
+  );
+
+  const handleRadialMenuOperation = useCallback(
+    (operation: OperationKey) => {
+      let resolved = operation;
+      if (
+        operation === "enfoldFrame" &&
+        !operationAvailability.enfoldFrame.available &&
+        operationAvailability.enfoldMark.available
+      ) {
+        resolved = "enfoldMark";
+      } else if (
+        operation === "enfoldMark" &&
+        !operationAvailability.enfoldMark.available &&
+        operationAvailability.enfoldFrame.available
+      ) {
+        resolved = "enfoldFrame";
+      }
+
+      const gameOperation = buildOperationForKey(resolved);
+      if (gameOperation && operationAvailability[resolved]?.available) {
+        applyOperation(gameOperation);
+      }
+      closeRadialMenu();
+    },
+    [
+      applyOperation,
+      buildOperationForKey,
+      closeRadialMenu,
+      operationAvailability,
+    ],
+  );
 
   const handleToggleNode = useCallback(
     (id: string) => {
@@ -241,8 +565,6 @@ export function Game() {
     [],
   );
 
-  const activeForms = previewState?.forms ?? currentForms;
-  const isPreviewing = Boolean(previewState?.forms);
   const previewMetadata = previewState
     ? ACTION_METADATA[previewState.operation]
     : null;
@@ -324,8 +646,35 @@ export function Game() {
           </aside>
           <div className="play-column">
             <div
+              ref={graphPanelRef}
               className={`graph-panel ${isPreviewing ? "is-previewing" : ""}`}
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+              onTouchCancel={handleTouchCancel}
             >
+              {radialMenuState.visible ? (
+                <>
+                  <button
+                    type="button"
+                    className="radial-menu__backdrop"
+                    aria-label="Close radial menu"
+                    onClick={closeRadialMenu}
+                  />
+                  <RadialMenu
+                    x={radialMenuState.x}
+                    y={radialMenuState.y}
+                    mode={radialMenuState.mode}
+                    selectedNodeIds={selectedNodeIds}
+                    selectedParentId={selectedParentId}
+                    operationAvailability={operationAvailability}
+                    sandboxEnabled={sandboxEnabled}
+                    onOperationSelect={handleRadialMenuOperation}
+                    onModeToggle={handleRadialMenuModeToggle}
+                    onClose={closeRadialMenu}
+                  />
+                </>
+              ) : null}
               <NetworkView
                 forms={activeForms}
                 selectedIds={selectionSet}
@@ -348,13 +697,9 @@ export function Game() {
                       }
                 }
                 onBackgroundClick={
-                  isPreviewing
-                    ? undefined
-                    : () => {
-                        clearSelection();
-                        clearParentSelection();
-                      }
+                  isPreviewing ? undefined : handleBackgroundClick
                 }
+                onContextMenu={isPreviewing ? undefined : handleContextMenu}
               />
               {previewState ? (
                 <div className="graph-preview-overlay">
@@ -518,4 +863,3 @@ export function Game() {
     </div>
   );
 }
-

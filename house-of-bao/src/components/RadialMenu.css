@@ -1,0 +1,97 @@
+.radial-menu {
+  position: absolute;
+  width: 0;
+  height: 0;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 5;
+}
+
+.radial-menu__svg {
+  pointer-events: auto;
+  overflow: visible;
+  filter: drop-shadow(0 14px 24px rgba(15, 23, 42, 0.18));
+}
+
+.radial-menu__halo {
+  fill: rgba(255, 255, 255, 0.92);
+  stroke: rgba(15, 23, 42, 0.25);
+  stroke-width: 2.5;
+}
+
+.radial-menu__wedge {
+  fill: rgba(255, 255, 255, 0.96);
+  stroke: rgba(15, 23, 42, 0.35);
+  stroke-width: 2;
+  transition: fill 0.18s ease, stroke 0.18s ease, transform 0.18s ease;
+  cursor: url("/cursor/TJ_grey_hover-pointer.png") 8 0, pointer;
+}
+
+.radial-menu__wedge.is-hovered:not(.is-disabled),
+.radial-menu__wedge:not(.is-disabled):hover {
+  fill: var(--color-dumpling-yellow, #fde68a);
+  stroke: rgba(15, 23, 42, 0.5);
+}
+
+.radial-menu__wedge.is-disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.radial-menu__segment text {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px;
+  fill: rgba(15, 23, 42, 0.75);
+  text-anchor: middle;
+  pointer-events: none;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.radial-menu__icon {
+  pointer-events: none;
+  transform-origin: center;
+}
+
+.radial-menu__glyph {
+  width: 128px;
+  height: 48px;
+}
+
+.radial-menu__center circle {
+  fill: rgba(255, 255, 255, 0.95);
+  stroke: rgba(15, 23, 42, 0.35);
+  stroke-width: 2.5;
+  cursor: url("/cursor/TJ_grey_hover-pointer.png") 8 0, pointer;
+  transition: fill 0.18s ease, stroke 0.18s ease, transform 0.18s ease;
+}
+
+.radial-menu__center circle:hover,
+.radial-menu__center circle:focus-visible {
+  fill: var(--color-dumpling-yellow, #fde68a);
+  stroke: rgba(15, 23, 42, 0.55);
+}
+
+.radial-menu__center circle.is-active {
+  fill: var(--color-dumpling-peach, #fdba74);
+}
+
+.radial-menu__center-label {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  fill: rgba(15, 23, 42, 0.85);
+  pointer-events: none;
+}
+
+.radial-menu__backdrop {
+  position: absolute;
+  inset: 0;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  cursor: default;
+}
