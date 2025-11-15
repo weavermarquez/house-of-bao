@@ -3,6 +3,7 @@ import {
   useMemo,
   useRef,
   type MouseEvent,
+  type Touch as ReactTouch,
   type TouchEvent,
 } from "react";
 
@@ -188,7 +189,9 @@ export function NetworkView({
     onContextMenuRequest({ clientX: event.clientX, clientY: event.clientY });
   };
 
-  const getActiveTouch = (touches: TouchList): Touch | null => {
+  const getActiveTouch = (
+    touches: TouchEvent<SVGSVGElement>["touches"],
+  ): ReactTouch | null => {
     if (activeTouchIdRef.current === null) {
       return touches.length > 0 ? touches.item(0) : null;
     }

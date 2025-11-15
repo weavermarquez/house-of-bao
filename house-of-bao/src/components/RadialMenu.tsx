@@ -2,7 +2,6 @@ import { useMemo } from "react";
 
 import type { OperationAvailabilityMap } from "../hooks/useAvailableOperations";
 import type { OperationKey } from "../operations/types";
-import type { GameOperation } from "../store/gameStore";
 import { ACTION_METADATA } from "./ActionGlyphs";
 
 import "./RadialMenu.css";
@@ -33,7 +32,7 @@ type RadialMenuProps = {
   selectedParentId: string | null;
   operationAvailability: OperationAvailabilityMap;
   sandboxEnabled: boolean;
-  onOperationSelect: (operation: GameOperation) => void;
+  onOperationSelect: (operation: OperationKey) => void;
   onModeToggle: () => void;
   onClose: () => void;
 };
@@ -67,7 +66,6 @@ export function RadialMenu({
   void selectedNodeIds;
   void selectedParentId;
   void sandboxEnabled;
-  void onOperationSelect;
   void onClose;
 
   const wedges = useMemo(
@@ -111,6 +109,13 @@ export function RadialMenu({
               d={describeWedge(wedge.startAngle, wedge.endAngle, RADIAL_MENU_RADIUS)}
               className={`radial-menu__wedge${isAvailable ? "" : " is-disabled"}`}
               data-operation={wedge.key}
+              onClick={(event) => {
+                event.stopPropagation();
+                if (!isAvailable) {
+                  return;
+                }
+                onOperationSelect(wedge.key);
+              }}
             />
           );
         })}
