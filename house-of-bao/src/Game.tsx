@@ -13,6 +13,8 @@ import { Footer } from "./components/Footer";
 import { TutorialOverlay } from "./components/TutorialOverlay";
 import type { OperationKey } from "./operations/types";
 import { ACTION_METADATA } from "./components/ActionGlyphs";
+import { useAvailableOperations } from "./hooks/useAvailableOperations";
+import { RadialMenu, RADIAL_MENU_DIAMETER } from "./components/RadialMenu";
 
 type LegendShape = "round" | "square" | "angle";
 
@@ -122,6 +124,13 @@ const selectHistoryCounts = (state: GameState) => ({
   future: state.history.future.length,
 });
 
+type RadialMenuState = {
+  visible: boolean;
+  x: number;
+  y: number;
+  mode: "main" | "sandbox";
+};
+
 export function Game() {
   const {
     level,
@@ -152,13 +161,23 @@ export function Game() {
     operation: OperationKey;
     note?: string;
   } | null>(null);
+  const graphPanelRef = useRef<HTMLDivElement>(null);
+  const [radialMenuState, setRadialMenuState] = useState<RadialMenuState>({
+    visible: false,
+    x: 0,
+    y: 0,
+    mode: "main",
+  });
   const previewTimeoutRef = useRef<number | null>(null);
+  const isPreviewing = Boolean(previewState?.forms);
 
   useEffect(() => {
     if (!level) {
       loadLevel(levels[0]);
     }
   }, [level, loadLevel]);
+
+  const operationAvailability = useAvailableOperations();
 
   const formIndex = useMemo(() => indexForms(currentForms), [currentForms]);
   const selectionSet = useMemo(
@@ -196,15 +215,85 @@ export function Game() {
     selectedParentId === ROOT_NODE_ID ? null : selectedParentId;
   const selectionCount = selectedNodeIds.length;
 
+  const handleCloseRadialMenu = useCallback(() => {
+    setRadialMenuState((state) =>
+      state.visible
+        ? { ...state, visible: false, mode: "main" }
+        : state,
+    );
+  }, []);
+
+  const handleOpenRadialMenu = useCallback(
+    ({ clientX, clientY }: { clientX: number; clientY: number }) => {
+      if (isPreviewing) {
+        return;
+      }
+      const container = graphPanelRef.current;
+      if (!container) {
+        return;
+      }
+      const rect = container.getBoundingClientRect();
+      const radius = RADIAL_MENU_DIAMETER / 2;
+      const offsetX = clientX - rect.left;
+      const offsetY = clientY - rect.top;
+      const clamp = (value: number, max: number) => {
+        if (max <= RADIAL_MENU_DIAMETER) {
+          return max / 2;
+        }
+        return Math.min(Math.max(value, radius), max - radius);
+      };
+      setRadialMenuState({
+        visible: true,
+        x: clamp(offsetX, rect.width),
+        y: clamp(offsetY, rect.height),
+        mode: "main",
+      });
+    },
+    [isPreviewing],
+  );
+
+  useEffect(() => {
+    if (!radialMenuState.visible) {
+      return;
+    }
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        handleCloseRadialMenu();
+      }
+    };
+    const handlePointerDown = (event: PointerEvent) => {
+      const panel = graphPanelRef.current;
+      if (!panel) {
+        return;
+      }
+      if (!panel.contains(event.target as Node)) {
+        handleCloseRadialMenu();
+      }
+    };
+    const pointerOptions: AddEventListenerOptions = { capture: true };
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("pointerdown", handlePointerDown, pointerOptions);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("pointerdown", handlePointerDown, pointerOptions);
+    };
+  }, [handleCloseRadialMenu, radialMenuState.visible]);
+
   const handleToggleNode = useCallback(
     (id: string) => {
       const wasEmpty = selectionCount === 0;
+      handleCloseRadialMenu();
       toggleSelection(id);
       if (wasEmpty) {
         checkAndTriggerTutorial("first_selection");
       }
     },
-    [selectionCount, toggleSelection, checkAndTriggerTutorial],
+    [
+      selectionCount,
+      toggleSelection,
+      checkAndTriggerTutorial,
+      handleCloseRadialMenu,
+    ],
   );
 
   const handlePreviewChange = useCallback(
@@ -242,7 +331,6 @@ export function Game() {
   );
 
   const activeForms = previewState?.forms ?? currentForms;
-  const isPreviewing = Boolean(previewState?.forms);
   const previewMetadata = previewState
     ? ACTION_METADATA[previewState.operation]
     : null;
@@ -324,7 +412,11 @@ export function Game() {
           </aside>
           <div className="play-column">
             <div
+              ref={graphPanelRef}
               className={`graph-panel ${isPreviewing ? "is-previewing" : ""}`}
+              onClick={
+                radialMenuState.visible ? handleCloseRadialMenu : undefined
+              }
             >
               <NetworkView
                 forms={activeForms}
@@ -336,6 +428,7 @@ export function Game() {
                   isPreviewing
                     ? undefined
                     : (id) => {
+                        handleCloseRadialMenu();
                         if (
                           selectedParentId === id ||
                           (selectedParentId === null && id === null) ||
@@ -351,11 +444,33 @@ export function Game() {
                   isPreviewing
                     ? undefined
                     : () => {
+                        handleCloseRadialMenu();
                         clearSelection();
                         clearParentSelection();
                       }
                 }
+                onContextMenuRequest={
+                  isPreviewing ? undefined : handleOpenRadialMenu
+                }
               />
+              {radialMenuState.visible ? (
+                <RadialMenu
+                  x={radialMenuState.x}
+                  y={radialMenuState.y}
+                  mode={radialMenuState.mode}
+                  selectedNodeIds={selectedNodeIds}
+                  selectedParentId={selectedParentId}
+                  operationAvailability={operationAvailability}
+                  sandboxEnabled={sandboxEnabled}
+                  onOperationSelect={() => {
+                    /* implemented in later phases */
+                  }}
+                  onModeToggle={() => {
+                    /* implemented in later phases */
+                  }}
+                  onClose={handleCloseRadialMenu}
+                />
+              ) : null}
               {previewState ? (
                 <div className="graph-preview-overlay">
                   {previewMetadata && PreviewGlyph ? (
