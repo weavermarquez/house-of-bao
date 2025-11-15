@@ -99,6 +99,7 @@ export interface NetworkViewProps {
   onToggleNode?: (id: string) => void;
   onSelectParent?: (id: string | null) => void;
   onBackgroundClick?: () => void;
+  onContextMenu?: (event: MouseEvent<SVGSVGElement>) => void;
   className?: string;
 }
 
@@ -109,6 +110,7 @@ export function NetworkView({
   onToggleNode,
   onSelectParent,
   onBackgroundClick,
+  onContextMenu,
   className,
 }: NetworkViewProps) {
   const graph = useMemo(() => buildNetworkGraph(forms as Form[]), [forms]);
@@ -162,6 +164,9 @@ export function NetworkView({
         width="100%"
         height="100%"
         className="network-view-svg"
+        onContextMenu={(event) => {
+          onContextMenu?.(event);
+        }}
         onClick={() => {
           onBackgroundClick?.();
         }}
