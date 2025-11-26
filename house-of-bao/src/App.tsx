@@ -13,6 +13,7 @@ import { Footer } from "./components/Footer";
 import { TutorialOverlay } from "./components/TutorialOverlay";
 import type { OperationKey } from "./operations/types";
 import { ACTION_METADATA } from "./components/ActionGlyphs";
+import { Analytics } from "@vercel/analytics/react";
 
 type LegendShape = "round" | "square" | "angle";
 
@@ -511,7 +512,7 @@ function App() {
             </section>
           </aside>
         </div>
-
+        <Analytics />
         <Footer />
       </div>
       <TutorialOverlay />
