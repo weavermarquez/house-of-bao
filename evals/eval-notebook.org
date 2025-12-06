@@ -405,7 +405,6 @@ print(f"Saved {len(test_cases)} test cases to test_cases.json")
 #+RESULTS:
 : Saved 100 test cases to test_cases.json
 
-
 * LLM Clients
 
 Initialize API clients for each provider.
@@ -425,12 +424,13 @@ if ANTHROPIC_API_KEY:
     anthropic_client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
     print("Anthropic client initialized")
 
-# Google client
+# Google client (using newer google.genai SDK for batch support)
+google_client = None
 google_model = None
 if GOOGLE_API_KEY:
-    import google.generativeai as genai
-    genai.configure(api_key=GOOGLE_API_KEY)
-    google_model = genai.GenerativeModel("gemini-2.5-flash")
+    from google import genai
+    google_client = genai.Client(api_key=GOOGLE_API_KEY)
+    google_model = google_client.models  # For non-batch calls
     print("Google Gemini client initialized")
     
 #+end_src
@@ -833,46 +833,46 @@ def create_anthropic_batch(cases: List[dict], model: str = "claude-sonnet-4-5-20
 
 
 def create_gemini_batch(cases: List[dict], model: str = "gemini-2.5-pro") -> str:
-    """Create Gemini batch job. Returns operation name."""
-    # Gemini batch API uses REST
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:batchGenerateContent"
+    """Create Gemini batch job using SDK. Returns batch job name."""
+    if not google_client:
+        raise RuntimeError("Google client not initialized")
 
-    requests_list = []
+    # Build inline requests
+    inline_requests = []
     for case in cases:
         prompt = PROMPT_TEMPLATE.format(expression=case["input"])
-        requests_list.append({
-            "contents": [{"parts": [{"text": prompt}]}]
+        inline_requests.append({
+            "contents": [{"parts": [{"text": prompt}], "role": "user"}]
         })
 
-    response = requests.post(
-        url,
-        params={"key": GOOGLE_API_KEY},
-        json={"requests": requests_list}
+    batch_job = google_client.batches.create(
+        model=f"models/{model}",
+        src=inline_requests,
+        config={"display_name": f"lof-eval-{datetime.now().strftime('%Y%m%d-%H%M%S')}"},
     )
-    response.raise_for_status()
-    return response.json().get("name", "gemini_batch")
+    return batch_job.name
 
 
 # Submit all batches
 batch_status = {"timestamp": datetime.now().isoformat(), "batches": {}}
 
-if openai_client:
-    print("Submitting OpenAI batch...")
-    batch_status["batches"]["openai"] = {
-        "id": create_openai_batch(test_cases),
-        "model": "gpt-5.1",
-        "status": "submitted"
-    }
-    print(f"  OpenAI batch ID: {batch_status['batches']['openai']['id']}")
+# if openai_client:
+#     print("Submitting OpenAI batch...")
+#     batch_status["batches"]["openai"] = {
+#         "id": create_openai_batch(test_cases),
+#         "model": "gpt-5.1",
+#         "status": "submitted"
+#     }
+#     print(f"  OpenAI batch ID: {batch_status['batches']['openai']['id']}")
 
-if anthropic_client:
-    print("Submitting Anthropic batch...")
-    batch_status["batches"]["anthropic"] = {
-        "id": create_anthropic_batch(test_cases),
-        "model": "claude-sonnet-4-5-20250929",
-        "status": "submitted"
-    }
-    print(f"  Anthropic batch ID: {batch_status['batches']['anthropic']['id']}")
+# if anthropic_client:
+#     print("Submitting Anthropic batch...")
+#     batch_status["batches"]["anthropic"] = {
+#         "id": create_anthropic_batch(test_cases),
+#         "model": "claude-sonnet-4-5-20250929",
+#         "status": "submitted"
+#     }
+#     print(f"  Anthropic batch ID: {batch_status['batches']['anthropic']['id']}")
 
 if GOOGLE_API_KEY:
     print("Submitting Gemini batch...")
@@ -893,12 +893,8 @@ print(f"\nBatch status saved to batch_status.json")
 #+end_src
 
 #+RESULTS:
-: Submitting OpenAI batch...
-:   OpenAI batch ID: batch_69337346124c8190a26b7070e3ceeee9
-: Submitting Anthropic batch...
-:   Anthropic batch ID: msgbatch_01ABY52ACx76R3152rfoYNtw
 : Submitting Gemini batch...
-:   Gemini batch failed: 400 Client Error: Bad Request for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:batchGenerateContent?key=AIzaSyB4iP4f0IBFs-e5Ny-wMiBqUffICSsn1bw
+:   Gemini batch ID: batches/rx8s0qs156icu8hca553bo8dwb9ro2pcgdgp
 : 
 : Batch status saved to batch_status.json
 
@@ -940,11 +936,28 @@ def check_anthropic_batch(batch_id: str) -> Tuple[str, Optional[List[dict]]]:
     return batch.processing_status, None
 
 
-def check_gemini_batch(operation_name: str) -> Tuple[str, Optional[List[dict]]]:
-    """Check Gemini batch status. Returns (status, results_or_none)."""
-    # Gemini batch results are returned inline for small batches
-    # For larger batches, would need to poll operation status
-    return "completed", None  # Placeholder - Gemini may return results inline
+def check_gemini_batch(batch_name: str) -> Tuple[str, Optional[List[dict]]]:
+    """Check Gemini batch status using SDK. Returns (status, results_or_none)."""
+    if not google_client:
+        return "no_client", None
+
+    batch = google_client.batches.get(name=batch_name)
+
+    if batch.state.name != "JOB_STATE_SUCCEEDED":
+        return batch.state.name.lower(), None
+
+    # Batch complete - extract results
+    results = []
+    for i, resp in enumerate(batch.responses):
+        # responses are in order of input requests
+        text = resp.candidates[0].content.parts[0].text if resp.candidates else "ERROR: No candidates"
+        results.append({
+            "id": f"lof_{i+1:03d}",  # Match original case IDs
+            "response": text,
+            "provider": "google"
+        })
+
+    return "completed", results
 
 
 # Load batch status
@@ -991,10 +1004,9 @@ else:
 
 #+RESULTS:
 : Checking batch status...
-:   OpenAI: completed
-:   Anthropic: completed
+:   Google: processing
 : 
-: All batches complete! Run the next cell to process results.
+: Some batches still processing. Re-run this cell to check again.
 
 * Process Batch Results
 
