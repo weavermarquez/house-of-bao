@@ -26,6 +26,11 @@ Every well-formed expression reduces to exactly one of two values:
 - =()= (the mark) — equivalent to TRUE or 1
 - void (empty) — equivalent to FALSE or 0
 
+* Install Packages
+#+begin_src bash
+uv sync
+#+end_src
+
 * Setup
 
 #+begin_src python
@@ -35,6 +40,10 @@ import random
 import re
 from datetime import datetime
 from typing import Tuple, List, Optional
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # API clients (we'll initialize these when needed)
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
@@ -51,7 +60,7 @@ print(f"Google key: {'set' if GOOGLE_API_KEY else 'missing'}")
 : Setup complete.
 : OpenAI key: set
 : Anthropic key: set
-: Google key: missing
+: Google key: set
 
 * Form Representation
 
@@ -310,9 +319,9 @@ def generate_test_cases(n: int = 100, seed: int = 2024) -> List[dict]:
     # Distribution with (difficulty, min_depth, max_depth, max_width)
     # min_depth guarantees complexity for each difficulty level
     difficulties = (
-        [("easy", 1, 2, 2)] * 30 +
-        [("medium", 2, 3, 2)] * 40 +
-        [("hard", 3, 4, 3)] * 30
+        [("1. easy", 1, 2, 2)] * 30 +
+        [("2. medium", 2, 3, 2)] * 40 +
+        [("3. hard", 3, 4, 3)] * 30
     )
     random.shuffle(difficulties)
 
@@ -396,6 +405,7 @@ print(f"Saved {len(test_cases)} test cases to test_cases.json")
 #+RESULTS:
 : Saved 100 test cases to test_cases.json
 
+
 * LLM Clients
 
 Initialize API clients for each provider.
@@ -420,12 +430,36 @@ google_model = None
 if GOOGLE_API_KEY:
     import google.generativeai as genai
     genai.configure(api_key=GOOGLE_API_KEY)
-    google_model = genai.GenerativeModel("gemini-2.0-flash")
+    google_model = genai.GenerativeModel("gemini-2.5-flash")
     print("Google Gemini client initialized")
     
 #+end_src
 
 #+RESULTS:
+: OpenAI client initialized
+: Anthropic client initialized
+: Google Gemini client initialized
+
+* Async Clients
+
+Initialize async clients for parallel execution.
+
+#+begin_src python
+from openai import AsyncOpenAI
+from anthropic import AsyncAnthropic
+import asyncio
+
+async_openai = AsyncOpenAI() if OPENAI_API_KEY else None
+async_anthropic = AsyncAnthropic() if ANTHROPIC_API_KEY else None
+
+# Google's genai library uses generate_content_async on the model directly
+# async_google uses the same google_model initialized above
+
+print("Async clients initialized.")
+#+end_src
+
+#+RESULTS:
+: Async clients initialized.
 
 * Eval Functions
 
@@ -518,101 +552,507 @@ print("Eval functions defined.")
 #+RESULTS:
 : Eval functions defined.
 
-* Run Evaluation
+* Async Eval Functions
+
+Async versions for parallel sample runs.
 
 #+begin_src python
-def run_eval(test_cases: List[dict], models: List[str] = None) -> List[dict]:
-    """Run evaluation across all test cases and models."""
-    if models is None:
-        models = []
-        if openai_client:
-            models.append(("openai", "gpt-5.1", eval_openai))
-        if anthropic_client:
-            models.append(("anthropic", "claude-sonnet-4-5-20250929", eval_anthropic))
-        if google_model:
-            models.append(("google", "gemini-2.5-flash", eval_google))
+async def eval_openai_async(expression: str, model: str = "gpt-5.1") -> Tuple[str, str, str]:
+    """Evaluate using OpenAI API (async). Returns (response, answer, model)."""
+    if not async_openai:
+        return "", "no_client", model
+    prompt = PROMPT_TEMPLATE.format(expression=expression)
+    response = await async_openai.chat.completions.create(
+        model=model,
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0
+    )
+    text = response.choices[0].message.content
+    return text, extract_answer(text), model
 
+
+async def eval_anthropic_async(expression: str, model: str = "claude-sonnet-4-5-20250929") -> Tuple[str, str, str]:
+    """Evaluate using Anthropic API (async). Returns (response, answer, model)."""
+    if not async_anthropic:
+        return "", "no_client", model
+    prompt = PROMPT_TEMPLATE.format(expression=expression)
+    response = await async_anthropic.messages.create(
+        model=model,
+        max_tokens=1024,
+        messages=[{"role": "user", "content": prompt}]
+    )
+    text = response.content[0].text
+    return text, extract_answer(text), model
+
+
+async def eval_google_async(expression: str, model: str = "gemini-2.5-pro") -> Tuple[str, str, str]:
+    """Evaluate using Google Gemini API (async). Returns (response, answer, model)."""
+    if not google_model:
+        return "", "no_client", model
+    prompt = PROMPT_TEMPLATE.format(expression=expression)
+    response = await google_model.generate_content_async(prompt)
+    text = response.text
+    return text, extract_answer(text), model
+
+
+print("Async eval functions defined.")
+#+end_src
+
+#+RESULTS:
+: Async eval functions defined.
+
+* Sample Run (Async)
+
+Run a small subset with async for quick iteration. Saves full outputs.
+
+#+begin_src python
+async def run_sample_async(cases: List[dict], n: int = 5) -> List[dict]:
+    """Run async evaluation on sample cases."""
+    sample = cases[:n]
     results = []
-    total = len(test_cases) * len(models)
-    done = 0
 
-    for case in test_cases:
-        for provider, model_name, eval_fn in models:
-            try:
-                response, answer = eval_fn(case["input"])
-                correct = answer == case["target"]
-            except Exception as e:
-                response = f"ERROR: {str(e)}"
-                answer = "error"
-                correct = False
+    # Build list of all (case, provider, eval_fn) combinations
+    tasks = []
+    task_info = []  # Track which case/provider each task belongs to
 
-            results.append({
-                "id": case["id"],
-                "input": case["input"],
-                "target": case["target"],
-                "difficulty": case["difficulty"],
-                "provider": provider,
-                "model": model_name,
-                "response": response,
-                "extracted_answer": answer,
-                "correct": correct
-            })
+    for case in sample:
+        if async_openai:
+            tasks.append(eval_openai_async(case["input"]))
+            task_info.append((case, "openai"))
+        if async_anthropic:
+            tasks.append(eval_anthropic_async(case["input"]))
+            task_info.append((case, "anthropic"))
+        if google_model:
+            tasks.append(eval_google_async(case["input"]))
+            task_info.append((case, "google"))
 
-            done += 1
-            if done % 10 == 0:
-                print(f"Progress: {done}/{total}")
+    # Run all in parallel
+    responses = await asyncio.gather(*tasks, return_exceptions=True)
+
+    # Process results
+    for (case, provider), resp in zip(task_info, responses):
+        if isinstance(resp, Exception):
+            response, answer, model = f"ERROR: {resp}", "error", "unknown"
+        else:
+            response, answer, model = resp
+
+        results.append({
+            "id": case["id"],
+            "input": case["input"],
+            "target": case["target"],
+            "difficulty": case["difficulty"],
+            "depth": case.get("depth", 0),
+            "provider": provider,
+            "model": model,
+            "response": response,
+            "extracted_answer": answer,
+            "correct": answer == case["target"]
+        })
 
     return results
 
 
-# Run on a small subset first to test
-print("Testing with 5 cases...")
-sample_results = run_eval(test_cases[:5])
+# Run sample evaluation
+print("Running async sample evaluation...")
+sample_results = asyncio.run(run_sample_async(test_cases, n=5))
+
+# Save full results
+with open("sample_results.json", "w") as f:
+    json.dump(sample_results, f, indent=2)
+print(f"Saved {len(sample_results)} results to sample_results.json")
+
+# Display summary
+print("\n=== Sample Results ===")
 for r in sample_results:
-    status = "✓" if r["correct"] else "✗"
-    print(f"{status} {r['id']} ({r['provider']}): {r['input']} -> {r['extracted_answer']} (target: {r['target']})")
+    status = "✅" if r["correct"] else "❌"
+    print(f"{status} {r['id']} ({r['provider']}): {r['input'][:30]:30} -> {r['extracted_answer']} (target: {r['target']})")
+
+# Show failures with reasoning
+failures = [r for r in sample_results if not r["correct"]]
+if failures:
+    print(f"\n=== {len(failures)} Failures - Full Reasoning ===")
+    for f in failures[:3]:
+        print(f"\n--- {f['id']} ({f['model']}) ---")
+        print(f"Input: {f['input']}")
+        print(f"Expected: {f['target']}, Got: {f['extracted_answer']}")
+        print(f"Response:\n{f['response'][:500]}...")
 #+end_src
 
 #+RESULTS:
 #+begin_example
-Testing with 5 cases...
-Progress: 10/10
-✗ lof_001 (openai): (()())((())(())) -> void (target: ())
-✗ lof_001 (anthropic): (()())((())(())) -> void (target: ())
-✓ lof_002 (openai): ((()))(((())(()))(())) -> () (target: ())
-✓ lof_002 (anthropic): ((()))(((())(()))(())) -> () (target: ())
-✓ lof_003 (openai): ((()((())(())(())))) -> () (target: ())
-✗ lof_003 (anthropic): ((()((())(())(())))) -> void (target: ())
-✓ lof_004 (openai): (()) -> void (target: void)
-✓ lof_004 (anthropic): (()) -> void (target: void)
-✗ lof_005 (openai): (((())())) -> void (target: ())
-✗ lof_005 (anthropic): (((())())) -> void (target: ())
+Running async sample evaluation...
+Saved 15 results to sample_results.json
+
+=== Sample Results ===
+✓ lof_001 (openai): (()())((())(()))               -> () (target: ())
+✗ lof_001 (anthropic): (()())((())(()))               -> void (target: ())
+✗ lof_001 (google): (()())((())(()))               -> void (target: ())
+✓ lof_002 (openai): ((()))(((())(()))(()))         -> () (target: ())
+✗ lof_002 (anthropic): ((()))(((())(()))(()))         -> void (target: ())
+✗ lof_002 (google): ((()))(((())(()))(()))         -> void (target: ())
+✓ lof_003 (openai): ((()((())(())(()))))           -> () (target: ())
+✓ lof_003 (anthropic): ((()((())(())(()))))           -> () (target: ())
+✗ lof_003 (google): ((()((())(())(()))))           -> void (target: ())
+✓ lof_004 (openai): (())                           -> void (target: void)
+✓ lof_004 (anthropic): (())                           -> void (target: void)
+✓ lof_004 (google): (())                           -> void (target: void)
+✗ lof_005 (openai): (((())()))                     -> void (target: ())
+✗ lof_005 (anthropic): (((())()))                     -> void (target: ())
+✗ lof_005 (google): (((())()))                     -> void (target: ())
+
+=== 8 Failures - Full Reasoning ===
+
+--- lof_001 (claude-sonnet-4-5-20250929) ---
+Input: (()())((())(()))
+Expected: (), Got: void
+Response:
+I'll simplify this expression step by step using the two axioms.
+
+Starting expression: (()())((())(()))
+
+Let me work on each part systematically.
+
+,**Step 1:** Look at the first part: (()())
+- Inside we have ()() 
+- By I1 (Number): ()() = ()
+- So (()()) = (())
+
+,**Step 2:** Apply I2 to (())
+- By I2 (Order): (()) = void
+- So the first part becomes: void
+
+,**Step 3:** Look at the second part: ((())(()))
+- Let's simplify what's inside: (())(())
+- First, by I2: (()) = void, so we have (void)(void)
+- Th...
+
+--- lof_001 (gemini-2.5-pro) ---
+Input: (()())((())(()))
+Expected: (), Got: void
+Response:
+Let's simplify the expression `(()())((())(()))` step-by-step using the given axioms:
+
+,**Axioms:**
+I1 (Number): `()()` = `()`
+I2 (Order): `(())` = `void`
+
+,**Expression:** `(()())((())(()))`
+
+,**Step 1: Simplify the first main component `(()())`**
+   `(()())`
+   Look inside the outermost mark: `()()`
+   Apply Axiom I1 to `()()`: `()()` becomes `()`
+   So, `(()())` becomes `(())`
+   Apply Axiom I2 to `(())`: `(())` becomes `void`
+
+,**Step 2: Substitute the simplified first component back into the ex...
+
+--- lof_002 (claude-sonnet-4-5-20250929) ---
+Input: ((()))(((())(()))(()))
+Expected: (), Got: void
+Response:
+I'll simplify this expression step by step using the two axioms.
+
+,**Starting expression:** ((()))(((())(()))(()))
+
+Let me work from the innermost parentheses outward.
+
+,**Step 1:** Identify innermost expressions
+- (()) appears multiple times
+- By I2 (Order): (()) = void
+
+,**Step 2:** Apply I2 to all instances of (())
+((()))(((**void**)(**void**))(**void**))
+
+This becomes:
+((()))((**void void**)**void**)
+
+,**Step 3:** Simplify ((**void void**)**void**)
+The inner part has: **void void** which is just...
 #+end_example
 
+* Batch API: Submit Jobs
+
+Submit batch jobs to all three providers for the full evaluation.
+
+#+begin_src python
+import tempfile
+import requests
+
+def create_openai_batch(cases: List[dict], model: str = "gpt-5.1") -> str:
+    """Create and submit OpenAI batch job. Returns batch_id."""
+    # Create JSONL file
+    jsonl_content = ""
+    for case in cases:
+        prompt = PROMPT_TEMPLATE.format(expression=case["input"])
+        request = {
+            "custom_id": case["id"],
+            "method": "POST",
+            "url": "/v1/chat/completions",
+            "body": {
+                "model": model,
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": 0
+            }
+        }
+        jsonl_content += json.dumps(request) + "\n"
+
+    # Upload file
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.jsonl', delete=False) as f:
+        f.write(jsonl_content)
+        temp_path = f.name
+
+    with open(temp_path, 'rb') as f:
+        file_obj = openai_client.files.create(file=f, purpose="batch")
+
+    # Create batch
+    batch = openai_client.batches.create(
+        input_file_id=file_obj.id,
+        endpoint="/v1/chat/completions",
+        completion_window="24h"
+    )
+    return batch.id
 
 
+def create_anthropic_batch(cases: List[dict], model: str = "claude-sonnet-4-5-20250929") -> str:
+    """Create and submit Anthropic batch job. Returns batch_id."""
+    requests_list = []
+    for case in cases:
+        prompt = PROMPT_TEMPLATE.format(expression=case["input"])
+        requests_list.append({
+            "custom_id": case["id"],
+            "params": {
+                "model": model,
+                "max_tokens": 1024,
+                "messages": [{"role": "user", "content": prompt}]
+            }
+        })
 
-With 4o and Sonnet-4:
+    batch = anthropic_client.messages.batches.create(requests=requests_list)
+    return batch.id
+
+
+def create_gemini_batch(cases: List[dict], model: str = "gemini-2.5-pro") -> str:
+    """Create Gemini batch job. Returns operation name."""
+    # Gemini batch API uses REST
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:batchGenerateContent"
+
+    requests_list = []
+    for case in cases:
+        prompt = PROMPT_TEMPLATE.format(expression=case["input"])
+        requests_list.append({
+            "contents": [{"parts": [{"text": prompt}]}]
+        })
+
+    response = requests.post(
+        url,
+        params={"key": GOOGLE_API_KEY},
+        json={"requests": requests_list}
+    )
+    response.raise_for_status()
+    return response.json().get("name", "gemini_batch")
+
+
+# Submit all batches
+batch_status = {"timestamp": datetime.now().isoformat(), "batches": {}}
+
+if openai_client:
+    print("Submitting OpenAI batch...")
+    batch_status["batches"]["openai"] = {
+        "id": create_openai_batch(test_cases),
+        "model": "gpt-5.1",
+        "status": "submitted"
+    }
+    print(f"  OpenAI batch ID: {batch_status['batches']['openai']['id']}")
+
+if anthropic_client:
+    print("Submitting Anthropic batch...")
+    batch_status["batches"]["anthropic"] = {
+        "id": create_anthropic_batch(test_cases),
+        "model": "claude-sonnet-4-5-20250929",
+        "status": "submitted"
+    }
+    print(f"  Anthropic batch ID: {batch_status['batches']['anthropic']['id']}")
+
+if GOOGLE_API_KEY:
+    print("Submitting Gemini batch...")
+    try:
+        batch_status["batches"]["google"] = {
+            "id": create_gemini_batch(test_cases),
+            "model": "gemini-2.5-pro",
+            "status": "submitted"
+        }
+        print(f"  Gemini batch ID: {batch_status['batches']['google']['id']}")
+    except Exception as e:
+        print(f"  Gemini batch failed: {e}")
+
+# Save batch status
+with open("batch_status.json", "w") as f:
+    json.dump(batch_status, f, indent=2)
+print(f"\nBatch status saved to batch_status.json")
+#+end_src
 
 #+RESULTS:
-#+begin_example
-Testing with 5 cases...
-Progress: 10/10
-✓ lof_001 (openai): (()())((())(())) -> () (target: ())
-✗ lof_001 (anthropic): (()())((())(())) -> void (target: ())
-✓ lof_002 (openai): ((()))(((())(()))(())) -> () (target: ())
-✓ lof_002 (anthropic): ((()))(((())(()))(())) -> () (target: ())
-✓ lof_003 (openai): ((()((())(())(())))) -> () (target: ())
-✗ lof_003 (anthropic): ((()((())(())(())))) -> void (target: ())
-✓ lof_004 (openai): (()) -> void (target: void)
-✓ lof_004 (anthropic): (()) -> void (target: void)
-✗ lof_005 (openai): (((())())) -> void (target: ())
-✗ lof_005 (anthropic): (((())())) -> void (target: ())
-#+end_example
+: Submitting OpenAI batch...
+:   OpenAI batch ID: batch_69337346124c8190a26b7070e3ceeee9
+: Submitting Anthropic batch...
+:   Anthropic batch ID: msgbatch_01ABY52ACx76R3152rfoYNtw
+: Submitting Gemini batch...
+:   Gemini batch failed: 400 Client Error: Bad Request for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:batchGenerateContent?key=AIzaSyB4iP4f0IBFs-e5Ny-wMiBqUffICSsn1bw
+: 
+: Batch status saved to batch_status.json
 
-* Full Evaluation Run
+* Batch API: Check Status
 
-Uncomment and run this to evaluate all test cases.
+Poll batch job status and download results when complete.
+
+#+begin_src python
+def check_openai_batch(batch_id: str) -> Tuple[str, Optional[List[dict]]]:
+    """Check OpenAI batch status. Returns (status, results_or_none)."""
+    batch = openai_client.batches.retrieve(batch_id)
+    if batch.status == "completed":
+        # Download results
+        output_file = openai_client.files.content(batch.output_file_id)
+        results = []
+        for line in output_file.text.strip().split("\n"):
+            result = json.loads(line)
+            results.append({
+                "id": result["custom_id"],
+                "response": result["response"]["body"]["choices"][0]["message"]["content"],
+                "provider": "openai"
+            })
+        return "completed", results
+    return batch.status, None
+
+
+def check_anthropic_batch(batch_id: str) -> Tuple[str, Optional[List[dict]]]:
+    """Check Anthropic batch status. Returns (status, results_or_none)."""
+    batch = anthropic_client.messages.batches.retrieve(batch_id)
+    if batch.processing_status == "ended":
+        results = []
+        for result in anthropic_client.messages.batches.results(batch_id):
+            results.append({
+                "id": result.custom_id,
+                "response": result.result.message.content[0].text,
+                "provider": "anthropic"
+            })
+        return "completed", results
+    return batch.processing_status, None
+
+
+def check_gemini_batch(operation_name: str) -> Tuple[str, Optional[List[dict]]]:
+    """Check Gemini batch status. Returns (status, results_or_none)."""
+    # Gemini batch results are returned inline for small batches
+    # For larger batches, would need to poll operation status
+    return "completed", None  # Placeholder - Gemini may return results inline
+
+
+# Load batch status
+with open("batch_status.json", "r") as f:
+    batch_status = json.load(f)
+
+print("Checking batch status...")
+all_complete = True
+
+for provider, info in batch_status["batches"].items():
+    if provider == "openai" and openai_client:
+        status, results = check_openai_batch(info["id"])
+        batch_status["batches"]["openai"]["status"] = status
+        if results:
+            batch_status["batches"]["openai"]["results"] = results
+        print(f"  OpenAI: {status}")
+
+    elif provider == "anthropic" and anthropic_client:
+        status, results = check_anthropic_batch(info["id"])
+        batch_status["batches"]["anthropic"]["status"] = status
+        if results:
+            batch_status["batches"]["anthropic"]["results"] = results
+        print(f"  Anthropic: {status}")
+
+    elif provider == "google":
+        status, results = check_gemini_batch(info["id"])
+        batch_status["batches"]["google"]["status"] = status
+        if results:
+            batch_status["batches"]["google"]["results"] = results
+        print(f"  Google: {status}")
+
+    if batch_status["batches"][provider]["status"] != "completed":
+        all_complete = False
+
+# Update batch status file
+with open("batch_status.json", "w") as f:
+    json.dump(batch_status, f, indent=2)
+
+if all_complete:
+    print("\nAll batches complete! Run the next cell to process results.")
+else:
+    print("\nSome batches still processing. Re-run this cell to check again.")
+#+end_src
+
+#+RESULTS:
+: Checking batch status...
+:   OpenAI: completed
+:   Anthropic: completed
+: 
+: All batches complete! Run the next cell to process results.
+
+* Process Batch Results
+
+Combine batch results into unified format.
+
+#+begin_src python
+# Load batch status with results
+with open("batch_status.json", "r") as f:
+    batch_status = json.load(f)
+
+# Build case lookup
+case_lookup = {c["id"]: c for c in test_cases}
+
+# Process all results
+all_results = []
+for provider, info in batch_status["batches"].items():
+    if "results" not in info:
+        print(f"Warning: No results for {provider}")
+        continue
+
+    for r in info["results"]:
+        case = case_lookup[r["id"]]
+        answer = extract_answer(r["response"])
+        all_results.append({
+            "id": r["id"],
+            "input": case["input"],
+            "target": case["target"],
+            "difficulty": case["difficulty"],
+            "depth": case.get("depth", 0),
+            "provider": provider,
+            "model": info["model"],
+            "response": r["response"],
+            "extracted_answer": answer,
+            "correct": answer == case["target"]
+        })
+
+# Save full results
+output = {
+    "metadata": {
+        "timestamp": datetime.now().isoformat(),
+        "n_cases": len(test_cases),
+        "prompt_template": PROMPT_TEMPLATE
+    },
+    "results": all_results
+}
+
+with open("results.json", "w") as f:
+    json.dump(output, f, indent=2)
+
+print(f"Saved {len(all_results)} results to results.json")
+#+end_src
+
+#+RESULTS:
+: Saved 200 results to results.json
+
+* Full Evaluation Run (Sequential Fallback) :ARCHIVE:
+
+Use this if batch APIs are unavailable.
 
 #+begin_src python :eval no
 # Full run - this will take a while and cost API credits
@@ -695,19 +1135,162 @@ if 'sample_results' in dir() and sample_results:
             print(f"  Response excerpt: {f['response'][:200]}...")
 #+end_src
 
+#+RESULTS:
+#+begin_example
+=== Accuracy by Model ===
+gpt-5.1: 80.0% (4/5)
+claude-sonnet-4-5-20250929: 40.0% (2/5)
+gemini-2.5-pro: 20.0% (1/5)
+
+=== Accuracy by Difficulty ===
+
+gpt-5.1:
+  easy: 100.0% (1/1)
+  hard: 100.0% (1/1)
+  medium: 66.7% (2/3)
+
+claude-sonnet-4-5-20250929:
+  easy: 0.0% (0/1)
+  hard: 100.0% (1/1)
+  medium: 33.3% (1/3)
+
+gemini-2.5-pro:
+  easy: 0.0% (0/1)
+  hard: 0.0% (0/1)
+  medium: 33.3% (1/3)
+
+=== Sample Failures ===
+
+claude-sonnet-4-5-20250929: (()())((())(()))
+  Expected: (), Got: void
+  Response excerpt: I'll simplify this expression step by step using the two axioms.
+
+Starting expression: (()())((())(()))
+
+Let me work on each part systematically.
+
+,**Step 1:** Look at the first part: (()())
+- Inside w...
+
+gemini-2.5-pro: (()())((())(()))
+  Expected: (), Got: void
+  Response excerpt: Let's simplify the expression `(()())((())(()))` step-by-step using the given axioms:
+
+,**Axioms:**
+I1 (Number): `()()` = `()`
+I2 (Order): `(())` = `void`
+
+,**Expression:** `(()())((())(()))`
+
+,**Step 1:...
+
+claude-sonnet-4-5-20250929: ((()))(((())(()))(()))
+  Expected: (), Got: void
+  Response excerpt: I'll simplify this expression step by step using the two axioms.
+
+,**Starting expression:** ((()))(((())(()))(()))
+
+Let me work from the innermost parentheses outward.
+
+,**Step 1:** Identify innermost e...
+#+end_example
+
 * Load and Analyze Saved Results
 
-#+begin_src python :eval no
+#+begin_src python
 # Load previously saved results
 with open("results.json", "r") as f:
     saved = json.load(f)
 
 print(f"Loaded {len(saved['results'])} results from {saved['metadata']['timestamp']}")
 analysis = analyze_results(saved['results'])
-
+    
 # Print full analysis
 print("\n=== FULL RESULTS ===\n")
+print("=== Accuracy by Model ===")
 for model, stats in analysis["by_model"].items():
     pct = stats["accuracy"] * 100
     print(f"{model}: {pct:.1f}% ({stats['correct']}/{stats['total']})")
+
+print("\n=== Accuracy by Difficulty ===")
+for model, diffs in analysis["by_difficulty"].items():
+    print(f"\n{model}:")
+    for diff, stats in sorted(diffs.items()):
+        pct = stats["accuracy"] * 100
+        print(f"  {diff}: {pct:.1f}% ({stats['correct']}/{stats['total']})")
+
+if analysis["failures"]:
+    print("\n=== Sample Failures ===")
+    for f in analysis["failures"][:3]:
+        print(f"\n{f['model']}: {f['input']}")
+        print(f"  Expected: {f['target']}, Got: {f['extracted_answer']}")
+        print(f"  Response excerpt: {f['response'][:200]}...")
 #+end_src
+
+#+RESULTS:
+#+begin_example
+Loaded 200 results from 2025-12-05T19:15:32.000533
+
+=== FULL RESULTS ===
+
+=== Accuracy by Model ===
+gpt-5.1: 81.0% (81/100)
+claude-sonnet-4-5-20250929: 77.0% (77/100)
+
+=== Accuracy by Difficulty ===
+
+gpt-5.1:
+  easy: 96.7% (29/30)
+  hard: 70.0% (21/30)
+  medium: 77.5% (31/40)
+
+claude-sonnet-4-5-20250929:
+  easy: 86.7% (26/30)
+  hard: 66.7% (20/30)
+  medium: 77.5% (31/40)
+
+=== Sample Failures ===
+
+gpt-5.1: ((()()))
+  Expected: (), Got: void
+  Response excerpt: Start with the expression:
+
+1. `((()()))`
+
+Work from the inside out.
+
+2. Identify the innermost subexpression: `()`
+   - This is already a single mark; no change.
+
+3. Next subexpression: `(())` appear...
+
+gpt-5.1: (((())))
+  Expected: void, Got: ()
+  Response excerpt: Start with the expression:
+
+1. `(((())))`
+
+Count the parentheses to see the structure:
+
+- Outermost pair: `(          )`
+  - Inside: `(((())))`
+    - Inside that: `((()))`
+      - Inside that: `(())`
+...
+
+gpt-5.1: ((((())(())())((()))))(((()(()))((())(())))(((())(()))((())(())(()))())((()(()))()(()(()))))
+  Expected: (), Got: void
+  Response excerpt: Let’s simplify step by step, using only:
+
+- I1 (Number): `()() = ()`
+- I2 (Order): `(()) =` void
+
+---
+
+### 1. Rewrite the expression clearly
+
+Original:
+
+```
+((((())(())())((()))))(((()(()))((())(())))...
+#+end_example
