@@ -1,0 +1,802 @@
+[
+  {
+    "id": "lof_001",
+    "input": "(()())((())(()))",
+    "target": "()",
+    "difficulty": "1. easy",
+    "depth": 3,
+    "steps": 4
+  },
+  {
+    "id": "lof_002",
+    "input": "((()))(((())(()))(()))",
+    "target": "()",
+    "difficulty": "2. medium",
+    "depth": 4,
+    "steps": 5
+  },
+  {
+    "id": "lof_003",
+    "input": "((()((())(())(()))))",
+    "target": "()",
+    "difficulty": "3. hard",
+    "depth": 5,
+    "steps": 4
+  },
+  {
+    "id": "lof_004",
+    "input": "(())",
+    "target": "void",
+    "difficulty": "2. medium",
+    "depth": 2,
+    "steps": 1
+  },
+  {
+    "id": "lof_005",
+    "input": "(((())()))",
+    "target": "()",
+    "difficulty": "2. medium",
+    "depth": 4,
+    "steps": 2
+  },
+  {
+    "id": "lof_006",
+    "input": "((()()))",
+    "target": "()",
+    "difficulty": "2. medium",
+    "depth": 3,
+    "steps": 2
+  },
+  {
+    "id": "lof_007",
+    "input": "()((()))()",
+    "target": "()",
+    "difficulty": "3. hard",
+    "depth": 3,
+    "steps": 2
+  },
+  {
+    "id": "lof_008",
+    "input": "(((())))((((())(()))(()))(((())()())(()(()))(()()))(()((()))))((((())()()))(((())())()))",
+    "target": "void",
+    "difficulty": "3. hard",
+    "depth": 5,
+    "steps": 24
+  },
+  {
+    "id": "lof_009",
+    "input": "(())(((())))",
+    "target": "void",
+    "difficulty": "2. medium",
+    "depth": 4,
+    "steps": 3
+  },
+  {
+    "id": "lof_010",
+    "input": "()((()))",
+    "target": "()",
+    "difficulty": "1. easy",
+    "depth": 3,
+    "steps": 2
+  },
+  {
+    "id": "lof_011",
+    "input": "((())())(((())))",
+    "target": "void",
+    "difficulty": "2. medium",
+    "depth": 4,
+    "steps": 4
+  },
+  {
+    "id": "lof_012",
+    "input": "(((())))",
+    "target": "void",
+    "difficulty": "3. hard",
+    "depth": 4,
+    "steps": 2
+  },
+  {
+    "id": "lof_013",
+    "input": "((()))(()(((())(())(()))())(((())()(()))))((((())())()(()()(()))))",
+    "target": "()",
+    "difficulty": "3. hard",
+    "depth": 5,
+    "steps": 17
+  },
+  {
+    "id": "lof_014",
+    "input": "(((()(()))(()))())",
+    "target": "void",
+    "difficulty": "3. hard",
+    "depth": 5,
+    "steps": 5
+  },
+  {
+    "id": "lof_015",
+    "input": "((((())(())())((()))))(((()(()))((())(())))(((())(()))((())(())(()))())((()(()))()(()(()))))",
+    "target": "()",
+    "difficulty": "3. hard",
+    "depth": 5,
+    "steps": 22
+  },
+  {
+    "id": "lof_016",
+    "input": "(())(()())",
+    "target": "void",
+    "difficulty": "1. easy",
+    "depth": 2,
+    "steps": 3
+  },
+  {
+    "id": "lof_017",
+    "input": "(())(((()))((())()))",
+    "target": "void",
+    "difficulty": "2. medium",
+    "depth": 4,
+    "steps": 5
+  },
+  {
+    "id": "lof_018",
+    "input": "((((())(())())((())())(())))((((()))((()))(()(())))(((())()(()))))((()()))",
+    "target": "()",
+    "difficulty": "3. hard",
+    "depth": 5,
+    "steps": 18
+  },
+  {
+    "id": "lof_019",
+    "input": "()(())",
+    "target": "()",
+    "difficulty": "1. easy",
+    "depth": 2,
+    "steps": 1
+  },
+  {
+    "id": "lof_020",
+    "input": "(((()(()))((())(())(())))((())((())(())()))(()))(((())(()()(())))(()((())(()))())(((())(())(()))((()))((())(()))))((()((())))((())(()())(()()))(()((())())))",
+    "target": "void",
+    "difficulty": "3. hard",
+    "depth": 5,
+    "steps": 38
+  },
+  {
+    "id": "lof_021",
+    "input": "(()())((()()))",
+    "target": "()",
+    "difficulty": "2. medium",
+    "depth": 3,
+    "steps": 4
+  },
+  {
+    "id": "lof_022",
+    "input": "()",
+    "target": "()",
+    "difficulty": "1. easy",
+    "depth": 1,
+    "steps": 0
+  },
+  {
+    "id": "lof_023",
+    "input": "(())((()))",
+    "target": "()",
+    "difficulty": "1. easy",
+    "depth": 3,
+    "steps": 2
+  },
+  {
+    "id": "lof_024",
+    "input": "((()((())(())()))(((())()(())))())",
+    "target": "void",
+    "difficulty": "3. hard",
+    "depth": 5,
+    "steps": 9
+  },
+  {
+    "id": "lof_025",
+    "input": "(((()))((())()))(((())(())))",
+    "target": "void",
+    "difficulty": "2. medium",
+    "depth": 4,
+    "steps": 7
+  },
+  {
+    "id": "lof_026",
+    "input": "((())(()))((()))",
+    "target": "()",
+    "difficulty": "1. easy",
+    "depth": 3,
+    "steps": 3
+  },
+  {
+    "id": "lof_027",
+    "input": "((((()))(())())(()())((())((())())))",
+    "target": "void",
+    "difficulty": "3. hard",
+    "depth": 5,
+    "steps": 10
+  },
+  {
+    "id": "lof_028",
+    "input": "((()())(()))",
+    "target": "()",
+    "difficulty": "2. medium",
+    "depth": 3,
+    "steps": 3
+  },
+  {
+    "id": "lof_029",
+    "input": "((()))",
+    "target": "()",
+    "difficulty": "1. easy",
+    "depth": 3,
+    "steps": 1
+  },
+  {
+    "id": "lof_030",
+    "input": "(((())))",
+    "target": "void",
+    "difficulty": "2. medium",
+    "depth": 4,
+    "steps": 2
+  },
+  {
+    "id": "lof_031",
+    "input": "(())()",
+    "target": "()",
+    "difficulty": "1. easy",
+    "depth": 2,
+    "steps": 1
+  },
+  {
+    "id": "lof_032",
+    "input": "((()))",
+    "target": "()",
+    "difficulty": "2. medium",
+    "depth": 3,
+    "steps": 1
+  },
+  {
+    "id": "lof_033",
+    "input": "()",
+    "target": "()",
+    "difficulty": "1. easy",
+    "depth": 1,
+    "steps": 0
+  },
+  {
+    "id": "lof_034",
+    "input": "(((()))(((())(())(()))(()))((())))",
+    "target": "void",
+    "difficulty": "3. hard",
+    "depth": 5,
+    "steps": 8
+  },
+  {
+    "id": "lof_035",
+    "input": "((()))",
+    "target": "()",
+    "difficulty": "1. easy",
+    "depth": 3,
+    "steps": 1
+  },
+  {
+    "id": "lof_036",
+    "input": "((())((())(())))",
+    "target": "void",
+    "difficulty": "2. medium",
+    "depth": 4,
+    "steps": 4
+  },
+  {
+    "id": "lof_037",
+    "input": "(((())())(()))()",
+    "target": "()",
+    "difficulty": "2. medium",
+    "depth": 4,
+    "steps": 4
+  },
+  {
+    "id": "lof_038",
+    "input": "(((())())((())(())))",
+    "target": "void",
+    "difficulty": "2. medium",
+    "depth": 4,
+    "steps": 5
+  },
+  {
+    "id": "lof_039",
+    "input": "((((())))(()((())()())((()))))((((())))(((())(())(()))((())(()))((())(())()))())",
+    "target": "()",
+    "difficulty": "3. hard",
+    "depth": 5,
+    "steps": 20
+  },
+  {
+    "id": "lof_040",
+    "input": "(((()(())))(((())()()))(()(())))()(((()))((()(())(()))((())(())))(((())()(()))(()(())())))",
+    "target": "()",
+    "difficulty": "3. hard",
+    "depth": 5,
+    "steps": 24
+  },
+  {
+    "id": "lof_041",
+    "input": "()(())",
+    "target": "()",
+    "difficulty": "2. medium",
+    "depth": 2,
+    "steps": 1
+  },
+  {
+    "id": "lof_042",
+    "input": "((())()(()()))(((())()((())(()))))((()())((()(()))((()))(()))())",
+    "target": "()",
+    "difficulty": "3. hard",
+    "depth": 5,
+    "steps": 17
+  },
+  {
+    "id": "lof_043",
+    "input": "((())((())))",
+    "target": "void",
+    "difficulty": "2. medium",
+    "depth": 4,
+    "steps": 3
+  },
+  {
+    "id": "lof_044",
+    "input": "(())",
+    "target": "void",
+    "difficulty": "2. medium",
+    "depth": 2,
+    "steps": 1
+  },
+  {
+    "id": "lof_045",
+    "input": "()",
+    "target": "()",
+    "difficulty": "1. easy",
+    "depth": 1,
+    "steps": 0
+  },
+  {
+    "id": "lof_046",
+    "input": "((()))",
+    "target": "()",
+    "difficulty": "1. easy",
+    "depth": 3,
+    "steps": 1
+  },
+  {
+    "id": "lof_047",
+    "input": "(((()(()))((()))))()",
+    "target": "()",
+    "difficulty": "3. hard",
+    "depth": 5,
+    "steps": 5
+  },
+  {
+    "id": "lof_048",
+    "input": "(((())))",
+    "target": "void",
+    "difficulty": "2. medium",
+    "depth": 4,
+    "steps": 2
+  },
+  {
+    "id": "lof_049",
+    "input": "()",
+    "target": "()",
+    "difficulty": "1. easy",
+    "depth": 1,
+    "steps": 0
+  },
+  {
+    "id": "lof_050",
+    "input": "(((()()())((())(())))(()(()())((())(())())))()((((())(())))()(((()))))",
+    "target": "()",
+    "difficulty": "3. hard",
+    "depth": 5,
+    "steps": 18
+  },
+  {
+    "id": "lof_051",
+    "input": "((()))(())",
+    "target": "()",
+    "difficulty": "1. easy",
+    "depth": 3,
+    "steps": 2
+  },
+  {
+    "id": "lof_052",
+    "input": "(()())(((()))())",
+    "target": "void",
+    "difficulty": "2. medium",
+    "depth": 4,
+    "steps": 5
+  },
+  {
+    "id": "lof_053",
+    "input": "(()())",
+    "target": "void",
+    "difficulty": "1. easy",
+    "depth": 2,
+    "steps": 2
+  },
+  {
+    "id": "lof_054",
+    "input": "(())",
+    "target": "void",
+    "difficulty": "2. medium",
+    "depth": 2,
+    "steps": 1
+  },
+  {
+    "id": "lof_055",
+    "input": "(((()))())(()(()(())))",
+    "target": "void",
+    "difficulty": "2. medium",
+    "depth": 4,
+    "steps": 6
+  },
+  {
+    "id": "lof_056",
+    "input": "((()()))((()())(()(()()())(()))((())(())(())))",
+    "target": "()",
+    "difficulty": "3. hard",
+    "depth": 4,
+    "steps": 11
+  },
+  {
+    "id": "lof_057",
+    "input": "(()(((())(()))((())()(()))((())()))((()())))(((()(()))((()))(()))())()",
+    "target": "()",
+    "difficulty": "3. hard",
+    "depth": 5,
+    "steps": 18
+  },
+  {
+    "id": "lof_058",
+    "input": "((())(()))",
+    "target": "()",
+    "difficulty": "1. easy",
+    "depth": 3,
+    "steps": 2
+  },
+  {
+    "id": "lof_059",
+    "input": "()(())",
+    "target": "()",
+    "difficulty": "1. easy",
+    "depth": 2,
+    "steps": 1
+  },
+  {
+    "id": "lof_060",
+    "input": "(())(()((())()))",
+    "target": "void",
+    "difficulty": "2. medium",
+    "depth": 4,
+    "steps": 4
+  },
+  {
+    "id": "lof_061",
+    "input": "((()))()",
+    "target": "()",
+    "difficulty": "1. easy",
+    "depth": 3,
+    "steps": 2
+  },
+  {
+    "id": "lof_062",
+    "input": "(()())",
+    "target": "void",
+    "difficulty": "1. easy",
+    "depth": 2,
+    "steps": 2
+  },
+  {
+    "id": "lof_063",
+    "input": "(()(()))((())(()))",
+    "target": "()",
+    "difficulty": "1. easy",
+    "depth": 3,
+    "steps": 4
+  },
+  {
+    "id": "lof_064",
+    "input": "()((())(()()))",
+    "target": "()",
+    "difficulty": "2. medium",
+    "depth": 3,
+    "steps": 4
+  },
+  {
+    "id": "lof_065",
+    "input": "((()))",
+    "target": "()",
+    "difficulty": "1. easy",
+    "depth": 3,
+    "steps": 1
+  },
+  {
+    "id": "lof_066",
+    "input": "()()",
+    "target": "()",
+    "difficulty": "1. easy",
+    "depth": 1,
+    "steps": 1
+  },
+  {
+    "id": "lof_067",
+    "input": "(((())()))",
+    "target": "()",
+    "difficulty": "3. hard",
+    "depth": 4,
+    "steps": 2
+  },
+  {
+    "id": "lof_068",
+    "input": "((((()))))",
+    "target": "()",
+    "difficulty": "3. hard",
+    "depth": 5,
+    "steps": 2
+  },
+  {
+    "id": "lof_069",
+    "input": "(()((())()))(((())()))",
+    "target": "()",
+    "difficulty": "2. medium",
+    "depth": 4,
+    "steps": 5
+  },
+  {
+    "id": "lof_070",
+    "input": "(())(()(()))",
+    "target": "void",
+    "difficulty": "1. easy",
+    "depth": 3,
+    "steps": 3
+  },
+  {
+    "id": "lof_071",
+    "input": "((((()))(())(()(()))))(()()(()(()()())(())))",
+    "target": "()",
+    "difficulty": "3. hard",
+    "depth": 5,
+    "steps": 11
+  },
+  {
+    "id": "lof_072",
+    "input": "((((())())((())(())(()))(()())))(()(((())()())())((()(())())()(())))",
+    "target": "()",
+    "difficulty": "3. hard",
+    "depth": 5,
+    "steps": 17
+  },
+  {
+    "id": "lof_073",
+    "input": "(((()(())(()))((())()()))(()(()(())(())))(((()))((())())))",
+    "target": "void",
+    "difficulty": "3. hard",
+    "depth": 5,
+    "steps": 15
+  },
+  {
+    "id": "lof_074",
+    "input": "(()(()))",
+    "target": "void",
+    "difficulty": "1. easy",
+    "depth": 3,
+    "steps": 2
+  },
+  {
+    "id": "lof_075",
+    "input": "(()(()))",
+    "target": "void",
+    "difficulty": "2. medium",
+    "depth": 3,
+    "steps": 2
+  },
+  {
+    "id": "lof_076",
+    "input": "(())((()))",
+    "target": "()",
+    "difficulty": "1. easy",
+    "depth": 3,
+    "steps": 2
+  },
+  {
+    "id": "lof_077",
+    "input": "()()",
+    "target": "()",
+    "difficulty": "1. easy",
+    "depth": 1,
+    "steps": 1
+  },
+  {
+    "id": "lof_078",
+    "input": "((()())((())))",
+    "target": "void",
+    "difficulty": "2. medium",
+    "depth": 4,
+    "steps": 4
+  },
+  {
+    "id": "lof_079",
+    "input": "()(((())))",
+    "target": "()",
+    "difficulty": "2. medium",
+    "depth": 4,
+    "steps": 2
+  },
+  {
+    "id": "lof_080",
+    "input": "((()()))",
+    "target": "()",
+    "difficulty": "2. medium",
+    "depth": 3,
+    "steps": 2
+  },
+  {
+    "id": "lof_081",
+    "input": "((())(()))(((())())((())()))",
+    "target": "()",
+    "difficulty": "2. medium",
+    "depth": 4,
+    "steps": 6
+  },
+  {
+    "id": "lof_082",
+    "input": "(()())()",
+    "target": "()",
+    "difficulty": "1. easy",
+    "depth": 2,
+    "steps": 2
+  },
+  {
+    "id": "lof_083",
+    "input": "((((())())((())())((())(())))())",
+    "target": "void",
+    "difficulty": "3. hard",
+    "depth": 5,
+    "steps": 8
+  },
+  {
+    "id": "lof_084",
+    "input": "(((())))",
+    "target": "void",
+    "difficulty": "2. medium",
+    "depth": 4,
+    "steps": 2
+  },
+  {
+    "id": "lof_085",
+    "input": "(()(()()))",
+    "target": "void",
+    "difficulty": "2. medium",
+    "depth": 3,
+    "steps": 3
+  },
+  {
+    "id": "lof_086",
+    "input": "(())",
+    "target": "void",
+    "difficulty": "2. medium",
+    "depth": 2,
+    "steps": 1
+  },
+  {
+    "id": "lof_087",
+    "input": "(((())())(()(())))",
+    "target": "()",
+    "difficulty": "2. medium",
+    "depth": 4,
+    "steps": 4
+  },
+  {
+    "id": "lof_088",
+    "input": "(()(((())(())(()))((())))())",
+    "target": "void",
+    "difficulty": "3. hard",
+    "depth": 5,
+    "steps": 6
+  },
+  {
+    "id": "lof_089",
+    "input": "((()())(()))(()(()(())))",
+    "target": "()",
+    "difficulty": "2. medium",
+    "depth": 4,
+    "steps": 6
+  },
+  {
+    "id": "lof_090",
+    "input": "((()(())))",
+    "target": "()",
+    "difficulty": "2. medium",
+    "depth": 4,
+    "steps": 2
+  },
+  {
+    "id": "lof_091",
+    "input": "(((())))()",
+    "target": "()",
+    "difficulty": "2. medium",
+    "depth": 4,
+    "steps": 2
+  },
+  {
+    "id": "lof_092",
+    "input": "((((())()(()))((())()(()))((()))))((((()))((())()(()))))(())",
+    "target": "()",
+    "difficulty": "3. hard",
+    "depth": 5,
+    "steps": 15
+  },
+  {
+    "id": "lof_093",
+    "input": "((()))",
+    "target": "()",
+    "difficulty": "2. medium",
+    "depth": 3,
+    "steps": 1
+  },
+  {
+    "id": "lof_094",
+    "input": "()(((()())(()))(((()))((())()))())()",
+    "target": "()",
+    "difficulty": "3. hard",
+    "depth": 5,
+    "steps": 10
+  },
+  {
+    "id": "lof_095",
+    "input": "()",
+    "target": "()",
+    "difficulty": "1. easy",
+    "depth": 1,
+    "steps": 0
+  },
+  {
+    "id": "lof_096",
+    "input": "(()())(((())(())))",
+    "target": "void",
+    "difficulty": "2. medium",
+    "depth": 4,
+    "steps": 5
+  },
+  {
+    "id": "lof_097",
+    "input": "(((()(()))((())())))((((())))(()(()())(()()()))(((()))()((()))))()",
+    "target": "()",
+    "difficulty": "3. hard",
+    "depth": 5,
+    "steps": 17
+  },
+  {
+    "id": "lof_098",
+    "input": "(((()(()))((())(()))())())",
+    "target": "void",
+    "difficulty": "3. hard",
+    "depth": 5,
+    "steps": 7
+  },
+  {
+    "id": "lof_099",
+    "input": "((()))(())",
+    "target": "()",
+    "difficulty": "1. easy",
+    "depth": 3,
+    "steps": 2
+  },
+  {
+    "id": "lof_100",
+    "input": "(((())())((())()))(()(()()))",
+    "target": "()",
+    "difficulty": "2. medium",
+    "depth": 4,
+    "steps": 6
+  }
+]

@@ -1,0 +1,8 @@
+{
+  "metadata": {
+    "timestamp": "2025-12-05T20:29:07.969762",
+    "n_cases": 100,
+    "prompt_template": "Simplify this Laws of Form expression using the two axioms:\n\nI1 (Number): ()() = ()\n   Multiple adjacent marks condense to a single mark.\n\nI2 (Order): (()) = void\n   A mark containing only a mark cancels to void (nothing).\n\nExpression: {expression}\n\nApply the axioms step by step until you reach either:\n- () (the mark)\n- void (empty/nothing)\n\nShow your reasoning, then state your final answer on the last line as either:\nFINAL: ()\nor\nFINAL: void\n"
+  },
+  "results": []
+}
