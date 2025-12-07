@@ -31,6 +31,8 @@ Every well-formed expression reduces to exactly one of two values:
 uv sync
 #+end_src
 
+#+RESULTS:
+
 * Setup
 
 #+begin_src python
@@ -60,14 +62,14 @@ MODELS = {
 print("Setup complete.")
 print(f"OpenAI key: {'set' if OPENAI_API_KEY else 'missing'}")
 print(f"Anthropic key: {'set' if ANTHROPIC_API_KEY else 'missing'}")
-print(f"Google key: {'set' if GOOGLE_API_KEY else 'missing'}")
+print(f"Gemini key: {'set' if GEMINI_API_KEY else 'missing'}")
 #+end_src
 
 #+RESULTS:
 : Setup complete.
 : OpenAI key: set
 : Anthropic key: set
-: Google key: set
+: Gemini key: set
 
 * Form Representation
 
@@ -429,6 +431,20 @@ print(f"Saved {len(test_cases)} test cases to test_cases.json")
 #+RESULTS:
 : Saved 100 test cases to test_cases.json
 
+* Load Test Cases
+
+Skip test generation by loading previously saved cases.
+
+#+begin_src python
+# Load saved test cases (skip generation)
+with open("test_cases.json", "r") as f:
+    test_cases = json.load(f)
+print(f"Loaded {len(test_cases)} test cases from test_cases.json")
+#+end_src
+
+#+RESULTS:
+: Loaded 30 test cases from test_cases.json
+
 * Set up Prompt
 
 Initialize API clients for each provider.
@@ -521,7 +537,7 @@ async def eval_anthropic_async(expression: str, model: str = MODELS["anthropic"]
 
 async def eval_google_async(expression: str, model: str = MODELS["google"]) -> Tuple[str, str, str]:
     """Evaluate using Google Gemini API (async). Returns (response, answer, model)."""
-    if not GOOGLE_API_KEY:
+    if not GEMINI_API_KEY:
         return "", "no_client", model
     prompt = PROMPT_TEMPLATE.format(expression=expression)
     async with genai.Client().aio as client:
@@ -544,7 +560,7 @@ Run a small subset with async for quick iteration. Saves full outputs.
 PROVIDERS = [
     ("openai", OPENAI_API_KEY, eval_openai_async),
     ("anthropic", ANTHROPIC_API_KEY, eval_anthropic_async),
-    ("google", GOOGLE_API_KEY, eval_google_async),
+    ("google", GEMINI_API_KEY, eval_google_async),
 ]
 
 
@@ -778,75 +794,62 @@ if 'sample_results' in dir() and sample_results:
 #+end_src
 
 #+RESULTS:
-#+begin_example
-=== Accuracy by Model ===
-gpt-5.1: 60.0% (3/5)
-claude-opus-4-5-20251101: 100.0% (5/5)
-gemini-3-pro-preview: 80.0% (4/5)
 
-=== Accuracy by Difficulty ===
-
-gpt-5.1:
-  1. easy: 100.0% (2/2)
-  2. medium: 0.0% (0/1)
-  3. hard: 50.0% (1/2)
-
-claude-opus-4-5-20251101:
-  1. easy: 100.0% (2/2)
-  2. medium: 100.0% (1/1)
-  3. hard: 100.0% (2/2)
-
-gemini-3-pro-preview:
-  1. easy: 100.0% (2/2)
-  2. medium: 100.0% (1/1)
-  3. hard: 50.0% (1/2)
-
-=== Sample Failures ===
-
-gpt-5.1: (()((((((((()(())))()(((())(())(())(())())()(()(())(())(()))())((())((())()()(()))((())(())(())(()))(()(())()()))))(())())))(((((((()()()()))(((())(())(()))(())((())(())())(())(()()()))()()(()))))))))
-  Expected: void, Got: ()
-  Response excerpt: I’ll rewrite the expression with some spacing and then simplify systematically using only:
-
-- I1 (Number): `()() = ()`
-- I2 (Order): `(()) =` void
-
-Given expression:
-
-```
-(()((((((((()(())))()(((())((...
-
-gpt-5.1: (((((())()())(()(())(())())(())())((())(()(()))(()(())(()))((())()(()))))()((((()))()())(()(()()))))
-  Expected: void, Got: ()
-  Response excerpt: I’ll rewrite the expression clearly, then simplify step by step using only:
-
-- I1 (Number): `()() = ()`
-- I2 (Order): `(()) =` void
-
-Given expression:
-
-```
-(((((())()())(()(())(())())(())())((())(()((...
-
-gemini-3-pro-preview: ((((()))(()(((((((())()(()))((()))((())()))(((())()(()))((())()))((())((())()(())))(((())()())))(((()()))(((())(()))((())))((())(()(()))((())(())(()))((())(())(())))((()(())()()())()(()(())())))))))))
-  Expected: (), Got: void
-  Response excerpt: To simplify the expression, we will break it down structurally and apply the axioms.
-
-,**Axioms:**
-1.  **I1 (Number):** `()()` = `()`
-2.  **I2 (Order):** `(())` = `void`
-
-,**Derivations:**
-,*   From I2, ...
-#+end_example
-
-* Batch API: Submit Jobs
+* Batch API: Prepare Jobs
 
 Submit batch jobs to all three providers for the full evaluation.
 
+Uses an append-only JSONL log for robustness - never overwrites, easy to recover.
+
 #+begin_src python
+
 import tempfile
 from openai import OpenAI
 from anthropic import Anthropic
+from google import genai
+
+BATCH_LOG = "batch_log.jsonl"
+
+
+def log_batch_event(event: str, provider: str, batch_id: str, **data):
+    """Append an event to the batch log."""
+    entry = {
+        "timestamp": datetime.now().isoformat(),
+        "event": event,
+        "provider": provider,
+        "batch_id": batch_id,
+        ,**data
+    }
+    with open(BATCH_LOG, "a") as f:
+        f.write(json.dumps(entry) + "\n")
+
+
+def get_latest_batches() -> dict:
+    """Read log and return most recent batch per provider (that isn't completed)."""
+    batches = {}  # provider -> {batch_id, model, status, ...}
+    try:
+        with open(BATCH_LOG, "r") as f:
+            for line in f:
+                if not line.strip():
+                    continue
+                entry = json.loads(line)
+                provider = entry["provider"]
+                if entry["event"] == "submitted":
+                    batches[provider] = {
+                        "batch_id": entry["batch_id"],
+                        "model": entry.get("model"),
+                        "status": "submitted"
+                    }
+                elif entry["event"] == "status":
+                    if provider in batches and batches[provider]["batch_id"] == entry["batch_id"]:
+                        batches[provider]["status"] = entry["status"]
+                elif entry["event"] == "completed":
+                    if provider in batches and batches[provider]["batch_id"] == entry["batch_id"]:
+                        batches[provider]["status"] = "completed"
+                        batches[provider]["results"] = entry.get("results", [])
+    except FileNotFoundError:
+        pass
+    return batches
 
 
 def create_openai_batch(cases: List[dict], model: str = MODELS["openai"]) -> str:
@@ -924,46 +927,53 @@ def create_gemini_batch(cases: List[dict], model: str = MODELS["google"]) -> str
         config={"display_name": f"lof-eval-{datetime.now().strftime('%Y%m%d-%H%M%S')}"},
     )
     return batch_job.name
+    
+#+end_src
 
+#+RESULTS:
 
-# Submit all batches
-batch_status = {"timestamp": datetime.now().isoformat(), "batches": {}}
+* Submit Jobs
+#+begin_src python
+# Submit all batches (appends to log, never overwrites)
+print(f"Submitting batches for {len(test_cases)} test cases...")
 
 if OPENAI_API_KEY:
-    print("Submitting OpenAI batch...")
-    batch_status["batches"]["openai"] = {
-        "id": create_openai_batch(test_cases),
-        "model": MODELS["openai"],
-        "status": "submitted"
-    }
-    print(f"  OpenAI batch ID: {batch_status['batches']['openai']['id']}")
+    print("  Submitting OpenAI batch...")
+    try:
+        batch_id = create_openai_batch(test_cases)
+        log_batch_event("submitted", "openai", batch_id, model=MODELS["openai"], n_cases=len(test_cases))
+        print(f"    OpenAI batch ID: {batch_id}")
+    except Exception as e:
+        print(f"    OpenAI batch failed: {e}")
 
 if ANTHROPIC_API_KEY:
-    print("Submitting Anthropic batch...")
-    batch_status["batches"]["anthropic"] = {
-        "id": create_anthropic_batch(test_cases),
-        "model": MODELS["anthropic"],
-        "status": "submitted"
-    }
-    print(f"  Anthropic batch ID: {batch_status['batches']['anthropic']['id']}")
-
-if GOOGLE_API_KEY:
-    print("Submitting Gemini batch...")
+    print("  Submitting Anthropic batch...")
     try:
-        batch_status["batches"]["google"] = {
-            "id": create_gemini_batch(test_cases),
-            "model": MODELS["google"],
-            "status": "submitted"
-        }
-        print(f"  Gemini batch ID: {batch_status['batches']['google']['id']}")
+        batch_id = create_anthropic_batch(test_cases)
+        log_batch_event("submitted", "anthropic", batch_id, model=MODELS["anthropic"], n_cases=len(test_cases))
+        print(f"    Anthropic batch ID: {batch_id}")
     except Exception as e:
-        print(f"  Gemini batch failed: {e}")
+        print(f"    Anthropic batch failed: {e}")
 
-# Save batch status
-with open("batch_status.json", "w") as f:
-    json.dump(batch_status, f, indent=2)
-print(f"\nBatch status saved to batch_status.json")
+if GEMINI_API_KEY:
+    print("  Submitting Gemini batch...")
+    try:
+        batch_id = create_gemini_batch(test_cases)
+        log_batch_event("submitted", "google", batch_id, model=MODELS["google"], n_cases=len(test_cases))
+        print(f"    Gemini batch ID: {batch_id}")
+    except Exception as e:
+        print(f"    Gemini batch failed: {e}")
+
+print(f"\nBatch events appended to {BATCH_LOG}")
 #+end_src
+
+#+RESULTS:
+: Submitting batches for 30 test cases...
+:   Submitting Gemini batch...
+: Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GOOGLE_API_KEY.
+:     Gemini batch ID: batches/izt2k94rwktvv4pre8ai2cmkv5ax2yo4htv6
+: 
+: Batch events appended to batch_log.jsonl
 
 * Batch API: Check Status
 
@@ -1013,87 +1023,108 @@ def check_gemini_batch(batch_name: str) -> Tuple[str, Optional[List[dict]]]:
     if batch.state.name != "JOB_STATE_SUCCEEDED":
         return batch.state.name.lower(), None
 
-    # Batch complete - extract results
+    # Batch complete - extract inline results
     results = []
-    for i, resp in enumerate(batch.responses):
-        # responses are in order of input requests
-        text = resp.candidates[0].content.parts[0].text if resp.candidates else "ERROR: No candidates"
-        results.append({
-            "id": f"lof_{i+1:03d}",  # Match original case IDs
-            "response": text,
-            "provider": "google"
-        })
+    if batch.dest and batch.dest.inlined_responses:
+        for i, inline_resp in enumerate(batch.dest.inlined_responses):
+            if inline_resp.response:
+                try:
+                    text = inline_resp.response.text
+                except AttributeError:
+                    text = str(inline_resp.response)
+            elif inline_resp.error:
+                text = f"ERROR: {inline_resp.error}"
+            else:
+                text = "ERROR: No response"
+            results.append({
+                "id": f"lof_{i+1:03d}",  # Match original case IDs
+                "response": text,
+                "provider": "google"
+            })
 
     return "completed", results
 
 
-# Load batch status
-with open("batch_status.json", "r") as f:
-    batch_status = json.load(f)
+# Load latest batches from log
+batches = get_latest_batches()
 
-print("Checking batch status...")
-all_complete = True
-
-for provider, info in batch_status["batches"].items():
-    if provider == "openai" and OPENAI_API_KEY:
-        status, results = check_openai_batch(info["id"])
-        batch_status["batches"]["openai"]["status"] = status
-        if results:
-            batch_status["batches"]["openai"]["results"] = results
-        print(f"  OpenAI: {status}")
-
-    elif provider == "anthropic" and ANTHROPIC_API_KEY:
-        status, results = check_anthropic_batch(info["id"])
-        batch_status["batches"]["anthropic"]["status"] = status
-        if results:
-            batch_status["batches"]["anthropic"]["results"] = results
-        print(f"  Anthropic: {status}")
-
-    elif provider == "google" and GOOGLE_API_KEY:
-        status, results = check_gemini_batch(info["id"])
-        batch_status["batches"]["google"]["status"] = status
-        if results:
-            batch_status["batches"]["google"]["results"] = results
-        print(f"  Google: {status}")
-
-    if batch_status["batches"][provider]["status"] != "completed":
-        all_complete = False
-
-# Update batch status file
-with open("batch_status.json", "w") as f:
-    json.dump(batch_status, f, indent=2)
-
-if all_complete:
-    print("\nAll batches complete! Run the next cell to process results.")
+if not batches:
+    print("No batches found in log. Run the submit cell first.")
 else:
-    print("\nSome batches still processing. Re-run this cell to check again.")
+    print("Checking batch status...")
+    all_complete = True
+
+    for provider, info in batches.items():
+        if info["status"] == "completed":
+            print(f"  {provider}: completed (already)")
+            continue
+
+        batch_id = info["batch_id"]
+        try:
+            if provider == "openai" and OPENAI_API_KEY:
+                status, results = check_openai_batch(batch_id)
+            elif provider == "anthropic" and ANTHROPIC_API_KEY:
+                status, results = check_anthropic_batch(batch_id)
+            elif provider == "google" and GEMINI_API_KEY:
+                status, results = check_gemini_batch(batch_id)
+            else:
+                print(f"  {provider}: skipped (no API key)")
+                continue
+
+            print(f"  {provider}: {status}")
+
+            if results:
+                log_batch_event("completed", provider, batch_id, results=results)
+            elif status != info.get("status"):
+                log_batch_event("status", provider, batch_id, status=status)
+
+            if status != "completed":
+                all_complete = False
+
+        except Exception as e:
+            print(f"  {provider}: error - {e}")
+            all_complete = False
+
+    if all_complete:
+        print("\nAll batches complete! Run the next cell to process results.")
+    else:
+        print("\nSome batches still processing. Re-run this cell to check again.")
 #+end_src
 
 #+RESULTS:
 : Checking batch status...
+:   openai: in_progress
+:   anthropic: in_progress
+: Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GOOGLE_API_KEY.
+:   google: job_state_running
+: 
+: Some batches still processing. Re-run this cell to check again.
 
 * Process Batch Results
 
 Combine batch results into unified format.
 
 #+begin_src python
-# Load batch status with results
-with open("batch_status.json", "r") as f:
-    batch_status = json.load(f)
+# Load completed batches from log
+batches = get_latest_batches()
 
 # Build case lookup
 case_lookup = {c["id"]: c for c in test_cases}
 
 # Process all results
 all_results = []
-for provider, info in batch_status["batches"].items():
-    if "results" not in info:
-        print(f"Warning: No results for {provider}")
+for provider, info in batches.items():
+    if info["status"] != "completed" or "results" not in info:
+        print(f"Warning: No results for {provider} (status: {info['status']})")
         continue
 
     for r in info["results"]:
-        case = case_lookup[r["id"]]
-        answer = extract_answer(r["response"])
+        case = case_lookup.get(r["id"])
+        if not case:
+            print(f"Warning: Unknown case ID {r['id']}")
+            continue
+        response_text = r.get("response") or ""
+        answer = extract_answer(response_text)
         all_results.append({
             "id": r["id"],
             "input": case["input"],
@@ -1102,7 +1133,7 @@ for provider, info in batch_status["batches"].items():
             "depth": case.get("depth", 0),
             "provider": provider,
             "model": info["model"],
-            "response": r["response"],
+            "response": response_text,
             "extracted_answer": answer,
             "correct": answer == case["target"]
         })
@@ -1124,7 +1155,7 @@ print(f"Saved {len(all_results)} results to results.json")
 #+end_src
 
 #+RESULTS:
-: Saved 200 results to results.json
+: Saved 90 results to results.json
 
 * Load and Analyze Saved Results
 
@@ -1160,68 +1191,72 @@ if analysis["failures"]:
 
 #+RESULTS:
 #+begin_example
-Loaded 200 results from 2025-12-05T19:15:32.000533
+Loaded 90 results from 2025-12-07T11:53:36.408677
 
 === FULL RESULTS ===
 
 === Accuracy by Model ===
-gpt-5.1: 81.0% (81/100)
-claude-sonnet-4-5-20250929: 77.0% (77/100)
+gpt-5.1: 53.3% (16/30)
+claude-opus-4-5-20251101: 63.3% (19/30)
+gemini-3-pro-preview: 66.7% (20/30)
 
 === Accuracy by Difficulty ===
 
 gpt-5.1:
-  easy: 96.7% (29/30)
-  hard: 70.0% (21/30)
-  medium: 77.5% (31/40)
+  1. easy: 90.0% (9/10)
+  2. medium: 40.0% (4/10)
+  3. hard: 30.0% (3/10)
 
-claude-sonnet-4-5-20250929:
-  easy: 86.7% (26/30)
-  hard: 66.7% (20/30)
-  medium: 77.5% (31/40)
+claude-opus-4-5-20251101:
+  1. easy: 100.0% (10/10)
+  2. medium: 60.0% (6/10)
+  3. hard: 30.0% (3/10)
+
+gemini-3-pro-preview:
+  1. easy: 90.0% (9/10)
+  2. medium: 60.0% (6/10)
+  3. hard: 50.0% (5/10)
 
 === Sample Failures ===
 
-gpt-5.1: ((()()))
+gpt-5.1: ((((()()(())((((((())(())()())(()()(())(())(()))((())(())(())(()))(()())(()))))(((((())(())(())())(()(())(()))((())()(())()())(()()()()())((())()(())))((()(())()()))(((())()()())((())())((()))))))))))
   Expected: (), Got: void
-  Response excerpt: Start with the expression:
+  Response excerpt: Let’s simplify the expression step by step using only:
 
-1. `((()()))`
+- I1 (Number): `()() = ()`
+- I2 (Order): `(()) =` void (i.e., disappears)
 
-Work from the inside out.
+We’ll treat “void” as just “nothing” in the string.
 
-2. Identify the innermost subexpression: `()`
-   - This is already a single mark; no change.
+---
 
-3. Next subexpression: `(())` appear...
+### 1. Rewr...
 
-gpt-5.1: (((())))
+gpt-5.1: ((((((((((())()(()))()(()(())))((()(())(())(())(()))(()())(()(())()())((())()(())(())))())(()(((())()(())))(((())(())(())(())()))(((())()(()))((())())))))(((((()(())(())())((())()(())()())(())))))))))
   Expected: void, Got: ()
-  Response excerpt: Start with the expression:
+  Response excerpt: I’ll rewrite the expression with some spacing and then simplify systematically using only:
 
-1. `(((())))`
+- I1 (Number): `()() = ()`
+- I2 (Order): `(()) =` void (i.e., disappears)
 
-Count the parentheses to see the structure:
+---
 
-- Outermost pair: `(          )`
-  - Inside: `(((())))`
-    - Inside that: `((()))`
-      - Inside that: `(())`
-...
+Original expression:
 
-gpt-5.1: ((((())(())())((()))))(((()(()))((())(())))(((())(()))((())(())(()))())((()(()))()(()(()))))
+```
+((...
+
+gpt-5.1: ((())((((())()(())))(((())(()))((())(())(()))((())(())(())))()((()(())(())())(()(())(())(()))(()))))
   Expected: (), Got: void
-  Response excerpt: Let’s simplify step by step, using only:
+  Response excerpt: Let’s simplify the expression step by step using only:
 
 - I1 (Number): `()() = ()`
 - I2 (Order): `(()) =` void
 
 ---
 
-### 1. Rewrite the expression clearly
+We start with:
 
-Original:
-
-```
-((((())(())())((()))))(((()(()))((())(())))...
+\[
+E = ((())((((())()(())))(((())(()))((())(())(()))((())(())(())))...
 #+end_example
