@@ -21,7 +21,7 @@
     "target": "()",
     "difficulty": "2. medium",
     "depth": 6,
-    "steps": 24
+    "steps": 26
   },
   {
     "id": "lof_004",
@@ -37,7 +37,7 @@
     "target": "()",
     "difficulty": "3. hard",
     "depth": 11,
-    "steps": 49
+    "steps": 51
   },
   {
     "id": "lof_006",
@@ -53,7 +53,7 @@
     "target": "()",
     "difficulty": "2. medium",
     "depth": 6,
-    "steps": 23
+    "steps": 25
   },
   {
     "id": "lof_008",
@@ -61,7 +61,7 @@
     "target": "()",
     "difficulty": "2. medium",
     "depth": 6,
-    "steps": 24
+    "steps": 25
   },
   {
     "id": "lof_009",
@@ -93,7 +93,7 @@
     "target": "void",
     "difficulty": "3. hard",
     "depth": 11,
-    "steps": 50
+    "steps": 53
   },
   {
     "id": "lof_013",
@@ -133,7 +133,7 @@
     "target": "void",
     "difficulty": "3. hard",
     "depth": 11,
-    "steps": 48
+    "steps": 50
   },
   {
     "id": "lof_018",
@@ -141,7 +141,7 @@
     "target": "()",
     "difficulty": "2. medium",
     "depth": 6,
-    "steps": 24
+    "steps": 26
   },
   {
     "id": "lof_019",
@@ -149,7 +149,7 @@
     "target": "()",
     "difficulty": "3. hard",
     "depth": 11,
-    "steps": 49
+    "steps": 51
   },
   {
     "id": "lof_020",
@@ -181,7 +181,7 @@
     "target": "void",
     "difficulty": "2. medium",
     "depth": 6,
-    "steps": 27
+    "steps": 28
   },
   {
     "id": "lof_024",
@@ -213,7 +213,7 @@
     "target": "void",
     "difficulty": "2. medium",
     "depth": 6,
-    "steps": 26
+    "steps": 27
   },
   {
     "id": "lof_028",
@@ -229,7 +229,7 @@
     "target": "()",
     "difficulty": "1. easy",
     "depth": 3,
-    "steps": 3
+    "steps": 4
   },
   {
     "id": "lof_030",
@@ -237,6 +237,6 @@
     "target": "()",
     "difficulty": "2. medium",
     "depth": 6,
-    "steps": 25
+    "steps": 26
   }
 ]

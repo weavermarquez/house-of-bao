@@ -1105,6 +1105,54 @@ if 'sample_results' in dir() and sample_results:
 #+end_src
 
 #+RESULTS:
+#+begin_example
+=== Accuracy by Model ===
+gpt-5.1: 80.0% final answer, 33.3% trace accuracy
+claude-opus-4-5-20251101: 100.0% final answer, 50.0% trace accuracy
+gemini-3-pro-preview: 80.0% final answer, 61.1% trace accuracy
+
+=== Accuracy by Difficulty ===
+
+gpt-5.1:
+  1. easy: 100.0% (2/2)
+  2. medium: 50.0% (1/2)
+  3. hard: 100.0% (1/1)
+
+claude-opus-4-5-20251101:
+  1. easy: 100.0% (2/2)
+  2. medium: 100.0% (2/2)
+  3. hard: 100.0% (1/1)
+
+gemini-3-pro-preview:
+  1. easy: 100.0% (2/2)
+  2. medium: 100.0% (2/2)
+  3. hard: 0.0% (0/1)
+
+=== Trace Error Types ===
+
+gpt-5.1:
+  wrong_result: 34
+  wrong_axiom: 1
+
+claude-opus-4-5-20251101:
+  malformed: 6
+
+gemini-3-pro-preview:
+  wrong_result: 16
+  malformed: 8
+
+=== Sample Failures ===
+
+gpt-5.1: ((((())(()()))(((())(())()(()))(()())((())()))((()...
+  Expected: (), Got: void
+  Trace: 1/15 steps valid
+  First error (step 1): wrong_result - ((((())(()()))(((())(())()(())... [I2]
+
+gemini-3-pro-preview: ((((()()(())((((((())(())()())(()()(())(())(()))((...
+  Expected: (), Got: void
+  Trace: 2/5 steps valid
+  First error (step 1): wrong_result - (((((()()(())()())))))... [I2]
+#+end_example
 
 * Batch API: Prepare Jobs
 
