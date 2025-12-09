@@ -405,7 +405,7 @@ By difficulty:
   1. easy: 10 cases, avg depth=2.4, range=[1-3]
   2. medium: 10 cases, avg depth=6.0, range=[6-6]
   3. hard: 10 cases, avg depth=11.0, range=[11-11]
-
+  
 By target value:
   (): 18
   void: 12
@@ -463,6 +463,11 @@ Expression: {expression}
 Apply the axioms step by step until you reach either:
 - () (the mark)
 - void (empty/nothing)
+
+At each step, output an exact line of the form:
+STEP k: expr => expr' [I1]  
+or
+STEP k: expr => expr' [I2]
 
 Show your reasoning, then state your final answer on the last line as either:
 FINAL: ()
@@ -634,103 +639,77 @@ if failures:
 #+RESULTS:
 #+begin_example
 Running async sample evaluation...
+Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GOOGLE_API_KEY.
+Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GOOGLE_API_KEY.
+Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GOOGLE_API_KEY.
+Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GOOGLE_API_KEY.
+Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GOOGLE_API_KEY.
 Saved 15 results to sample_results.json
 
 === Sample Results ===
-✅ lof_001 (openai): ()(())                         -> () (target: ())
-✅ lof_001 (anthropic): ()(())                         -> () (target: ())
-✅ lof_001 (google): ()(())                         -> () (target: ())
-❌ lof_002 (openai): (()((((((((()(())))()(((())(() -> () (target: void)
-✅ lof_002 (anthropic): (()((((((((()(())))()(((())(() -> void (target: void)
-✅ lof_002 (google): (()((((((((()(())))()(((())(() -> void (target: void)
-❌ lof_003 (openai): (((((())()())(()(())(())())(() -> () (target: void)
-✅ lof_003 (anthropic): (((((())()())(()(())(())())(() -> void (target: void)
-✅ lof_003 (google): (((((())()())(()(())(())())(() -> void (target: void)
-✅ lof_004 (openai): ()((())())                     -> () (target: ())
-✅ lof_004 (anthropic): ()((())())                     -> () (target: ())
-✅ lof_004 (google): ()((())())                     -> () (target: ())
-✅ lof_005 (openai): ((((()))(()(((((((())()(()))(( -> () (target: ())
-✅ lof_005 (anthropic): ((((()))(()(((((((())()(()))(( -> () (target: ())
-❌ lof_005 (google): ((((()))(()(((((((())()(()))(( -> void (target: ())
+✅ lof_001 (openai): (())(()())                     -> void (target: void)
+✅ lof_001 (anthropic): (())(()())                     -> void (target: void)
+✅ lof_001 (google): (())(()())                     -> void (target: void)
+✅ lof_002 (openai): ()(())                         -> () (target: ())
+✅ lof_002 (anthropic): ()(())                         -> () (target: ())
+✅ lof_002 (google): ()(())                         -> () (target: ())
+❌ lof_003 (openai): ((((()))(())((()(())(())())()) -> void (target: ())
+✅ lof_003 (anthropic): ((((()))(())((()(())(())())()) -> () (target: ())
+❌ lof_003 (google): ((((()))(())((()(())(())())()) -> void (target: ())
+✅ lof_004 (openai): ((((())(()()))(((())(())()(()) -> () (target: ())
+✅ lof_004 (anthropic): ((((())(()()))(((())(())()(()) -> () (target: ())
+❌ lof_004 (google): ((((())(()()))(((())(())()(()) -> void (target: ())
+❌ lof_005 (openai): ((((()()(())((((((())(())()()) -> void (target: ())
+✅ lof_005 (anthropic): ((((()()(())((((((())(())()()) -> () (target: ())
+❌ lof_005 (google): ((((()()(())((((((())(())()()) -> void (target: ())
 
-=== 3 Failures - Full Reasoning ===
-
---- lof_002 (gpt-5.1) ---
-Input: (()((((((((()(())))()(((())(())(())(())())()(()(())(())(()))())((())((())()()(()))((())(())(())(()))(()(())()()))))(())())))(((((((()()()()))(((())(())(()))(())((())(())())(())(()()()))()()(()))))))))
-Expected: void, Got: ()
-Response:
-I’ll rewrite the expression with some spacing and then simplify systematically using only:
-
-- I1 (Number): `()() = ()`
-- I2 (Order): `(()) =` void
-
-Given expression:
-
-```
-(()((((((((()(())))()(((())(())(())(())())()(()(())(())(()))())((())((())()()(()))((())(())(())(()))(()(())()()))))(())())))(((((((()()()()))(((())(())(()))(())((())(())())(())(()()()))()()(()))))))))
-```
-
----
-
-### 1. Top-level structure
-
-The whole thing is of the form:
-
-```
-( A ) B
-```
-
-where:
-
-- The very first `(` matches a `...
+=== 5 Failures - Full Reasoning ===
 
 --- lof_003 (gpt-5.1) ---
-Input: (((((())()())(()(())(())())(())())((())(()(()))(()(())(()))((())()(()))))()((((()))()())(()(()()))))
-Expected: void, Got: ()
-Response:
-I’ll rewrite the expression clearly, then simplify step by step using only:
-
-- I1 (Number): `()() = ()`
-- I2 (Order): `(()) =` void
-
-Given expression:
-
-```
-(((((())()())(()(())(())())(())())((())(()(()))(()(())(()))((())()(()))))()((((()))()())(()(()()))))
-```
-
----
-
-## 1. Parse the structure
-
-Top level:
-
-- It is of the form:  
-  ` ( A () B ) `  
-  where:
-  - `A = ((((())()())(()(())(())())(())())((())(()(()))(()(())(()))((())()(()))))`
-  - `B = ((((()))()())(()(()())))`
-
-So the whole expression ...
-
---- lof_005 (gemini-3-pro-preview) ---
-Input: ((((()))(()(((((((())()(()))((()))((())()))(((())()(()))((())()))((())((())()(())))(((())()())))(((()()))(((())(()))((())))((())(()(()))((())(())(()))((())(())(())))((()(())()()())()(()(())())))))))))
+Input: ((((()))(())((()(())(())())())))(((((())))((())((())(())()))((()(()))((())(())(()))(())((())))())())
 Expected: (), Got: void
 Response:
-To simplify the expression, we will break it down structurally and apply the axioms.
+STEP 1: ((((()))(())((()(())(())())())))(((((())))((())((())(())()))((()(()))((())(())(()))(())((())))())())  
+=> ((((()))(())((()(())(())())())))(((()))((())((())(())()))((()(()))((())(())(()))(())((())))())()) [I2]
 
-,**Axioms:**
-1.  **I1 (Number):** `()()` = `()`
-2.  **I2 (Order):** `(())` = `void`
+(Explanation: the leftmost `(((())))` is of the form `(())` with inner `()`, so it reduces to `void`, leaving `((()))` → `()` inside that segment; similarly, the rightmost `((((()))))`-like structure simplifies one nesting by I2. We continue systematically.)
 
-,**Derivations:**
-,*   From I2, `(void)` = `()`. (A mark containing nothing is a mark).
-,*   From I1, `() x` = `()`. (The "Dominance" rule: any expression `x` adjacent to `()` inside a mark is absorbed. If `x` is `void`, `() void` = `()`. If `x` is `()`, `()()` = `()`).
-,*   Consequently, `( () x )` = `(())` = `void`.
+STEP 2: ((((()))(())((...
 
----
+--- lof_003 (gemini-3-pro-preview) ---
+Input: ((((()))(())((()(())(())())())))(((((())))((())((())(())()))((()(()))((())(())(()))(())((())))())())
+Expected: (), Got: void
+Response:
+To simplify the expression using the Laws of Form, we apply the two axioms:
+,**I1 (Number):** `()()` = `()`
+,**I2 (Order):** `(())` = `void`
 
-,**Step 1...
+Expression:
+`(((((()))(())((()(())(())())())))(((((())))((())((())(())()))((()(()))((())(())(()))(())((())))())())`
+
+,**Reasoning:**
+
+STEP 1: Apply I2 to remove simple `(())` instances.
+expr => `(((((()))((()()())())))(((((())))((()(()())))((()(()))((()()()))((())))())())` [I2]
+
+STEP 2: Apply I1 to reduce `()()` to `()`.
+expr => `(((((()))((()())())))(((((())...
+
+--- lof_004 (gemini-3-pro-preview) ---
+Input: ((((())(()()))(((())(())()(()))(()())((())()))((()(())()))()))
+Expected: (), Got: void
+Response:
+To simplify the expression `((((())(()()))(((())(())()(()))(()())((())()))((()(())()))()))`, I will apply the axioms I1 `()() = ()` and I2 `(()) = void` step by step, working from the deepest nested terms outward.
+
+The expression structure is `( T1 T2 T3 T4 )` where:
+- T1: `((())(()()))`
+- T2: `(((())(())()(()))(()())((())()))`
+- T3: `((()(())()))`
+- T4: `()`
+
+,**Trace:**
+
+STEP 1: ((((())(()()))(((())(())()(()))(()())((())()))((()(())()))())) => ((((())(()))(((())(())()(()))(()())((())()))((()(()...
 #+end_example
 
 * Set up Analysis 
