@@ -397,7 +397,7 @@ By difficulty:
   1. easy: 10 cases, avg depth=2.4, range=[1-3]
   2. medium: 10 cases, avg depth=6.0, range=[6-6]
   3. hard: 10 cases, avg depth=11.0, range=[11-11]
-  
+
 By target value:
   (): 18
   void: 12
@@ -405,9 +405,9 @@ By target value:
 Sample cases:
   lof_001: (())(()())           -> void   (d=2, 1. easy, 3 steps)
   lof_002: ()(())               -> ()     (d=2, 1. easy, 1 steps)
-  lof_003: ((((()))(())((()(())(())())())))(((((())))((())((())(())()))((()(()))((())(())(()))(())((())))())()) -> ()     (d=6, 2. medium, 24 steps)
+  lof_003: ((((()))(())((()(())(())())())))(((((())))((())((())(())()))((()(()))((())(())(()))(())((())))())()) -> ()     (d=6, 2. medium, 26 steps)
   lof_004: ((((())(()()))(((())(())()(()))(()())((())()))((()(())()))())) -> ()     (d=6, 2. medium, 16 steps)
-  lof_005: ((((()()(())((((((())(())()())(()()(())(())(()))((())(())(())(()))(()())(()))))(((((())(())(())())(()(())(()))((())()(())()())(()()()()())((())()(())))((()(())()()))(((())()()())((())())((())))))))))) -> ()     (d=11, 3. hard, 49 steps)
+  lof_005: ((((()()(())((((((())(())()())(()()(())(())(()))((())(())(())(()))(()())(()))))(((((())(())(())())(()(())(()))((())()(())()())(()()()()())((())()(())))((()(())()()))(((())()()())((())())((())))))))))) -> ()     (d=11, 3. hard, 51 steps)
 #+end_example
 
 
@@ -421,7 +421,7 @@ print(f"Saved {len(test_cases)} test cases to test_cases.json")
 #+end_src
 
 #+RESULTS:
-: Saved 100 test cases to test_cases.json
+: Saved 30 test cases to test_cases.json
 
 * Load Test Cases
 
@@ -780,6 +780,29 @@ print(f"  Trace score: {validation['trace_score']:.1%}")
 #+end_src
 
 #+RESULTS:
+#+begin_example
+=== Trace Validation Tests ===
+
+I2 (Order) tests:
+  (()) -> void [I2]: valid=True, err=''
+  ()(()) -> () [I2]: valid=True, err=''
+  ((())) -> () [I2]: valid=True, err=''
+  ((())) -> void [I2]: valid=False, err='scope_collapse'
+
+I1 (Number) tests:
+  ()() -> () [I1]: valid=True, err=''
+  (()()) -> (()) [I1]: valid=True, err=''
+  (()()) -> () [I1]: valid=False, err='scope_collapse'
+
+Parsing test (old format):
+  Parsed 2 steps: [('(())(())', '(())', 'I1'), ('(())', '', 'I2')]
+
+Parsing test (new structured format):
+  Parsed 2 steps: [('(())(())', '(())', 'I1'), ('(())', '', 'I2')]
+  Extracted answer: void
+  Validation: 2/2 valid
+  Trace score: 100.0%
+#+end_example
 
 * Async Eval Functions
 
@@ -935,64 +958,100 @@ Saved 15 results to sample_results.json
 ✅ lof_002 (openai): ()(())                         -> () (target: ())
 ✅ lof_002 (anthropic): ()(())                         -> () (target: ())
 ✅ lof_002 (google): ()(())                         -> () (target: ())
-❌ lof_003 (openai): ((((()))(())((()(())(())())()) -> void (target: ())
+✅ lof_003 (openai): ((((()))(())((()(())(())())()) -> () (target: ())
 ✅ lof_003 (anthropic): ((((()))(())((()(())(())())()) -> () (target: ())
-❌ lof_003 (google): ((((()))(())((()(())(())())()) -> void (target: ())
-✅ lof_004 (openai): ((((())(()()))(((())(())()(()) -> () (target: ())
+✅ lof_003 (google): ((((()))(())((()(())(())())()) -> () (target: ())
+❌ lof_004 (openai): ((((())(()()))(((())(())()(()) -> void (target: ())
 ✅ lof_004 (anthropic): ((((())(()()))(((())(())()(()) -> () (target: ())
-❌ lof_004 (google): ((((())(()()))(((())(())()(()) -> void (target: ())
-❌ lof_005 (openai): ((((()()(())((((((())(())()()) -> void (target: ())
+✅ lof_004 (google): ((((())(()()))(((())(())()(()) -> () (target: ())
+✅ lof_005 (openai): ((((()()(())((((((())(())()()) -> () (target: ())
 ✅ lof_005 (anthropic): ((((()()(())((((((())(())()()) -> () (target: ())
 ❌ lof_005 (google): ((((()()(())((((((())(())()()) -> void (target: ())
 
-=== 5 Failures - Full Reasoning ===
+=== 2 Failures - Full Reasoning ===
 
---- lof_003 (gpt-5.1) ---
-Input: ((((()))(())((()(())(())())())))(((((())))((())((())(())()))((()(()))((())(())(()))(())((())))())())
-Expected: (), Got: void
-Response:
-STEP 1: ((((()))(())((()(())(())())())))(((((())))((())((())(())()))((()(()))((())(())(()))(())((())))())())  
-=> ((((()))(())((()(())(())())())))(((()))((())((())(())()))((()(()))((())(())(()))(())((())))())()) [I2]
-
-(Explanation: the leftmost `(((())))` is of the form `(())` with inner `()`, so it reduces to `void`, leaving `((()))` → `()` inside that segment; similarly, the rightmost `((((()))))`-like structure simplifies one nesting by I2. We continue systematically.)
-
-STEP 2: ((((()))(())((...
-
---- lof_003 (gemini-3-pro-preview) ---
-Input: ((((()))(())((()(())(())())())))(((((())))((())((())(())()))((()(()))((())(())(()))(())((())))())())
-Expected: (), Got: void
-Response:
-To simplify the expression using the Laws of Form, we apply the two axioms:
-,**I1 (Number):** `()()` = `()`
-,**I2 (Order):** `(())` = `void`
-
-Expression:
-`(((((()))(())((()(())(())())())))(((((())))((())((())(())()))((()(()))((())(())(()))(())((())))())())`
-
-,**Reasoning:**
-
-STEP 1: Apply I2 to remove simple `(())` instances.
-expr => `(((((()))((()()())())))(((((())))((()(()())))((()(()))((()()()))((())))())())` [I2]
-
-STEP 2: Apply I1 to reduce `()()` to `()`.
-expr => `(((((()))((()())())))(((((())...
-
---- lof_004 (gemini-3-pro-preview) ---
+--- lof_004 (gpt-5.1) ---
 Input: ((((())(()()))(((())(())()(()))(()())((())()))((()(())()))()))
 Expected: (), Got: void
 Response:
-To simplify the expression `((((())(()()))(((())(())()(()))(()())((())()))((()(())()))()))`, I will apply the axioms I1 `()() = ()` and I2 `(()) = void` step by step, working from the deepest nested terms outward.
+<scratchpad>
+Let’s simplify systematically.
 
-The expression structure is `( T1 T2 T3 T4 )` where:
-- T1: `((())(()()))`
-- T2: `(((())(())()(()))(()())((())()))`
-- T3: `((()(())()))`
-- T4: `()`
+Expression:
+((((())(()()))(((())(())()(()))(()())((())()))((()(())()))()))
 
-,**Trace:**
+First, parse the outer structure. Count parentheses to see the main grouping.
 
-STEP 1: ((((())(()()))(((())(())()(()))(()())((())()))((()(())()))())) => ((((())(()))(((())(())()(()))(()())((())()))((()(()...
+The whole thing is of the form: ( A ) where A is:
+
+(((())(()()))(((())(())()(()))(()())((())()))((()(())()))())
+
+Now parse A into concatenated subexpressions:
+
+A = X Y Z W
+
+Scan:
+
+1. X = ((())(()()))
+   - Check: ((())(()()))
+     = ( (()) ( ()() ) )
+   Inside:
+     (()) is one subpart
+     (()()) is...
+
+--- lof_005 (gemini-3-pro-preview) ---
+Input: ((((()()(())((((((())(())()())(()()(())(())(()))((())(())(())(()))(()())(()))))(((((())(())(())())(()(())(()))((())()(())()())(()()()()())((())()(())))((()(())()()))(((())()()())((())())((()))))))))))
+Expected: (), Got: void
+Response:
+<scratchpad>
+I will analyze the expression by breaking it down into its nested components and reducing them recursively. The expression consists of a main wrapper containing a sequence of elements and two large complex blocks. I will evaluate the two large blocks first.
+1. The first large block `((((...))))` contains a sequence of items that reduce to `void`, `void`, `()`, `void`, resulting in a content of `()`. The 4-level wrapper alternates the value, resulting in `()`.
+2. The second large blo...
 #+end_example
+
+* Analyze Sample Results
+
+Run trace validation on the sample results.
+
+#+begin_src python
+# Analyze sample results with trace validation
+if 'sample_results' in dir() and sample_results:
+    print(f"Analyzing {len(sample_results)} sample results...\n")
+
+    analysis = analyze_results(sample_results)
+
+    print("=== Accuracy by Model ===")
+    for model, stats in sorted(analysis["by_model"].items()):
+        pct = stats["accuracy"] * 100
+        trace_pct = stats["avg_trace_score"] * 100
+        print(f"{model}: {pct:.1f}% final, {trace_pct:.1f}% trace ({stats['correct']}/{stats['total']})")
+
+    if analysis["error_types"]:
+        print("\n=== Trace Error Types ===")
+        for model, errors in sorted(analysis["error_types"].items()):
+            if errors:
+                print(f"\n{model}:")
+                for error_type, count in sorted(errors.items(), key=lambda x: -x[1]):
+                    print(f"  {error_type}: {count}")
+
+    # Show detailed trace analysis for failures
+    failures = [r for r in sample_results if not r["correct"]]
+    if failures:
+        print(f"\n=== Failure Trace Analysis ({len(failures)} failures) ===")
+        for f in failures[:3]:
+            print(f"\n{f['model']}: {f['input'][:40]}...")
+            print(f"  Expected: {f['target']}, Got: {f['extracted_answer']}")
+            if "trace_validation" in f:
+                tv = f["trace_validation"]
+                print(f"  Trace: {tv['steps_valid']}/{tv['steps_parsed']} steps valid, score={tv['trace_score']:.1%}")
+                if tv["errors"]:
+                    for step_num, err_type, before, after, axiom in tv["errors"][:2]:
+                        print(f"    Step {step_num} ({err_type}): {before[:25]}... [{axiom}]")
+else:
+    print("No sample_results found. Run the Sample Run cell first.")
+#+end_src
+
+#+RESULTS:
 
 * Set up Analysis 
 
@@ -1501,9 +1560,9 @@ Loaded 90 results from 2025-12-07T11:53:36.408677
 === FULL RESULTS ===
 
 === Accuracy by Model ===
-gpt-5.1: 53.3% (16/30)
-claude-opus-4-5-20251101: 63.3% (19/30)
-gemini-3-pro-preview: 66.7% (20/30)
+gpt-5.1: 53.3% final answer, 0.0% trace accuracy
+claude-opus-4-5-20251101: 63.3% final answer, 0.0% trace accuracy
+gemini-3-pro-preview: 66.7% final answer, 0.0% trace accuracy
 
 === Accuracy by Difficulty ===
 
@@ -1524,44 +1583,15 @@ gemini-3-pro-preview:
 
 === Sample Failures ===
 
-gpt-5.1: ((((()()(())((((((())(())()())(()()(())(())(()))((())(())(())(()))(()())(()))))(((((())(())(())())(()(())(()))((())()(())()())(()()()()())((())()(())))((()(())()()))(((())()()())((())())((()))))))))))
+gpt-5.1: ((((()()(())((((((())(())()())(()()(())(())(()))((())(())(()...
   Expected: (), Got: void
-  Response excerpt: Let’s simplify the expression step by step using only:
+  Trace: 0/0 steps valid
 
-- I1 (Number): `()() = ()`
-- I2 (Order): `(()) =` void (i.e., disappears)
-
-We’ll treat “void” as just “nothing” in the string.
-
----
-
-### 1. Rewr...
-
-gpt-5.1: ((((((((((())()(()))()(()(())))((()(())(())(())(()))(()())(()(())()())((())()(())(())))())(()(((())()(())))(((())(())(())(())()))(((())()(()))((())())))))(((((()(())(())())((())()(())()())(())))))))))
+gpt-5.1: ((((((((((())()(()))()(()(())))((()(())(())(())(()))(()())((...
   Expected: void, Got: ()
-  Response excerpt: I’ll rewrite the expression with some spacing and then simplify systematically using only:
+  Trace: 0/0 steps valid
 
-- I1 (Number): `()() = ()`
-- I2 (Order): `(()) =` void (i.e., disappears)
-
----
-
-Original expression:
-
-```
-((...
-
-gpt-5.1: ((())((((())()(())))(((())(()))((())(())(()))((())(())(())))()((()(())(())())(()(())(())(()))(()))))
+gpt-5.1: ((())((((())()(())))(((())(()))((())(())(()))((())(())(())))...
   Expected: (), Got: void
-  Response excerpt: Let’s simplify the expression step by step using only:
-
-- I1 (Number): `()() = ()`
-- I2 (Order): `(()) =` void
-
----
-
-We start with:
-
-\[
-E = ((())((((())()(())))(((())(()))((())(())(()))((())(())(())))...
+  Trace: 0/0 steps valid
 #+end_example
