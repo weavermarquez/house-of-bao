@@ -1,0 +1,1262 @@
+#+title: Laws of Form Arithmetic Evaluation Suite
+#+author: Valerie Kim
+#+property: header-args:python :session lof :results output :python ".venv/bin/python"
+
+* Introduction
+
+This notebook evaluates whether Large Language Models can correctly simplify
+Laws of Form (LoF) arithmetic expressions using Spencer-Brown's two axioms.
+
+** The Calculus of Indications
+
+George Spencer-Brown's /Laws of Form/ (1969) introduces a minimal calculus
+based on a single symbol: the /mark/ or /cross/, written as =()=.
+
+The calculus has only two axioms:
+
+| Axiom | Name    | Rule           | Interpretation      |
+|-------+---------+----------------+---------------------|
+| I1    | Number  | =()()= → =()=  | Condense/Confirm    |
+| I2    | Order   | =(())= → void  | Cancel/Compensate   |
+
+- *I1 (Number)*: Multiple adjacent marks condense to a single mark
+- *I2 (Order)*: A mark containing only a mark cancels to void (nothing)
+
+Every well-formed expression reduces to exactly one of two values:
+- =()= (the mark) — equivalent to TRUE or 1
+- void (empty) — equivalent to FALSE or 0
+
+* Install Packages
+#+begin_src bash
+uv sync
+#+end_src
+
+#+RESULTS:
+
+* Setup
+
+#+begin_src python
+import os
+import json
+import random
+import re
+from datetime import datetime
+from typing import Tuple, List, Optional
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
+# API clients (we'll initialize these when needed)
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
+ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY")
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+
+# Model defaults
+MODELS = {
+    "openai": "gpt-5.1",
+    "anthropic": "claude-opus-4-5-20251101",
+    "google": "gemini-3-pro-preview"
+}
+
+print("Setup complete.")
+print(f"OpenAI key: {'set' if OPENAI_API_KEY else 'missing'}")
+print(f"Anthropic key: {'set' if ANTHROPIC_API_KEY else 'missing'}")
+print(f"Gemini key: {'set' if GEMINI_API_KEY else 'missing'}")
+#+end_src
+
+#+RESULTS:
+: Setup complete.
+: OpenAI key: set
+: Anthropic key: set
+: Gemini key: set
+
+* Form Representation
+
+We use two representations:
+- *Internal*: Nested Python lists. =[[]]= represents =(())=, =[[], []]= represents =()()=
+- *String*: Parentheses notation for display and LLM prompts
+
+#+begin_src python
+def form_to_string(form: list) -> str:
+    """Convert internal form representation to string."""
+    if not form:
+        return ""
+    return "".join(f"({form_to_string(child)})" for child in form)
+
+def string_to_form(s: str) -> list:
+    """Parse string notation to internal form."""
+    result = []
+    i = 0
+    while i < len(s):
+        if s[i] == '(':
+            # Find matching close paren
+            depth = 1
+            j = i + 1
+            while j < len(s) and depth > 0:
+                if s[j] == '(':
+                    depth += 1
+                elif s[j] == ')':
+                    depth -= 1
+                j += 1
+            # Recursively parse contents
+            result.append(string_to_form(s[i+1:j-1]))
+            i = j
+        else:
+            i += 1
+    return result
+
+# Test
+test_forms = ["()", "(())", "()()", "((()))", "(()())"]
+for s in test_forms:
+    f = string_to_form(s)
+    back = form_to_string(f)
+    print(f"{s:12} -> {str(f):20} -> {back}")
+#+end_src
+
+#+RESULTS:
+: ()           -> [[]]                 -> ()
+: (())         -> [[[]]]               -> (())
+: ()()         -> [[], []]             -> ()()
+: ((()))       -> [[[[]]]]             -> ((()))
+: (()())       -> [[[], []]]           -> (()())
+
+* Form Generator
+
+Generate random well-formed LoF expressions with controlled complexity.
+
+#+begin_src python
+def form_depth(form: list) -> int:
+    """Calculate the nesting depth of a form (list representation)."""
+    if not form:
+        return 0
+    return 1 + max(form_depth(child) for child in form)
+
+
+def string_depth(s: str) -> int:
+    """Calculate the nesting depth of a form string. O(n) and no allocation."""
+    max_depth = 0
+    current = 0
+    for c in s:
+        if c == '(':
+            current += 1
+            max_depth = max(max_depth, current)
+        elif c == ')':
+            current -= 1
+    return max_depth
+
+
+def generate_form_string(min_depth: int = 1, max_depth: int = 3, max_width: int = 3, max_marks: int = 200) -> str:
+    """
+    Generate a random LoF form as a string directly (memory efficient).
+
+    Args:
+        min_depth: Minimum nesting depth (guaranteed)
+        max_depth: Maximum nesting depth
+        max_width: Maximum number of adjacent forms at any level
+        max_marks: Maximum total number of marks (parenthesis pairs) to prevent explosion
+
+    Returns:
+        A form as a string, e.g. "(()())" or ""
+    """
+    marks_used = [0]  # Mutable counter
+
+    def build(remaining_min: int, remaining_max: int) -> str:
+        if remaining_max <= 0 or marks_used[0] >= max_marks:
+            if marks_used[0] < max_marks and random.random() > 0.5:
+                marks_used[0] += 1
+                return "()"
+            return ""
+
+        if remaining_min > 0:
+            width = random.randint(1, max_width)
+        else:
+            width = random.randint(0, max_width)
+            if width == 0:
+                return ""
+
+        # One child guaranteed deep, others can be shallow
+        parts = []
+        deep_idx = random.randint(0, width - 1) if remaining_min > 0 else -1
+        for i in range(width):
+            if marks_used[0] >= max_marks:
+                break
+            marks_used[0] += 1
+            if i == deep_idx:
+                inner = build(remaining_min - 1, remaining_max - 1)
+            else:
+                inner = build(0, remaining_max - 1)
+            parts.append(f"({inner})")
+        return "".join(parts)
+
+    return build(min_depth, max_depth)
+
+
+# Generate some examples
+random.seed(1010101423)
+print("Sample generated forms (min_depth=2, max_depth=3):")
+for i in range(10):
+    s = generate_form_string(min_depth=2, max_depth=3, max_width=2)
+    d = string_depth(s)
+    print(f"  {i+1:2}. depth={d}: {s if s else '<void>'}")
+#+end_src
+
+#+RESULTS:
+#+begin_example
+Sample generated forms (min_depth=2, max_depth=3):
+   1. depth=4: ((())((())))
+   2. depth=4: (((()))(()(())))
+   3. depth=4: ((())((())))
+   4. depth=4: (((())))((()))
+   5. depth=2: (()())
+   6. depth=4: (((())()))
+   7. depth=4: (((())))
+   8. depth=3: ((()))((()())(()))
+   9. depth=4: (((())())(()))
+  10. depth=4: ((()(()))((())()))(((())(())))
+#+end_example
+
+* Ground-Truth Simplifier
+
+Apply I1 and I2 exhaustively until fixed point, tracking each step.
+
+#+begin_src python
+def simplify_step(form: list) -> Tuple[list, Optional[str]]:
+    """
+    Apply one simplification step if possible.
+
+    Returns:
+        (new_form, axiom_applied) where axiom_applied is None if no change
+    """
+    # I1 (Number): IDENTICAL adjacent forms condense (aa = a)
+    # Only applies when ALL adjacent forms are equal
+    if len(form) > 1 and all(child == form[0] for child in form):
+        return [form[0]], "I1"
+
+    # I2 (Order): (()) = void
+    # A mark is (()) if its content is [[]] (representing "()")
+    # Check each top-level mark and remove any that are (())
+    for i, child in enumerate(form):
+        if child == [[]]:
+            # This mark is (()) = void, remove it
+            new_form = form[:i] + form[i+1:]
+            return new_form, "I2"
+
+    # Recursively check children
+    for i, child in enumerate(form):
+        new_child, axiom = simplify_step(child)
+        if axiom:
+            new_form = form[:i] + [new_child] + form[i+1:]
+            return new_form, axiom
+
+    return form, None
+
+
+def simplify(form: list) -> Tuple[list, List[Tuple[str, str]]]:
+    """
+    Fully simplify a form to canonical form.
+
+    Returns:
+        (canonical_form, steps) where steps is list of (form_string, axiom)
+    """
+    steps = []
+    current = form
+
+    while True:
+        new_form, axiom = simplify_step(current)
+        if axiom is None:
+            break
+        steps.append((form_to_string(current), axiom))
+        current = new_form
+
+    return current, steps
+
+
+def canonical_string(form: list) -> str:
+    """Get the canonical string representation."""
+    simplified, _ = simplify(form)
+    s = form_to_string(simplified)
+    return s if s else "void"
+
+
+# Test the simplifier
+print("Simplification examples:")
+test_exprs = ["()()", "(())", "((()))", "(()())", "()(())", "(()(()))", "(())()", "(())(())"]
+for expr in test_exprs:
+    form = string_to_form(expr)
+    result, steps = simplify(form)
+    result_str = form_to_string(result) if result else "void"
+    print(f"\n{expr} -> {result_str}")
+    for step_form, axiom in steps:
+        print(f"  {step_form} [{axiom}]")
+#+end_src
+
+#+RESULTS:
+#+begin_example
+Simplification examples:
+
+()() -> ()
+  ()() [I1]
+
+(()) -> void
+  (()) [I2]
+
+((())) -> ()
+  ((())) [I2]
+
+(()()) -> void
+  (()()) [I1]
+  (()) [I2]
+
+()(()) -> ()
+  ()(()) [I2]
+
+(()(())) -> void
+  (()(())) [I2]
+  (()) [I2]
+
+(())() -> ()
+  (())() [I2]
+
+(())(()) -> void
+  (())(()) [I1]
+  (()) [I2]
+#+end_example
+
+* Test Case Generation
+
+Generate a reproducible test suite across difficulty levels.
+
+Difficulty is defined by *minimum* depth:
+- Easy: depth 1-2 (simple marks and single nesting)
+- Medium: depth 2-3 (requires at least one I2 application)
+- Hard: depth 3-4 (multiple nested reductions)
+
+#+begin_src python
+def generate_test_cases(n: int = 30, seed: int = 2024) -> List[dict]:
+    """Generate n test cases with varying difficulty."""
+    random.seed(seed)
+    cases = []
+
+    # Distribution with (difficulty, min_depth, max_depth, max_width, max_marks)
+    # max_marks caps complexity to keep simplification fast
+    difficulties = (
+        [("1. easy", 1, 2, 2, 20)] * 10 +
+        [("2. medium", 4, 5, 4, 50)] * 10 +
+        [("3. hard", 7, 10, 5, 100)] * 10
+    )
+    random.shuffle(difficulties)
+
+    for i, (diff, min_d, max_d, max_w, max_m) in enumerate(difficulties[:n]):
+        input_str = generate_form_string(min_depth=min_d, max_depth=max_d, max_width=max_w, max_marks=max_m)
+        if not input_str:
+            input_str = "()"  # Ensure non-empty
+        depth = string_depth(input_str)
+
+        # Convert to list only for simplification
+        form = string_to_form(input_str)
+        target = canonical_string(form)
+        _, steps = simplify(form)
+
+        cases.append({
+            "id": f"lof_{i+1:03d}",
+            "input": input_str,
+            "target": target,
+            "difficulty": diff,
+            "depth": depth,
+            "steps": len(steps)
+        })
+
+    return cases
+
+
+# Generate and preview test cases
+test_cases = generate_test_cases(100)
+print(f"Generated {len(test_cases)} test cases\n")
+
+# Preview distribution
+from collections import Counter
+diff_counts = Counter(c["difficulty"] for c in test_cases)
+target_counts = Counter(c["target"] for c in test_cases)
+depth_by_diff = {}
+for c in test_cases:
+    depth_by_diff.setdefault(c["difficulty"], []).append(c["depth"])
+
+print("By difficulty:")
+for diff in ["1. easy", "2. medium", "3. hard"]:
+    depths = depth_by_diff.get(diff, [])
+    avg_depth = sum(depths) / len(depths) if depths else 0
+    print(f"  {diff}: {diff_counts[diff]} cases, avg depth={avg_depth:.1f}, range=[{min(depths)}-{max(depths)}]")
+
+print("\nBy target value:")
+for target, count in sorted(target_counts.items()):
+    print(f"  {target}: {count}")
+
+print("\nSample cases:")
+for case in test_cases[:5]:
+    print(f"  {case['id']}: {case['input']:20} -> {case['target']:6} (d={case['depth']}, {case['difficulty']}, {case['steps']} steps)")
+#+end_src
+
+#+RESULTS:
+#+begin_example
+Generated 30 test cases
+
+By difficulty:
+  1. easy: 10 cases, avg depth=2.4, range=[1-3]
+  2. medium: 10 cases, avg depth=6.0, range=[6-6]
+  3. hard: 10 cases, avg depth=11.0, range=[11-11]
+
+By target value:
+  (): 18
+  void: 12
+
+Sample cases:
+  lof_001: (())(()())           -> void   (d=2, 1. easy, 3 steps)
+  lof_002: ()(())               -> ()     (d=2, 1. easy, 1 steps)
+  lof_003: ((((()))(())((()(())(())())())))(((((())))((())((())(())()))((()(()))((())(())(()))(())((())))())()) -> ()     (d=6, 2. medium, 24 steps)
+  lof_004: ((((())(()()))(((())(())()(()))(()())((())()))((()(())()))())) -> ()     (d=6, 2. medium, 16 steps)
+  lof_005: ((((()()(())((((((())(())()())(()()(())(())(()))((())(())(())(()))(()())(()))))(((((())(())(())())(()(())(()))((())()(())()())(()()()()())((())()(())))((()(())()()))(((())()()())((())())((())))))))))) -> ()     (d=11, 3. hard, 49 steps)
+#+end_example
+
+
+* Save Test Cases
+
+#+begin_src python
+# Save test cases for reproducibility
+with open("test_cases.json", "w") as f:
+    json.dump(test_cases, f, indent=2)
+print(f"Saved {len(test_cases)} test cases to test_cases.json")
+#+end_src
+
+#+RESULTS:
+: Saved 100 test cases to test_cases.json
+
+* Load Test Cases
+
+Skip test generation by loading previously saved cases.
+
+#+begin_src python
+# Load saved test cases (skip generation)
+with open("test_cases.json", "r") as f:
+    test_cases = json.load(f)
+print(f"Loaded {len(test_cases)} test cases from test_cases.json")
+#+end_src
+
+#+RESULTS:
+: Loaded 30 test cases from test_cases.json
+
+* Set up Prompt
+
+Initialize API clients for each provider.
+
+#+begin_src python
+PROMPT_TEMPLATE = """Simplify this Laws of Form expression using the two axioms:
+
+I1 (Number): ()() = ()
+   Multiple adjacent marks condense to a single mark.
+
+I2 (Order): (()) = void
+   A mark containing only a mark cancels to void (nothing).
+
+Expression: {expression}
+
+Apply the axioms step by step until you reach either:
+- () (the mark)
+- void (empty/nothing)
+
+Show your reasoning, then state your final answer on the last line as either:
+FINAL: ()
+or
+FINAL: void
+"""
+
+
+def extract_answer(response: str) -> str:
+    """Extract the final answer from LLM response."""
+    # Look for FINAL: pattern
+    match = re.search(r'FINAL:\s*(\(\)|void)', response, re.IGNORECASE)
+    if match:
+        ans = match.group(1).lower()
+        return "()" if ans == "()" else "void"
+
+    # Fallback: look for last occurrence of () or void
+    response_lower = response.lower()
+    last_mark = response_lower.rfind("()")
+    last_void = max(response_lower.rfind("void"), response_lower.rfind("empty"))
+
+    if last_mark > last_void:
+        return "()"
+    elif last_void > last_mark:
+        return "void"
+
+    return "unknown"
+#+end_src
+
+#+RESULTS:
+
+* Async Eval Functions
+
+Async evaluation using context managers for clean client lifecycle.
+
+#+begin_src python
+from openai import AsyncOpenAI
+from anthropic import AsyncAnthropic
+from google import genai
+import asyncio
+
+
+async def eval_openai_async(expression: str, model: str = MODELS["openai"]) -> Tuple[str, str, str]:
+    """Evaluate using OpenAI API (async). Returns (response, answer, model)."""
+    if not OPENAI_API_KEY:
+        return "", "no_client", model
+    prompt = PROMPT_TEMPLATE.format(expression=expression)
+    async with AsyncOpenAI() as client:
+        response = await client.chat.completions.create(
+            model=model,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0
+        )
+    text = response.choices[0].message.content
+    return text, extract_answer(text), model
+
+
+async def eval_anthropic_async(expression: str, model: str = MODELS["anthropic"]) -> Tuple[str, str, str]:
+    """Evaluate using Anthropic API (async). Returns (response, answer, model)."""
+    if not ANTHROPIC_API_KEY:
+        return "", "no_client", model
+    prompt = PROMPT_TEMPLATE.format(expression=expression)
+    async with AsyncAnthropic() as client:
+        response = await client.messages.create(
+            model=model,
+            max_tokens=1024,
+            messages=[{"role": "user", "content": prompt}]
+        )
+    text = response.content[0].text
+    return text, extract_answer(text), model
+
+
+async def eval_google_async(expression: str, model: str = MODELS["google"]) -> Tuple[str, str, str]:
+    """Evaluate using Google Gemini API (async). Returns (response, answer, model)."""
+    if not GEMINI_API_KEY:
+        return "", "no_client", model
+    prompt = PROMPT_TEMPLATE.format(expression=expression)
+    async with genai.Client().aio as client:
+        response = await client.models.generate_content(model=model, contents=prompt)
+    text = response.text
+    return text, extract_answer(text), model
+
+
+print("Async eval functions defined.")
+#+end_src
+
+#+RESULTS:
+: Async eval functions defined.
+
+* Sample Run (Async)
+
+Run a small subset with async for quick iteration. Saves full outputs.
+
+#+begin_src python
+PROVIDERS = [
+    ("openai", OPENAI_API_KEY, eval_openai_async),
+    ("anthropic", ANTHROPIC_API_KEY, eval_anthropic_async),
+    ("google", GEMINI_API_KEY, eval_google_async),
+]
+
+
+async def run_sample_async(cases: List[dict], n: int = 5) -> List[dict]:
+    """Run async evaluation on sample cases."""
+    sample = cases[:n]
+    results = []
+
+    # Build list of all (case, provider, eval_fn) combinations
+    tasks = []
+    task_info = []  # Track which case/provider each task belongs to
+
+    for case in sample:
+        for name, key, fn in PROVIDERS:
+            if key:
+                tasks.append(fn(case["input"]))
+                task_info.append((case, name))
+
+    # Run all in parallel
+    responses = await asyncio.gather(*tasks, return_exceptions=True)
+
+    # Process results
+    for (case, provider), resp in zip(task_info, responses):
+        if isinstance(resp, Exception):
+            response, answer, model = f"ERROR: {resp}", "error", "unknown"
+        else:
+            response, answer, model = resp
+
+        results.append({
+            "id": case["id"],
+            "input": case["input"],
+            "target": case["target"],
+            "difficulty": case["difficulty"],
+            "depth": case.get("depth", 0),
+            "provider": provider,
+            "model": model,
+            "response": response,
+            "extracted_answer": answer,
+            "correct": answer == case["target"]
+        })
+
+    return results
+
+
+# Run sample evaluation
+print("Running async sample evaluation...")
+sample_results = asyncio.run(run_sample_async(test_cases, n=5))
+
+# Save full results
+with open("sample_results.json", "w") as f:
+    json.dump(sample_results, f, indent=2)
+print(f"Saved {len(sample_results)} results to sample_results.json")
+
+# Display summary
+print("\n=== Sample Results ===")
+for r in sample_results:
+    status = "✅" if r["correct"] else "❌"
+    print(f"{status} {r['id']} ({r['provider']}): {r['input'][:30]:30} -> {r['extracted_answer']} (target: {r['target']})")
+
+# Show failures with reasoning
+failures = [r for r in sample_results if not r["correct"]]
+if failures:
+    print(f"\n=== {len(failures)} Failures - Full Reasoning ===")
+    for f in failures[:3]:
+        print(f"\n--- {f['id']} ({f['model']}) ---")
+        print(f"Input: {f['input']}")
+        print(f"Expected: {f['target']}, Got: {f['extracted_answer']}")
+        print(f"Response:\n{f['response'][:500]}...")
+#+end_src
+
+#+RESULTS:
+#+begin_example
+Running async sample evaluation...
+Saved 15 results to sample_results.json
+
+=== Sample Results ===
+✅ lof_001 (openai): ()(())                         -> () (target: ())
+✅ lof_001 (anthropic): ()(())                         -> () (target: ())
+✅ lof_001 (google): ()(())                         -> () (target: ())
+❌ lof_002 (openai): (()((((((((()(())))()(((())(() -> () (target: void)
+✅ lof_002 (anthropic): (()((((((((()(())))()(((())(() -> void (target: void)
+✅ lof_002 (google): (()((((((((()(())))()(((())(() -> void (target: void)
+❌ lof_003 (openai): (((((())()())(()(())(())())(() -> () (target: void)
+✅ lof_003 (anthropic): (((((())()())(()(())(())())(() -> void (target: void)
+✅ lof_003 (google): (((((())()())(()(())(())())(() -> void (target: void)
+✅ lof_004 (openai): ()((())())                     -> () (target: ())
+✅ lof_004 (anthropic): ()((())())                     -> () (target: ())
+✅ lof_004 (google): ()((())())                     -> () (target: ())
+✅ lof_005 (openai): ((((()))(()(((((((())()(()))(( -> () (target: ())
+✅ lof_005 (anthropic): ((((()))(()(((((((())()(()))(( -> () (target: ())
+❌ lof_005 (google): ((((()))(()(((((((())()(()))(( -> void (target: ())
+
+=== 3 Failures - Full Reasoning ===
+
+--- lof_002 (gpt-5.1) ---
+Input: (()((((((((()(())))()(((())(())(())(())())()(()(())(())(()))())((())((())()()(()))((())(())(())(()))(()(())()()))))(())())))(((((((()()()()))(((())(())(()))(())((())(())())(())(()()()))()()(()))))))))
+Expected: void, Got: ()
+Response:
+I’ll rewrite the expression with some spacing and then simplify systematically using only:
+
+- I1 (Number): `()() = ()`
+- I2 (Order): `(()) =` void
+
+Given expression:
+
+```
+(()((((((((()(())))()(((())(())(())(())())()(()(())(())(()))())((())((())()()(()))((())(())(())(()))(()(())()()))))(())())))(((((((()()()()))(((())(())(()))(())((())(())())(())(()()()))()()(()))))))))
+```
+
+---
+
+### 1. Top-level structure
+
+The whole thing is of the form:
+
+```
+( A ) B
+```
+
+where:
+
+- The very first `(` matches a `...
+
+--- lof_003 (gpt-5.1) ---
+Input: (((((())()())(()(())(())())(())())((())(()(()))(()(())(()))((())()(()))))()((((()))()())(()(()()))))
+Expected: void, Got: ()
+Response:
+I’ll rewrite the expression clearly, then simplify step by step using only:
+
+- I1 (Number): `()() = ()`
+- I2 (Order): `(()) =` void
+
+Given expression:
+
+```
+(((((())()())(()(())(())())(())())((())(()(()))(()(())(()))((())()(()))))()((((()))()())(()(()()))))
+```
+
+---
+
+## 1. Parse the structure
+
+Top level:
+
+- It is of the form:  
+  ` ( A () B ) `  
+  where:
+  - `A = ((((())()())(()(())(())())(())())((())(()(()))(()(())(()))((())()(()))))`
+  - `B = ((((()))()())(()(()())))`
+
+So the whole expression ...
+
+--- lof_005 (gemini-3-pro-preview) ---
+Input: ((((()))(()(((((((())()(()))((()))((())()))(((())()(()))((())()))((())((())()(())))(((())()())))(((()()))(((())(()))((())))((())(()(()))((())(())(()))((())(())(())))((()(())()()())()(()(())())))))))))
+Expected: (), Got: void
+Response:
+To simplify the expression, we will break it down structurally and apply the axioms.
+
+,**Axioms:**
+1.  **I1 (Number):** `()()` = `()`
+2.  **I2 (Order):** `(())` = `void`
+
+,**Derivations:**
+,*   From I2, `(void)` = `()`. (A mark containing nothing is a mark).
+,*   From I1, `() x` = `()`. (The "Dominance" rule: any expression `x` adjacent to `()` inside a mark is absorbed. If `x` is `void`, `() void` = `()`. If `x` is `()`, `()()` = `()`).
+,*   Consequently, `( () x )` = `(())` = `void`.
+
+---
+
+,**Step 1...
+#+end_example
+
+* Set up Analysis 
+
+#+begin_src python
+def analyze_results(results: List[dict]) -> dict:
+    """Compute accuracy metrics from results."""
+    from collections import defaultdict
+
+    # Overall accuracy by model
+    by_model = defaultdict(lambda: {"correct": 0, "total": 0})
+    for r in results:
+        by_model[r["model"]]["total"] += 1
+        if r["correct"]:
+            by_model[r["model"]]["correct"] += 1
+
+    # Accuracy by difficulty
+    by_diff = defaultdict(lambda: defaultdict(lambda: {"correct": 0, "total": 0}))
+    for r in results:
+        by_diff[r["model"]][r["difficulty"]]["total"] += 1
+        if r["correct"]:
+            by_diff[r["model"]][r["difficulty"]]["correct"] += 1
+
+    # Failure examples
+    failures = [r for r in results if not r["correct"]]
+
+    return {
+        "by_model": {m: {"accuracy": d["correct"]/d["total"] if d["total"] > 0 else 0,
+                        "correct": d["correct"], "total": d["total"]}
+                     for m, d in by_model.items()},
+        "by_difficulty": {m: {diff: {"accuracy": d["correct"]/d["total"] if d["total"] > 0 else 0,
+                                     "correct": d["correct"], "total": d["total"]}
+                              for diff, d in diffs.items()}
+                          for m, diffs in by_diff.items()},
+        "failures": failures[:10]  # First 10 failures
+    }
+
+
+# Analyze sample results (or load from file for full results)
+if 'sample_results' in dir() and sample_results:
+    analysis = analyze_results(sample_results)
+
+    print("=== Accuracy by Model ===")
+    for model, stats in analysis["by_model"].items():
+        pct = stats["accuracy"] * 100
+        print(f"{model}: {pct:.1f}% ({stats['correct']}/{stats['total']})")
+
+    print("\n=== Accuracy by Difficulty ===")
+    for model, diffs in analysis["by_difficulty"].items():
+        print(f"\n{model}:")
+        for diff, stats in sorted(diffs.items()):
+            pct = stats["accuracy"] * 100
+            print(f"  {diff}: {pct:.1f}% ({stats['correct']}/{stats['total']})")
+
+    if analysis["failures"]:
+        print("\n=== Sample Failures ===")
+        for f in analysis["failures"][:3]:
+            print(f"\n{f['model']}: {f['input']}")
+            print(f"  Expected: {f['target']}, Got: {f['extracted_answer']}")
+            print(f"  Response excerpt: {f['response'][:200]}...")
+#+end_src
+
+#+RESULTS:
+
+* Batch API: Prepare Jobs
+
+Submit batch jobs to all three providers for the full evaluation.
+
+Uses an append-only JSONL log for robustness - never overwrites, easy to recover.
+
+#+begin_src python
+
+import tempfile
+from openai import OpenAI
+from anthropic import Anthropic
+from google import genai
+
+BATCH_LOG = "batch_log.jsonl"
+
+
+def log_batch_event(event: str, provider: str, batch_id: str, **data):
+    """Append an event to the batch log."""
+    entry = {
+        "timestamp": datetime.now().isoformat(),
+        "event": event,
+        "provider": provider,
+        "batch_id": batch_id,
+        ,**data
+    }
+    with open(BATCH_LOG, "a") as f:
+        f.write(json.dumps(entry) + "\n")
+
+
+def get_latest_batches() -> dict:
+    """Read log and return most recent batch per provider (that isn't completed)."""
+    batches = {}  # provider -> {batch_id, model, status, ...}
+    try:
+        with open(BATCH_LOG, "r") as f:
+            for line in f:
+                if not line.strip():
+                    continue
+                entry = json.loads(line)
+                provider = entry["provider"]
+                if entry["event"] == "submitted":
+                    batches[provider] = {
+                        "batch_id": entry["batch_id"],
+                        "model": entry.get("model"),
+                        "status": "submitted"
+                    }
+                elif entry["event"] == "status":
+                    if provider in batches and batches[provider]["batch_id"] == entry["batch_id"]:
+                        batches[provider]["status"] = entry["status"]
+                elif entry["event"] == "completed":
+                    if provider in batches and batches[provider]["batch_id"] == entry["batch_id"]:
+                        batches[provider]["status"] = "completed"
+                        batches[provider]["results"] = entry.get("results", [])
+    except FileNotFoundError:
+        pass
+    return batches
+
+
+def create_openai_batch(cases: List[dict], model: str = MODELS["openai"]) -> str:
+    """Create and submit OpenAI batch job. Returns batch_id."""
+    client = OpenAI()
+
+    # Create JSONL file
+    jsonl_content = ""
+    for case in cases:
+        prompt = PROMPT_TEMPLATE.format(expression=case["input"])
+        request = {
+            "custom_id": case["id"],
+            "method": "POST",
+            "url": "/v1/chat/completions",
+            "body": {
+                "model": model,
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": 0
+            }
+        }
+        jsonl_content += json.dumps(request) + "\n"
+
+    # Upload file
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.jsonl', delete=False) as f:
+        f.write(jsonl_content)
+        temp_path = f.name
+
+    with open(temp_path, 'rb') as f:
+        file_obj = client.files.create(file=f, purpose="batch")
+
+    # Create batch
+    batch = client.batches.create(
+        input_file_id=file_obj.id,
+        endpoint="/v1/chat/completions",
+        completion_window="24h"
+    )
+    return batch.id
+
+
+def create_anthropic_batch(cases: List[dict], model: str = MODELS["anthropic"]) -> str:
+    """Create and submit Anthropic batch job. Returns batch_id."""
+    client = Anthropic()
+
+    requests_list = []
+    for case in cases:
+        prompt = PROMPT_TEMPLATE.format(expression=case["input"])
+        requests_list.append({
+            "custom_id": case["id"],
+            "params": {
+                "model": model,
+                "max_tokens": 1024,
+                "messages": [{"role": "user", "content": prompt}]
+            }
+        })
+
+    batch = client.messages.batches.create(requests=requests_list)
+    return batch.id
+
+
+def create_gemini_batch(cases: List[dict], model: str = MODELS["google"]) -> str:
+    """Create Gemini batch job using SDK. Returns batch job name."""
+    client = genai.Client()
+
+    # Build inline requests
+    inline_requests = []
+    for case in cases:
+        prompt = PROMPT_TEMPLATE.format(expression=case["input"])
+        inline_requests.append({
+            "contents": [{"parts": [{"text": prompt}], "role": "user"}]
+        })
+
+    batch_job = client.batches.create(
+        model=f"models/{model}",
+        src=inline_requests,
+        config={"display_name": f"lof-eval-{datetime.now().strftime('%Y%m%d-%H%M%S')}"},
+    )
+    return batch_job.name
+    
+#+end_src
+
+#+RESULTS:
+
+* Submit Jobs
+#+begin_src python
+# Submit all batches (appends to log, never overwrites)
+print(f"Submitting batches for {len(test_cases)} test cases...")
+
+if OPENAI_API_KEY:
+    print("  Submitting OpenAI batch...")
+    try:
+        batch_id = create_openai_batch(test_cases)
+        log_batch_event("submitted", "openai", batch_id, model=MODELS["openai"], n_cases=len(test_cases))
+        print(f"    OpenAI batch ID: {batch_id}")
+    except Exception as e:
+        print(f"    OpenAI batch failed: {e}")
+
+if ANTHROPIC_API_KEY:
+    print("  Submitting Anthropic batch...")
+    try:
+        batch_id = create_anthropic_batch(test_cases)
+        log_batch_event("submitted", "anthropic", batch_id, model=MODELS["anthropic"], n_cases=len(test_cases))
+        print(f"    Anthropic batch ID: {batch_id}")
+    except Exception as e:
+        print(f"    Anthropic batch failed: {e}")
+
+if GEMINI_API_KEY:
+    print("  Submitting Gemini batch...")
+    try:
+        batch_id = create_gemini_batch(test_cases)
+        log_batch_event("submitted", "google", batch_id, model=MODELS["google"], n_cases=len(test_cases))
+        print(f"    Gemini batch ID: {batch_id}")
+    except Exception as e:
+        print(f"    Gemini batch failed: {e}")
+
+print(f"\nBatch events appended to {BATCH_LOG}")
+#+end_src
+
+#+RESULTS:
+: Submitting batches for 30 test cases...
+:   Submitting Gemini batch...
+: Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GOOGLE_API_KEY.
+:     Gemini batch ID: batches/izt2k94rwktvv4pre8ai2cmkv5ax2yo4htv6
+: 
+: Batch events appended to batch_log.jsonl
+
+* Batch API: Check Status
+
+Poll batch job status and download results when complete.
+
+#+begin_src python
+def check_openai_batch(batch_id: str) -> Tuple[str, Optional[List[dict]]]:
+    """Check OpenAI batch status. Returns (status, results_or_none)."""
+    client = OpenAI()
+    batch = client.batches.retrieve(batch_id)
+    if batch.status == "completed":
+        # Download results
+        output_file = client.files.content(batch.output_file_id)
+        results = []
+        for line in output_file.text.strip().split("\n"):
+            result = json.loads(line)
+            results.append({
+                "id": result["custom_id"],
+                "response": result["response"]["body"]["choices"][0]["message"]["content"],
+                "provider": "openai"
+            })
+        return "completed", results
+    return batch.status, None
+
+
+def check_anthropic_batch(batch_id: str) -> Tuple[str, Optional[List[dict]]]:
+    """Check Anthropic batch status. Returns (status, results_or_none)."""
+    client = Anthropic()
+    batch = client.messages.batches.retrieve(batch_id)
+    if batch.processing_status == "ended":
+        results = []
+        for result in client.messages.batches.results(batch_id):
+            results.append({
+                "id": result.custom_id,
+                "response": result.result.message.content[0].text,
+                "provider": "anthropic"
+            })
+        return "completed", results
+    return batch.processing_status, None
+
+
+def check_gemini_batch(batch_name: str) -> Tuple[str, Optional[List[dict]]]:
+    """Check Gemini batch status using SDK. Returns (status, results_or_none)."""
+    client = genai.Client()
+    batch = client.batches.get(name=batch_name)
+
+    if batch.state.name != "JOB_STATE_SUCCEEDED":
+        return batch.state.name.lower(), None
+
+    # Batch complete - extract inline results
+    results = []
+    if batch.dest and batch.dest.inlined_responses:
+        for i, inline_resp in enumerate(batch.dest.inlined_responses):
+            if inline_resp.response:
+                try:
+                    text = inline_resp.response.text
+                except AttributeError:
+                    text = str(inline_resp.response)
+            elif inline_resp.error:
+                text = f"ERROR: {inline_resp.error}"
+            else:
+                text = "ERROR: No response"
+            results.append({
+                "id": f"lof_{i+1:03d}",  # Match original case IDs
+                "response": text,
+                "provider": "google"
+            })
+
+    return "completed", results
+
+
+# Load latest batches from log
+batches = get_latest_batches()
+
+if not batches:
+    print("No batches found in log. Run the submit cell first.")
+else:
+    print("Checking batch status...")
+    all_complete = True
+
+    for provider, info in batches.items():
+        if info["status"] == "completed":
+            print(f"  {provider}: completed (already)")
+            continue
+
+        batch_id = info["batch_id"]
+        try:
+            if provider == "openai" and OPENAI_API_KEY:
+                status, results = check_openai_batch(batch_id)
+            elif provider == "anthropic" and ANTHROPIC_API_KEY:
+                status, results = check_anthropic_batch(batch_id)
+            elif provider == "google" and GEMINI_API_KEY:
+                status, results = check_gemini_batch(batch_id)
+            else:
+                print(f"  {provider}: skipped (no API key)")
+                continue
+
+            print(f"  {provider}: {status}")
+
+            if results:
+                log_batch_event("completed", provider, batch_id, results=results)
+            elif status != info.get("status"):
+                log_batch_event("status", provider, batch_id, status=status)
+
+            if status != "completed":
+                all_complete = False
+
+        except Exception as e:
+            print(f"  {provider}: error - {e}")
+            all_complete = False
+
+    if all_complete:
+        print("\nAll batches complete! Run the next cell to process results.")
+    else:
+        print("\nSome batches still processing. Re-run this cell to check again.")
+#+end_src
+
+#+RESULTS:
+: Checking batch status...
+:   openai: in_progress
+:   anthropic: in_progress
+: Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GOOGLE_API_KEY.
+:   google: job_state_running
+: 
+: Some batches still processing. Re-run this cell to check again.
+
+* Process Batch Results
+
+Combine batch results into unified format.
+
+#+begin_src python
+# Load completed batches from log
+batches = get_latest_batches()
+
+# Build case lookup
+case_lookup = {c["id"]: c for c in test_cases}
+
+# Process all results
+all_results = []
+for provider, info in batches.items():
+    if info["status"] != "completed" or "results" not in info:
+        print(f"Warning: No results for {provider} (status: {info['status']})")
+        continue
+
+    for r in info["results"]:
+        case = case_lookup.get(r["id"])
+        if not case:
+            print(f"Warning: Unknown case ID {r['id']}")
+            continue
+        response_text = r.get("response") or ""
+        answer = extract_answer(response_text)
+        all_results.append({
+            "id": r["id"],
+            "input": case["input"],
+            "target": case["target"],
+            "difficulty": case["difficulty"],
+            "depth": case.get("depth", 0),
+            "provider": provider,
+            "model": info["model"],
+            "response": response_text,
+            "extracted_answer": answer,
+            "correct": answer == case["target"]
+        })
+
+# Save full results
+output = {
+    "metadata": {
+        "timestamp": datetime.now().isoformat(),
+        "n_cases": len(test_cases),
+        "prompt_template": PROMPT_TEMPLATE
+    },
+    "results": all_results
+}
+
+with open("results.json", "w") as f:
+    json.dump(output, f, indent=2)
+
+print(f"Saved {len(all_results)} results to results.json")
+#+end_src
+
+#+RESULTS:
+: Saved 90 results to results.json
+
+* Load and Analyze Saved Results
+
+#+begin_src python
+# Load previously saved results
+with open("results.json", "r") as f:
+    saved = json.load(f)
+
+print(f"Loaded {len(saved['results'])} results from {saved['metadata']['timestamp']}")
+analysis = analyze_results(saved['results'])
+    
+# Print full analysis
+print("\n=== FULL RESULTS ===\n")
+print("=== Accuracy by Model ===")
+for model, stats in analysis["by_model"].items():
+    pct = stats["accuracy"] * 100
+    print(f"{model}: {pct:.1f}% ({stats['correct']}/{stats['total']})")
+
+print("\n=== Accuracy by Difficulty ===")
+for model, diffs in analysis["by_difficulty"].items():
+    print(f"\n{model}:")
+    for diff, stats in sorted(diffs.items()):
+        pct = stats["accuracy"] * 100
+        print(f"  {diff}: {pct:.1f}% ({stats['correct']}/{stats['total']})")
+
+if analysis["failures"]:
+    print("\n=== Sample Failures ===")
+    for f in analysis["failures"][:3]:
+        print(f"\n{f['model']}: {f['input']}")
+        print(f"  Expected: {f['target']}, Got: {f['extracted_answer']}")
+        print(f"  Response excerpt: {f['response'][:200]}...")
+#+end_src
+
+#+RESULTS:
+#+begin_example
+Loaded 90 results from 2025-12-07T11:53:36.408677
+
+=== FULL RESULTS ===
+
+=== Accuracy by Model ===
+gpt-5.1: 53.3% (16/30)
+claude-opus-4-5-20251101: 63.3% (19/30)
+gemini-3-pro-preview: 66.7% (20/30)
+
+=== Accuracy by Difficulty ===
+
+gpt-5.1:
+  1. easy: 90.0% (9/10)
+  2. medium: 40.0% (4/10)
+  3. hard: 30.0% (3/10)
+
+claude-opus-4-5-20251101:
+  1. easy: 100.0% (10/10)
+  2. medium: 60.0% (6/10)
+  3. hard: 30.0% (3/10)
+
+gemini-3-pro-preview:
+  1. easy: 90.0% (9/10)
+  2. medium: 60.0% (6/10)
+  3. hard: 50.0% (5/10)
+
+=== Sample Failures ===
+
+gpt-5.1: ((((()()(())((((((())(())()())(()()(())(())(()))((())(())(())(()))(()())(()))))(((((())(())(())())(()(())(()))((())()(())()())(()()()()())((())()(())))((()(())()()))(((())()()())((())())((()))))))))))
+  Expected: (), Got: void
+  Response excerpt: Let’s simplify the expression step by step using only:
+
+- I1 (Number): `()() = ()`
+- I2 (Order): `(()) =` void (i.e., disappears)
+
+We’ll treat “void” as just “nothing” in the string.
+
+---
+
+### 1. Rewr...
+
+gpt-5.1: ((((((((((())()(()))()(()(())))((()(())(())(())(()))(()())(()(())()())((())()(())(())))())(()(((())()(())))(((())(())(())(())()))(((())()(()))((())())))))(((((()(())(())())((())()(())()())(())))))))))
+  Expected: void, Got: ()
+  Response excerpt: I’ll rewrite the expression with some spacing and then simplify systematically using only:
+
+- I1 (Number): `()() = ()`
+- I2 (Order): `(()) =` void (i.e., disappears)
+
+---
+
+Original expression:
+
+```
+((...
+
+gpt-5.1: ((())((((())()(())))(((())(()))((())(())(()))((())(())(())))()((()(())(())())(()(())(())(()))(()))))
+  Expected: (), Got: void
+  Response excerpt: Let’s simplify the expression step by step using only:
+
+- I1 (Number): `()() = ()`
+- I2 (Order): `(()) =` void
+
+---
+
+We start with:
+
+\[
+E = ((())((((())()(())))(((())(()))((())(())(()))((())(())(())))...
+#+end_example

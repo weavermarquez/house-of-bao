@@ -1,0 +1,225 @@
+#+title: Text Excerpts from Tydecks and Bricken
+
+* An excerpt from Walter Tydecks on Spencer-Brown
+** The signs and their medium
+If it is unusual for a mathematician to accept the changed meaning of variables in the temporal course of assignment in the programming and logic of Spencer-Brown on the one hand and the timelessly conceived mathematical equations on the other hand, it requires an even more radical rethinking to regard the relationship between sign and medium as a reciprocal process. It is almost absurd for a mathematician to assume that the medium in which the mathematical signs are inscribed could influence the signs and their operations. Basically, every mathematician sees the signs of his formulas completely independently of the medium in which they are represented, preferably as objects in an entirely immaterial, purely intellectual space. If he needs a blackboard or a sheet of paper or a screen to write down his formulas there, these are only tools without influence on the contents of calculation and proof. It is possible that a formula is made blurred on a bad background and is therefore misread with results that are misleading. But this is nothing more than a disruptive factor that can ideally be excluded. The statements of mathematical propositions apply in principle independently of the medium in which they are written.
+
+This attitude was shaken in 1948 by the work of Claude Shannon (1916-2001) on the mathematical foundations in information theory. Shannon was like Spencer-Brown a mathematician and electrical engineer. In his study of data transmissions, he has demonstrated how any medium generates background noise that interferes with the transmitted characters. To this day, mathematics has not perceived or not wanted to perceive the elementary consequences of this for mathematics and logic. To this day, mathematics is regarded as a teaching that is independent of the medium in which it is written and through which it is transmitted. Nobody can imagine that the medium could have an influence on the signs and their statements. Mathematics is regarded as a teaching that is developed in a basically motionless mind.
+
+For Spencer-Brown, this relativizes itself. For Spencer-Brown, the design of circuits added a fundamentally new experience that goes far beyond mere programming. At first glance, schematics are nothing more than a graphic, descriptive language of formulas whose logical status should resemble the signs of mathematics and ultimately correspond to them. But for him, the circuits that he designed and worked with showed that each circuit contains its own dynamics that support the statements and results designed with the circuit. It is possible to describe in words and formulas which input a circuit processes and to which output it leads, but it is not possible to fully explain how these results come about. Obviously, the circuit contains a kind of self-organization that influences the result by itself. Whoever designs a circuit has a clear target in mind and can design and realize the circuit, but he cannot completely predict what will happen in the circuit. On the contrary, he relies on the circuit itself to stabilise, giving the result the expected certainty. Even if on closer examination many of the processes that have led to the desired result in the circuit can be explained, there is always a residual. This property does not result from the graphic form and its formal elements, but from the medium in which the circuit is realized. Spencer-Brown compares it with chemistry: chemical formulas can never be used to describe completely what happens in a chemical reaction. The real chemical process has its own dynamics that can always lead to surprises despite all the precautions taken. From today's perspective, cell biology can be cited as another example. It has been shown that even the complete decoding of the DNA does not lead to a comprehensive prediction of the processes in a cell. All these examples are texts or text-like forms (the schematic diagram, the chemical reaction equations, the DNA code) which are fundamentally incomplete and cannot completely represent the medium in which they are realized. Is this experience in a kind of limit process also to be transferred to mathematics and logic, or at least to be taken into account there?
+
+This leads Spencer-Brown to the fundamental question of the relationship between the signs and the medium. The result is certainly not that the mathematics known today becomes »wrong« because it has overlooked its medium and its interaction. Rather, the result is that mathematics must be understood before the horizon of an overarching doctrine of medium and sign, from which the special status of mathematics and the conditions for why it applies in the way we know it can be understood.
+
+For me, this is the most difficult motif of Spencer-Brown to understand and at the same time the one with the most serious consequences. If a logic is designed that self-reflectively understands its own medium, in which it is founded, inscribed and transmitted, then this can lead to the design of a Logic of medial Modernity that does justice to man's constitution today. Scheier in Luhmanns Schatten in particular pointed out the importance of the medium for understanding our culture. Spencer-Brown can help to work this out further.
+
+** Neural Networks
+While the paradoxes and antinomies of Russell and Gödel are intensively discussed in philosophy, the development of a new logic, which was based on an upswing in neurophysiological research and led to neural circuits, remained largely unnoticed. Only with spectacular successes such as the Go playing program AlphaGo from 2015-16 does this change abruptly. Programs like these are the result of more than 100 years of development. I see Spencer-Brown in this tradition too.
+
+Warren McCulloch (1898-1969) played a key role. He studied philosophy, psychology and medicine, worked primarily as a neurophysiologist and sees himself both in the tradition of American philosophy, which has always been practically oriented and pragmatically thinking, and in the neurophysiology that emerged around 1900. Of American philosophy, he names Charles Sanders Peirce (1839-1914) and Josiah Willard Gibbs (1839-1903) in particular, then, based on them, the discussion during the 1940s with Norbert Wiener (1894-1964), Arturo Rosenblueth (1900-1970), John von Neumann (1903-1957) and Walter Pitts (1923-1969). Most of them certainly saw themselves more as specialists than philosophers, because they no longer expected any stimulating impulses from the philosophy of their time. Many of them deliberately remained outside the academic field or were not accepted there (e.g. Norbert Wiener). If, nevertheless, deep philosophical questions and conversations did arise and were discussed, it is mainly thanks to McCulloch.
+
+For decades McCulloch had been searching for a new logic with ever new approaches that went beyond the tradition of Aristotle to Frege and Russell. In 1920 he wanted to extend the copula 'is', which appears in all classical statements according to the pattern ›S is P‹, into three groups of verbs: (i) verbs that lead from an object to a subject and come from the past, while the copula 'is' occurs only in a timeless present; (ii) verbs that lead from a subject to an object and thus into the future; (iii) verbs that describe an ongoing state. But this attempt did not lead to success. This was followed by efforts to search for the smallest units in psychic thought in a similar way as physics had done with electrons, photons and other physical elements: He called them psychons. They should be connected in a way other than the traditional objects and relationships of logic in order to represent the psychic events and the diseases examined by psychiatry and to find therapies. This, too, did not lead to the expected results. The turning point came when he became familiar with the work of neurophysiology and took an active part in it as a researcher. From the very beginning, he saw the possibility of giving Kant's transcendental logic a new ground with them (when the network of neurons from the sense organs to the brain takes the place of transcendental apperception and explains the pre-influence of all sensual stimuli before it comes to thinking in ideas and concepts). At the end of his life he published an anthology of important works with the programmatic title Embodiments of Mind. From 1946 to 1953 he was a leading participant in the Macy conferences. Many ideas had arisen during the Second World War within the framework of the Office of Strategic Services (OSS) founded in 1941 by US President Roosevelt, in which Marcuse, Bateson, Sweezy and other representatives of the later New Left also participated. After 1945, the OSS gave rise to the CIA on the one hand, and on the other, many participants sought to continue their work within the framework of a civilian application. They were convinced that they were at the beginning of a completely new development.
+
+Already in 1931 McCulloch had heard about the new findings of Kurt Gödel (1906-1978) and from the beginning he dealt with the results of Alan Turing (1912-1954), which were published since 1937. That was the beginning of a completely new kind of logic, and it is undoubtedly McCulloch's special achievement to have linked the diversity of these currents together.
+
+His breakthrough came with neurophysiology. It began with the physician Ramón y Cajal (1852-1934). He draw the first diagrams of sensory organs and the nerve pathways they emanated from, which he had obtained from thorough studies of the nervous system and thorough dissections of frogs and other animals. The physician, psychiatrist and psychoanalyst Lawrence Kubie (1896-1973) used their example 1930-41 to describe for the first time circuits (closed reverberating circuits) in order to understand memory.
+
+For me, two results are particularly important with regard to Spencer-Brown: Two important principles were recognized in the example of the nerve tracts from the frog's eye to the frog's brain, which have an indirect effect on the Laws of Form.
+
+Principle of Additivity: Only when a sufficient number of neural pathways report an input is it passed on to the brain. Individual, isolated inputs, on the other hand, are ignored. If the selection does not work, the brain is flooded and overtaxed. This is one cause of epilepsy.
+
+McCulloch Additivität    McCulloch Memory
+
+Memory: In addition, a spinning top is set up when a threshold is exceeded. There, information runs in a circle and each return reminds us that there was originally a stimulus that triggered this cycle. The activated circle remembers that something has happened. It serves as additional input in the nervous system. It not only indicates that enough neural pathways have been stimulated by the same event, but that this event has already taken place in the past. This is the technical basis and realization of a learning system.
+
+In a similar way, Spencer-Brown speaks of the memory function and represents it through closed circuits. Spencer-Brown has sought a more abstract level that fits within the framework of logic. I don't know if he explicitly referred to this tradition, but it is clear to me how he stands in this tradition. He was no longer able to elaborate these ideas, but they appear in decisive places in the Laws of Form. In England he may have been more impressed by the Homeostat introduced in 1948 than by neurophysiology. The developer was the English psychiatrist and biochemist William Ross Ashby (1903-1972). Spencer-Brown has in a strange way brought elements of the new findings of neurophysiology in his remarks on re-entry and circuits, without it becoming clear which intuition had led him.
+
+McCulloch had in 1945, in a short but fundamental article The heterarchy of values determined by the topology of nervous nets, pointed to fundamental philosophical aspects of the new circuits that arose in the context of the first ideas for neural networks. In a network there is no longer a controlling, hierarchical centre, but a heterarchy of concurrent and circularly interconnected developments. This seems to me to be the basic idea that Niklas Luhmann (1927-1998) has taken up in his work on systems theory – even if he only makes very marginal reference to McCulloch (as in Soziale Systeme, 565 and Wissenschaft der Gesellschaft, 365), and why he hoped with Spencer-Brown to be able to give his systems theory a new logical basis that differs from traditional subject philosophies and their paradoxes.
+
+** – The Gordian knot
+Is it possible to solve all these questions together as in a Gordian knot? That seems to me to be Spencer-Brown's motive.
+
+** »Distinction is Perfect Continence«
+Somewhere, Spencer-Brown's logic must begin with basic concepts that cannot be further questioned. He searches for them below the usual mathematics and language. Before every speaking and arithmetic, there are indication and distinction. With them he wants to establish a proto-logic and proto-mathematics (primary logic, primary mathematics), a calculus of indication and distinction.
+
+»We take as given the idea of distinction and the idea of indication. We take, therefore, the form of distinction for the form.« (LoF, 1)
+
+Without having made distinctions, neither language nor calculations are possible: In order to be able to calculate and to form sentences, the characters used in calculating and writing must be differentiated from each other. In an equation like ›2 + 3 = 5‹ operands (in this example the numbers 2, 3 and 5) and operators (operation signs) (in this example + and = for addition and equation) are linked and a statement is formed with them. Similar it is in the language. In a proposition like ›S is p‹ S and p are operands and the copula ‘is’ an operator. The signs 2, 3, 5, = and + must be distinguishable from each other, and it must be assumed that they do not change during the calculation. If this were not possible, then the equation would be meaningless. Therefore it is obvious to start with differentiation as the proto-operation before the operations of calculating and speaking and to develop the usual logic and arithmetic from it step by step.
+
+For Spencer-Brown there must be a sign that this level meets and precedes the known signs for operands (numbers and letters) and linking verbs (like the copula ‘is’ and arithmetic symbols like +). He goes even a step beyond: He looks for a sign that precedes the differentiation into operands and operators and can serve as both operator and operand. For him, this elementary sign is the cross:
+
+    spencer brown call
+    ()
+
+This sign has a multiple meaning:
+– Execution of an elementary operation (drawing this character, draw a distinction)
+– Highlighting an interior (mark)
+– Marking of an inner area (marked space) (asymmetry of inside and outside)
+– Drawing a boundary (boundary with separate sides)
+– Distinguishing a ground from the sign drawn in the ground (ground, medium)
+– Calling the border the sign  ⃧   (indication, call)
+
+
+* An excerpt from Bricken, Distinction is Sufficient
+** 1. Introduction
+Spencer Brown’s seminal work Laws of Form (LoF) presents an iconic algebra that can
+incidentally be interpreted as propositional logic. LoF launches us into a postsymbolic territory
+where spatial forms condense symbolic complexity, where there is no syntax/semantics barrier,
+where objects are united with processes, where absence is a primary conceptual tool, and where
+the viewing perspective of the reader is directly implicated within the form. When applied to
+logic, Spencer Brown’s iconic arithmetic challenges a foundational assumption of Western
+thought, that rationality requires dualism.
+The purpose of this article is to demonstrate in detail that LoF is not isomorphic to symbolic logic.
+It is formally and conceptually much simpler. Said another way, LoF shows that common logic is
+baroque, burdened by too many structural restrictions, too limited stepwise linearity, too much
+computational mechanism, and too narrow a perspective on cognition. Symbolic logic informs
+rational thought, but only at the cost of the structural maintenance of verbal and textual strings of
+symbols. LoF foreshadows an entirely new technique for understanding the structure of formal
+proof and rational thought. We need only the concept of distinction, which can be expressed by
+containment forms that implement a partial ordering. Deduction does not necessarily require the
+duality of truth and its negation, it does not require the concept of negation at all. Semantic
+existence is sufficient to identify forms that are TRUE, those that are FALSE can be relegated to
+nonexistence.
+By comparing seven different conceptual and notational formal systems to LoF, this article traces
+in detail how one accustomed to symbolic thinking might misunderstand Spencer Brown’s iconic
+forms. Iconic notation provides structural room for both breadth and depth of expression, leading
+to an economy of concepts. LoF itself incorporates only one relation (containment), fully
+expressing Boolean logic within an algebra consisting of one constant, one variable and one
+binary relation. Transcribing the iconic notation of LoF into symbolic string notation converts the
+fundamental concept of containment into careful positioning of a sequence of replicated labels. A
+common confusion is the belief that free replication of symbols imposes no conceptual costs. The
+ordering and grouping required to disambiguate strings of tokens, for example, are properties of
+sequences of operations defined by the distributive axioms of logic and arithmetic. They can also
+can be understood as incidental to meaning, a property of the system of representation rather than
+of the things represented. Symbolic notation imposes sequence, suppressing the inherent
+parallelism of containment structures. Given sufficient processors we can access any number of
+containers all at the same time, but we cannot read a page of words all at the same time. Text
+incorporates the background white space of the page as a container of characters and words,
+however the space of the page provides only maintenance of textual sequence and is bejeweled
+with implicit conventions that allow us to organize strings of characters within an empty space.
+Icons in contrast are images that use space to convey meaning. Whereas symbolic logic is the
+lyrics of a song, iconic logic is the melody.
+Unfortunately members of the formal community who have examined LoF are split into at least
+two factions. The antiquarian faction insists that LoF is just another syntax for common logic,
+that it is a unique notation for the same ideas that have been established over two millennia. The
+antiquarians endorse an understandably conservative perspective, that the logic that we already
+3know is the ground beneath Spencer Brown’s innovation. The representational slight-of-hand that
+changes LoF into classical logic is to add superfluous concept and structure that is not in Laws of
+Form. The postsymbolist faction sees distinction not only as the essence of logic, but also as the
+fundament from which logic and perception blossom. Distinction identifies a difference between
+content and context. Boolean algebra rests upon the two grounds of 0 and 1 (alternatively TRUE
+and FALSE); in LoF there is only One. Zero, nothing, does not exist. There is only one difference
+between 0 and 1, that of change. Difference alone, as described by Spencer Brown and by Bateson,
+is a sufficient conceptual basis for rational thought.
+Sections 1 and 2 identify the essential features of LoF that make it iconic rather than symbolic.
+Section 3 examines how these features redefine propositional logic, and then in Section 4 we
+construct an annotated notation that allows the chasm between iconic and symbolic form to be
+traversed. Section 5 discusses how the methods of predicate calculus bridge the chasm by the
+construction of incidental relational structure. These same mechanisms are presented in Section 6,
+embodied as conventional functions. Section 7 then examines an iconic version of LoF that
+supports parallel, asynchronous transformation of form. In Section 8 we present the algebraic
+axioms of LoF expressed in both iconic and symbolic formal structures, ending in Section 9 with
+a single variable iconic calculus that makes it evident that LoF does not even include the concept
+of a binary relation. There’s a brief summary in Section 10, followed by an Appendix that
+compares examples of iconic and symbolic algebraic proof. The map from propositional logic to
+LoF is Figure 12 in the Appendix.
+
+** 10. Innovation
+Since propositional logic can be expressed by each of the structural approaches considered
+herein, Spencer Brown has guided us to several different ways to think about and explore the
+logical foundations of mathematics and computation. What is clear is that simple logic, as
+expressed in symbolic form, is not that simple, nor is it elegant. It takes a thorough exploration to
+separate our symbolic heritage from Spencer Brown’s iconic heresy, and to gain appreciation of
+the deeper contributions of Spencer Brown’s innovations.
+Logical proof, when expressed iconically, is successive and parallel deletion of void-equivalent forms.
+Complexity enters only as the efficiency of locating those deletions.
+As is characteristic of the discipline of mathematics, Spencer Brown’s work can be cast within the
+framework of existing mathematical tools, and it can also be seen to subsume those tools. The
+LoF axioms involve deletion and construction of images, rather than rearrangement of strings.
+Logical deduction currently rests upon accumulation of facts, rearrangement of collections of
+facts, and strategic planning to assemble and rearrange facts to arrive at conclusions. The
+techniques of modus ponens, disjunctive syllogism, reductio ad absurdum, etc. are ancient
+artifacts that still drive the organization of logical proof. None are particularly relevant to the
+direct iconic formulation of logic. Rational thought might instead be seen as selective forgetting of
+irrelevancies rather than as the accumulation and correlation of potentially relevant facts. Spencer
+Brown’s point that associativity, commutativity, and arity are not central to the understanding of
+logic comes also with a more powerful frame of mind. It does not matter how many people share a
+room, nor is there any prerequisite ordering or grouping of those people. Here logical thinking is
+freed from linear structure of text and placed firmly within spatial visualization of image.
+Symbolic expressions cannot do justice to iconic concepts. One insight is that structure, in both
+breadth and depth, should be apparent rather than abstracted. We have traced herein the various
+attempts to represent containment structure in symbolic terms. These include
+— label replication,
+— set membership,
+— argument positioning,
+— logical conjunction, and
+— function nesting.
+Only network linking appears satisfactory as a model of containment, primarily because
+networks, like LoF crosses, are iconic. We have not abandoned the algebraization of structure,
+LoF is algebraic. What Spencer Brown did was to introduce a new type of representation (spatial
+containment forms) into our well-known algebraic infrastructure, a change that has exposed
+many of the assumptions embedded in a string-based model of rigor. In the process he created a
+formal system that is not particularly group theoretic, but that is extremely relevant to
+computational processes. Although Spencer Brown’s treatment of steps during a demonstration is
+pre-computational, somewhat inconsistent with his iconic cross notation, LoF forms are
+inherently both parallel and recursive.
+The Appendix includes proof of a classical cornerstone of deductive reasoning, modus ponens,
+using four variants of the computational axioms of LoF: parens, ordered pairs, PUT functions, and
+distinction networks. Parens reduction uses match-and-substitute deletions on iconic containers
+to convert the LoF form of modus ponens into the form of TRUE. Ordered pairs and PUT functions
+use match-and-substitute on string representations. The dnet proof shows an iconic approach that
+includes asynchronous network pruning. All four proofs show the same transformation steps and
+all identify the matching process as well as the substitutions that are facilitated. Only the three
+computational axioms of LoF are employed, with no ancillary theorems.
+We have not discussed many additional issues implicated by the conversion of an iconic
+representation of containment into symbolic text. Modeling features that are not sufficiently
+examined in this article include deep rules (rules that call upon the concept of pervasion),
+inherent parallelism, structure sharing, iconic proof techniques, void-equivalent catalytic forms,
+void-based programming languages, logic optimization, the impact of a unary value system upon
+classical logic, the reconstruction of the arithmetic of numbers based on Spencer Brown’s and
+Kauffman’s iconic techniques, and the many spatial and experiential languages and variants of
+parens forms. Reports exploring several of these topics are online at http://iconicmath.com/
+My personal understanding of LoF has continuously evolved. I’m probably one of a few people
+who have had the privilege to be fully employed developing LoF applications for over two
+decades. When I look back over prior work I can see miscomprehension, oversimplification,
+projection, and struggle to step far enough away from what our culture teaches to be able to see
+LoF with fresh eyes. In particular my work has focussed on computational implementations, free
+of infinities, imaginary forms and deep philosophy. I’ve taken roads, often over years, that I
+currently see as misinterpretation of Spencer Brown’s insights. There has always been an
+expanding frontier of discovery and exploration, replete with confusion, technical error and
+multiple revision, that has lead to a set of beliefs about Spencer Brown’s work that are at first
+glance not explicitly delineated by Spencer Brown. A central insight is that our current
+mathematical foundations are far too complex. Rationality, at its core, is more about making
+distinctions and ignoring irrelevancy than it is about truth, conjunction, disjunction, negation, and
+implication. The LoF formalism provides a conceptual infrastructure for logic that does not
+include the binary choice of TRUE or FALSE, it does not include implication, and perhaps most
+surprising, it does not include the concept of negation. Value and relevance are determined by the
+context and the content of nested distinctions. Propositional logic incorporates a conceptual
+diversity thousands of years old that obscures what Laws of Form makes clear: there is only
+difference. Rational thought is not reliant upon dualistic choices such as true/false, good/bad, us/
+them and 1/0. We can thank Spencer Brown for showing that logical clarity comes from knowing
+where we stand (within rather than under) while not making something out of nothing.
+
+*** In summary, these are some of the sound-bites and bumper-stickers that have emerged.
+ELEGANCE
+— only one concept, distinction
+— only one relation, containment
+— only one value, existence
+— void has no properties
+— void-equivalent forms are illusions
+STRUCTURE
+— iconic not symbolic
+— containers are environments
+— we are within the form
+— as above, so below
+— object/process unity
+— no syntax/semantics barrier
+— independence of contents
+PROCESS
+— replication is not free
+— deletion rather than rearrangement
+— parallel as well as sequential
+— no global coordination
+— logic is semipermeable distinction
+— implementation is a necessary ground
+— counting isn’t relevant.
+

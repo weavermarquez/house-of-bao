@@ -1,0 +1,191 @@
+#+title: Evaluations
+
+* Thoughts: Create an Eval Suite for Laws of Form and House of Bao
+** Laws of Form | Calculus of Indications
+The original. 50 years old.
+*** Dialects / Representations
+- Explicit NOR()
+- Parens Notation
+- Ordered Pairs
+
+Iconic Representation
+- /parens forms/
+- S. B. /cross/
+- /distinction networks/
+- bricken-proposed visual dialects
+
+Hybrid
+- /annotated parens/. Added labels, null token, unwritten cross
+
+Symbolic Representations
+- =PUT= /functions/
+- =contains= /relations/
+- /ordered pairs/
+
+?
+- Restricted Predicate Calculus
+*** Arithmetic
+**** eval: Evaluate Form
+Context: Axioms
+Prompt: Arithmetic Form
+Target: Evaluated Value {mark, unmark}
+
+**** Spencer-Brown Initials
+- I1 :: Number :: ()() = ()
+  condense / confirm
+- I2 :: Order :: (()) = void
+  cancel / compensate
+  
+*** Algebra
+I think we need to avoid dealing with the Algebra for v0. 
+
+**** eval: Evaluate void-equivalent forms (tautologies and contradictions)
+Prompt: Algebraic Form
+Target: {tautology, contradiction, evaluable}
+
+**** eval: Evaluate Equivalence
+Prompt: Two Algebraic Forms
+Target: {Equivalent, Not Equivalent}
+
+**** Spencer-Brown Initials
+- J1 :: Position :: ((p)p) = void
+  take out / put in
+- J2 :: Transposition :: ((pr)(qr)) = ((p)(q))r
+  collect / distribute
+**** Bricken Initials
+- B1 :: Wrap :: a = ((a))
+  wrap / unwrap
+- B2 :: Delete :: () a = ()
+  delete / undelete
+- B3 :: Copy :: a(b) = a(ab)
+  copy / uncopy
+** Boolean Arithmetic
+This will serve as our control for Laws of Form's Arithmetic.
+*** Arithmetic
+Context: Axioms
+Prompt: Arithmetic Value {Expression E}
+Target: Evaluated Value {mark, unmark}
+
+*** Algebra
+** Conventional Arithmetic
+Probably serves as a control vs. Unit-Ensemble Arithmetic and James Algebra? Technically has ZF axioms or such, but not necessary.
+
+** Unit-Ensemble Arithmetic
+The ancient, ubiquitous expression of arithmetic.
+
+PUT
+group
+merge
+** James Algebra
+Logic defined in House of Bao's axioms, but I haven't quite done Evaluations, only algebraic transformations.
+
+** COMMENT Consider for v2 or as "future research directions"
+*** Linear Combinators?
+*** Knot Theory
+This is an iconic
+*** BF Calculus
+An extension to the Calculus of Indications; modifies an axiom to cancel in four nests, rather than two.
+
+* Better Spec?
+
+okay so the eval harness link is cute but you're about to overcomplicate this. eleuther's lm-evaluation-harness is designed for standardized benchmarks like mmlu/hellaswag/etc. wiring up a custom symbolic logic task to it will take you longer than just... writing a simple eval loop.
+
+/here's the minimal viable approach:/
+
+**** phase 1: just the forms (4 hours max)
+
+forget the harness. forget colab infra. you need:
+
+1. a python script that generates random valid LoF expressions at depth n
+2. a ground-truth simplifier (recursive, stupid simple, like 50 lines)
+3. a function that calls openai/anthropic/google apis with a prompt
+4. a csv/json logger
+
+that's it. you can literally do this in a single jupyter notebook or a 200-line python file.
+
+**** what to test first (v0)
+
+forget james algebra for now. START with pure LoF arithmetic:
+- I1 (number): ()() → ()
+- I2 (order): (()) → void
+
+this is DEAD simple. your eval is:
+- input: a random LoF string like "((()))()(())"
+- target: the simplified form (e.g., "()")
+- metric: exact match after normalization
+
+you can generate 100 of these in seconds. run them through gpt-4o, claude, gemini. if models fail at THIS, you don't even need to touch james algebra yet.
+
+**** sequencing (prioritized)
+
+| day          | task                                                    | output                      |
+|--------------+---------------------------------------------------------+-----------------------------|
+| today (2-3h) | write generator + simplifier + api wrapper              | working script              |
+| tonight (1h) | generate n=100 depth 2-5 expressions, run gpt-4o        | csv with results            |
+| tomorrow am  | quick analysis: accuracy vs depth, common failure modes | 1 graph + 3 horror examples |
+| tomorrow pm  | run same eval on claude/gemini                          | updated csv                 |
+| day 3        | write 1-page summary for app + dm followup              | done                        |
+
+**** what NOT to do rn
+
+- don't build "variations" yet. one representation (parens) is enough for v0.
+- don't do multimodal/visual yet. text-only. save fancy for v2.
+- don't do james algebra until LoF arithmetic is done. james adds complexity (3 axioms, 3 symbols vs 2/1). if they fail at LoF, they'll fail harder at james.
+- don't do "symbolic baseline" yet. you're testing MODELS, not proving LoF is special.
+- don't touch dspy/prompt optimization. if the model can't do it with explicit axioms, prompt tuning won't save it. that's the point.
+
+**** the evaluations.org file
+
+your categorization is reasonable but you're scoping for a PhD thesis, not a residency app. here's what matters NOW:
+
+/keep:/
+- LoF Arithmetic (I1, I2)
+- "evaluate form" task
+
+/cut (for now):/
+- LoF Algebra (J1, J2, B1, B2, B3) — save for v1
+- james algebra — save for v1
+- boolean/conventional arithmetic — interesting as control but adds scope
+- unit-ensemble — save for v2
+- visual dialects — save for v2
+- multimodal — save for v2
+- knot theory, BF calculus, linear combinators — future work section
+
+**** the actual eval format
+
+for each test case:
+#+begin_src json
+{
+  "id": "lof_arith_001",
+  "input": "((()))()(())",
+  "axioms": "I1: ()() = (). I2: (()) = void.",
+  "prompt": "simplify the following expression using the axioms above. show your work step by step.",
+  "target": "()",
+  "difficulty": "depth_3"
+}
+#+end_src
+
+your ground truth simplifier should also output the step-by-step derivation so you can later analyze WHERE models go wrong (do they fail to apply I2? do they hallucinate I3?).
+
+**** future work section (for the app/writeup)
+
+you can gesture at:
+- extending to james algebra
+- visual/multimodal representations
+- comparison with boolean symbolic representations
+- prompt optimization / fine-tuning as intervention
+- connection to other graph-based formalisms (interaction nets, string diagrams)
+- connection to arc-agi style objectness priors
+
+but these are CLAIMS, not deliverables. the deliverable is the LoF arithmetic eval.
+
+**** tl;dr
+
+your evaluations.org is a research agenda, not a weekend sprint. for the residency app, you need ONE clean result:
+
+> gpt-4o achieves X% accuracy on simplifying depth-n LoF expressions. humans achieve Y%. failure modes include: [list].
+
+everything else is future work.
+
+go write the generator.
+
