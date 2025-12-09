@@ -218,77 +218,71 @@ Sample generated forms (min_depth=2, max_depth=3):
 
 * Ground-Truth Simplifier
 
-Apply I1 and I2 exhaustively until fixed point, tracking each step.
+O(n) stack-based simplifier. Single pass, applies I1 and I2 as marks close.
 
 #+begin_src python
-def simplify_step(form: list) -> Tuple[list, Optional[str]]:
+def simplify_string(s: str) -> Tuple[str, List[Tuple[str, str, str]]]:
     """
-    Apply one simplification step if possible.
+    O(n) simplification with step tracking.
 
     Returns:
-        (new_form, axiom_applied) where axiom_applied is None if no change
+        (canonical_form, steps) where steps is [(before, after, axiom), ...]
     """
-    # I1 (Number): IDENTICAL adjacent forms condense (aa = a)
-    # Only applies when ALL adjacent forms are equal
-    if len(form) > 1 and all(child == form[0] for child in form):
-        return [form[0]], "I1"
-
-    # I2 (Order): (()) = void
-    # A mark is (()) if its content is [[]] (representing "()")
-    # Check each top-level mark and remove any that are (())
-    for i, child in enumerate(form):
-        if child == [[]]:
-            # This mark is (()) = void, remove it
-            new_form = form[:i] + form[i+1:]
-            return new_form, "I2"
-
-    # Recursively check children
-    for i, child in enumerate(form):
-        new_child, axiom = simplify_step(child)
-        if axiom:
-            new_form = form[:i] + [new_child] + form[i+1:]
-            return new_form, axiom
-
-    return form, None
-
-
-def simplify(form: list) -> Tuple[list, List[Tuple[str, str]]]:
-    """
-    Fully simplify a form to canonical form.
-
-    Returns:
-        (canonical_form, steps) where steps is list of (form_string, axiom)
-    """
+    stack: List[List[str]] = [[]]  # Stack of frames, each frame is list of child forms
     steps = []
-    current = form
 
-    while True:
-        new_form, axiom = simplify_step(current)
-        if axiom is None:
-            break
-        steps.append((form_to_string(current), axiom))
-        current = new_form
+    for c in s:
+        if c == '(':
+            stack.append([])
+        elif c == ')':
+            children = stack.pop()
 
-    return current, steps
+            # Apply I1: all identical → condense
+            if len(children) > 1 and all(ch == children[0] for ch in children):
+                before = "(" + "".join(children) + ")"
+                children = [children[0]]
+                after = "(" + "".join(children) + ")"
+                steps.append((before, after, "I1"))
+
+            # Apply I2: single mark inside → cancel to void
+            content = "".join(children)
+            if content == "()":
+                before = "(())"
+                steps.append((before, "", "I2"))
+                # Don't append anything to parent (void)
+            else:
+                # Append this mark to parent
+                stack[-1].append("(" + content + ")")
+
+    # Root level
+    result = stack[0]
+
+    # Apply I1 at root if needed
+    if len(result) > 1 and all(ch == result[0] for ch in result):
+        before = "".join(result)
+        result = [result[0]]
+        after = "".join(result)
+        steps.append((before, after, "I1"))
+
+    final = "".join(result)
+    return final if final else "void", steps
 
 
-def canonical_string(form: list) -> str:
-    """Get the canonical string representation."""
-    simplified, _ = simplify(form)
-    s = form_to_string(simplified)
-    return s if s else "void"
+def canonical_string(s: str) -> str:
+    """Get the canonical (simplified) form of a string."""
+    result, _ = simplify_string(s)
+    return result
 
 
 # Test the simplifier
 print("Simplification examples:")
 test_exprs = ["()()", "(())", "((()))", "(()())", "()(())", "(()(()))", "(())()", "(())(())"]
 for expr in test_exprs:
-    form = string_to_form(expr)
-    result, steps = simplify(form)
-    result_str = form_to_string(result) if result else "void"
-    print(f"\n{expr} -> {result_str}")
-    for step_form, axiom in steps:
-        print(f"  {step_form} [{axiom}]")
+    result, steps = simplify_string(expr)
+    print(f"\n{expr} -> {result}")
+    for before, after, axiom in steps:
+        after_display = after if after else "void"
+        print(f"  {before} -> {after_display} [{axiom}]")
 #+end_src
 
 #+RESULTS:
@@ -296,31 +290,31 @@ for expr in test_exprs:
 Simplification examples:
 
 ()() -> ()
-  ()() [I1]
+  ()() -> () [I1]
 
 (()) -> void
-  (()) [I2]
+  (()) -> void [I2]
 
 ((())) -> ()
-  ((())) [I2]
+  (()) -> void [I2]
 
 (()()) -> void
-  (()()) [I1]
-  (()) [I2]
+  (()()) -> (()) [I1]
+  (()) -> void [I2]
 
 ()(()) -> ()
-  ()(()) [I2]
+  (()) -> void [I2]
 
 (()(())) -> void
-  (()(())) [I2]
-  (()) [I2]
+  (()) -> void [I2]
+  (()) -> void [I2]
 
 (())() -> ()
-  (())() [I2]
+  (()) -> void [I2]
 
 (())(()) -> void
-  (())(()) [I1]
-  (()) [I2]
+  (()) -> void [I2]
+  (()) -> void [I2]
 #+end_example
 
 * Test Case Generation
@@ -353,10 +347,8 @@ def generate_test_cases(n: int = 30, seed: int = 2024) -> List[dict]:
             input_str = "()"  # Ensure non-empty
         depth = string_depth(input_str)
 
-        # Convert to list only for simplification
-        form = string_to_form(input_str)
-        target = canonical_string(form)
-        _, steps = simplify(form)
+        # O(n) simplification directly on string
+        target, steps = simplify_string(input_str)
 
         cases.append({
             "id": f"lof_{i+1:03d}",
@@ -495,6 +487,252 @@ def extract_answer(response: str) -> str:
         return "void"
 
     return "unknown"
+
+
+# === Trace Validation ===
+
+def parse_trace_steps(response: str) -> List[Tuple[str, str, str]]:
+    """
+    Parse STEP lines from LLM response.
+
+    Returns:
+        List of (before, after, axiom) tuples
+    """
+    # Pattern: STEP k: expr => expr' [I1] or [I2]
+    # Handle variations in whitespace and formatting
+    pattern = r'STEP\s*\d+\s*:\s*([^\s].*?)\s*=>\s*([^\s].*?)\s*\[(I[12])\]'
+    matches = re.findall(pattern, response, re.IGNORECASE)
+
+    steps = []
+    for before, after, axiom in matches:
+        # Clean up expressions (remove backticks, extra whitespace)
+        before = before.strip().strip('`').strip()
+        after = after.strip().strip('`').strip()
+        # Normalize void
+        if after.lower() == 'void' or after == '':
+            after = ''
+        axiom = axiom.upper()
+        steps.append((before, after, axiom))
+
+    return steps
+
+
+def find_i1_sites(expr: str) -> List[Tuple[int, int, str]]:
+    """
+    Find all positions where I1 (condensation) can apply.
+
+    Returns:
+        List of (start, end, condensed) tuples where expr[start:end] can condense
+    """
+    sites = []
+    # Use stack-based parsing to find adjacent identical marks
+    stack = [[]]  # Each frame: list of (start_pos, content) tuples
+
+    pos = 0
+    start_positions = []
+
+    for i, c in enumerate(expr):
+        if c == '(':
+            start_positions.append(i)
+            stack.append([])
+        elif c == ')':
+            start = start_positions.pop()
+            children = stack.pop()
+            content = expr[start:i+1]
+            stack[-1].append((start, content))
+
+            # Check if this level has adjacent identical marks
+            if len(stack[-1]) > 1:
+                contents = [c for _, c in stack[-1]]
+                if all(c == contents[0] for c in contents):
+                    # All adjacent marks are identical - I1 applies
+                    first_start = stack[-1][0][0]
+                    last_end = i + 1
+                    sites.append((first_start, last_end, contents[0]))
+
+    # Check root level
+    if len(stack[0]) > 1:
+        contents = [c for _, c in stack[0]]
+        if all(c == contents[0] for c in contents):
+            sites.append((0, len(expr), contents[0]))
+
+    return sites
+
+
+def find_i2_sites(expr: str) -> List[Tuple[int, int]]:
+    """
+    Find all positions where I2 (cancellation) can apply.
+
+    Returns:
+        List of (start, end) tuples where expr[start:end] == "(())"
+    """
+    sites = []
+    i = 0
+    while i < len(expr):
+        if expr[i:i+4] == '(())':
+            sites.append((i, i+4))
+            i += 4
+        else:
+            i += 1
+    return sites
+
+
+def validate_step(before: str, after: str, axiom: str) -> Tuple[bool, str]:
+    """
+    Validate a single reasoning step.
+
+    Returns:
+        (is_valid, error_type) where error_type is one of:
+        - "" (no error)
+        - "wrong_axiom" (axiom doesn't apply)
+        - "scope_collapse" (correct inner transform but lost outer context)
+        - "wrong_result" (axiom applies but result is wrong)
+        - "malformed" (can't parse expressions)
+    """
+    # Check for malformed expressions
+    def balanced(s):
+        depth = 0
+        for c in s:
+            if c == '(':
+                depth += 1
+            elif c == ')':
+                depth -= 1
+            if depth < 0:
+                return False
+        return depth == 0
+
+    if not balanced(before) or (after and not balanced(after)):
+        return False, "malformed"
+
+    if axiom == "I1":
+        sites = find_i1_sites(before)
+        if not sites:
+            return False, "wrong_axiom"
+
+        # Check if any valid I1 application produces 'after'
+        for start, end, condensed in sites:
+            expected = before[:start] + condensed + before[end:]
+            if expected == after:
+                return True, ""
+
+            # Check for scope collapse: inner condensation correct but outer lost
+            # This happens when before = (X) and they output X' instead of (X')
+            if before.startswith('(') and before.endswith(')'):
+                inner_before = before[1:-1]
+                inner_sites = find_i1_sites(inner_before)
+                for istart, iend, icondensed in inner_sites:
+                    inner_expected = inner_before[:istart] + icondensed + inner_before[iend:]
+                    if after == inner_expected:
+                        return False, "scope_collapse"
+
+        return False, "wrong_result"
+
+    elif axiom == "I2":
+        sites = find_i2_sites(before)
+        if not sites:
+            return False, "wrong_axiom"
+
+        # Check if any valid I2 application produces 'after'
+        for start, end in sites:
+            expected = before[:start] + before[end:]
+            if expected == after:
+                return True, ""
+
+            # Check for scope collapse
+            if before.startswith('(') and before.endswith(')'):
+                inner_before = before[1:-1]
+                inner_sites = find_i2_sites(inner_before)
+                for istart, iend in inner_sites:
+                    inner_expected = inner_before[:istart] + inner_before[iend:]
+                    if after == inner_expected:
+                        return False, "scope_collapse"
+
+        return False, "wrong_result"
+
+    return False, "wrong_axiom"
+
+
+def validate_trace(response: str, input_expr: str) -> dict:
+    """
+    Validate all reasoning steps in an LLM response.
+
+    Returns:
+        {
+            "steps_parsed": int,
+            "steps_valid": int,
+            "errors": [(step_num, error_type, before, after, axiom), ...],
+            "trace_score": float  # steps_valid / steps_parsed
+        }
+    """
+    steps = parse_trace_steps(response)
+
+    if not steps:
+        return {
+            "steps_parsed": 0,
+            "steps_valid": 0,
+            "errors": [],
+            "trace_score": 0.0
+        }
+
+    valid_count = 0
+    errors = []
+
+    for i, (before, after, axiom) in enumerate(steps):
+        is_valid, error_type = validate_step(before, after, axiom)
+        if is_valid:
+            valid_count += 1
+        else:
+            errors.append((i + 1, error_type, before, after, axiom))
+
+    return {
+        "steps_parsed": len(steps),
+        "steps_valid": valid_count,
+        "errors": errors,
+        "trace_score": valid_count / len(steps) if steps else 0.0
+    }
+
+
+# Test trace validation
+print("=== Trace Validation Tests ===\n")
+
+# Test I2 validation
+print("I2 (Order) tests:")
+valid, err = validate_step("(())", "", "I2")
+print(f"  (()) -> void [I2]: valid={valid}, err='{err}'")
+
+valid, err = validate_step("()(())", "()", "I2")
+print(f"  ()(()) -> () [I2]: valid={valid}, err='{err}'")
+
+valid, err = validate_step("((()))", "()", "I2")
+print(f"  ((())) -> () [I2]: valid={valid}, err='{err}'")  # Should fail - wrong result
+
+valid, err = validate_step("((()))", "", "I2")
+print(f"  ((())) -> void [I2]: valid={valid}, err='{err}'")  # Scope collapse!
+
+# Test I1 validation
+print("\nI1 (Number) tests:")
+valid, err = validate_step("()()", "()", "I1")
+print(f"  ()() -> () [I1]: valid={valid}, err='{err}'")
+
+valid, err = validate_step("(()())", "(())", "I1")
+print(f"  (()()) -> (()) [I1]: valid={valid}, err='{err}'")
+
+valid, err = validate_step("(()())", "()", "I1")
+print(f"  (()()) -> () [I1]: valid={valid}, err='{err}'")  # Scope collapse!
+
+# Test parsing from realistic response
+print("\nParsing test:")
+sample_response = """
+STEP 1: (())(()) => (()) [I1]
+STEP 2: (()) => void [I2]
+FINAL: void
+"""
+steps = parse_trace_steps(sample_response)
+print(f"  Parsed {len(steps)} steps: {steps}")
+
+validation = validate_trace(sample_response, "(())(())")
+print(f"  Validation: {validation['steps_valid']}/{validation['steps_parsed']} valid")
+print(f"  Trace score: {validation['trace_score']:.1%}")
 #+end_src
 
 #+RESULTS:
@@ -715,16 +953,23 @@ STEP 1: ((((())(()()))(((())(())()(()))(()())((())()))((()(())()))())) => ((((()
 * Set up Analysis 
 
 #+begin_src python
-def analyze_results(results: List[dict]) -> dict:
-    """Compute accuracy metrics from results."""
+def analyze_results(results: List[dict], validate_traces: bool = True) -> dict:
+    """Compute accuracy metrics from results, including trace validation."""
     from collections import defaultdict
 
     # Overall accuracy by model
-    by_model = defaultdict(lambda: {"correct": 0, "total": 0})
+    by_model = defaultdict(lambda: {"correct": 0, "total": 0, "trace_scores": []})
     for r in results:
         by_model[r["model"]]["total"] += 1
         if r["correct"]:
             by_model[r["model"]]["correct"] += 1
+
+        # Validate traces if requested
+        if validate_traces and r.get("response"):
+            trace_result = validate_trace(r["response"], r["input"])
+            r["trace_validation"] = trace_result
+            if trace_result["steps_parsed"] > 0:
+                by_model[r["model"]]["trace_scores"].append(trace_result["trace_score"])
 
     # Accuracy by difficulty
     by_diff = defaultdict(lambda: defaultdict(lambda: {"correct": 0, "total": 0}))
@@ -736,15 +981,26 @@ def analyze_results(results: List[dict]) -> dict:
     # Failure examples
     failures = [r for r in results if not r["correct"]]
 
+    # Error type breakdown
+    error_counts = defaultdict(lambda: defaultdict(int))
+    for r in results:
+        if "trace_validation" in r:
+            for step_num, error_type, before, after, axiom in r["trace_validation"]["errors"]:
+                error_counts[r["model"]][error_type] += 1
+
     return {
-        "by_model": {m: {"accuracy": d["correct"]/d["total"] if d["total"] > 0 else 0,
-                        "correct": d["correct"], "total": d["total"]}
-                     for m, d in by_model.items()},
+        "by_model": {m: {
+            "accuracy": d["correct"]/d["total"] if d["total"] > 0 else 0,
+            "correct": d["correct"],
+            "total": d["total"],
+            "avg_trace_score": sum(d["trace_scores"])/len(d["trace_scores"]) if d["trace_scores"] else 0
+        } for m, d in by_model.items()},
         "by_difficulty": {m: {diff: {"accuracy": d["correct"]/d["total"] if d["total"] > 0 else 0,
                                      "correct": d["correct"], "total": d["total"]}
                               for diff, d in diffs.items()}
                           for m, diffs in by_diff.items()},
-        "failures": failures[:10]  # First 10 failures
+        "error_types": dict(error_counts),
+        "failures": failures[:10]
     }
 
 
@@ -755,7 +1011,8 @@ if 'sample_results' in dir() and sample_results:
     print("=== Accuracy by Model ===")
     for model, stats in analysis["by_model"].items():
         pct = stats["accuracy"] * 100
-        print(f"{model}: {pct:.1f}% ({stats['correct']}/{stats['total']})")
+        trace_pct = stats["avg_trace_score"] * 100
+        print(f"{model}: {pct:.1f}% final answer, {trace_pct:.1f}% trace accuracy")
 
     print("\n=== Accuracy by Difficulty ===")
     for model, diffs in analysis["by_difficulty"].items():
@@ -764,12 +1021,24 @@ if 'sample_results' in dir() and sample_results:
             pct = stats["accuracy"] * 100
             print(f"  {diff}: {pct:.1f}% ({stats['correct']}/{stats['total']})")
 
+    if analysis["error_types"]:
+        print("\n=== Trace Error Types ===")
+        for model, errors in analysis["error_types"].items():
+            print(f"\n{model}:")
+            for error_type, count in sorted(errors.items(), key=lambda x: -x[1]):
+                print(f"  {error_type}: {count}")
+
     if analysis["failures"]:
         print("\n=== Sample Failures ===")
         for f in analysis["failures"][:3]:
-            print(f"\n{f['model']}: {f['input']}")
+            print(f"\n{f['model']}: {f['input'][:50]}...")
             print(f"  Expected: {f['target']}, Got: {f['extracted_answer']}")
-            print(f"  Response excerpt: {f['response'][:200]}...")
+            if "trace_validation" in f:
+                tv = f["trace_validation"]
+                print(f"  Trace: {tv['steps_valid']}/{tv['steps_parsed']} steps valid")
+                if tv["errors"]:
+                    step, err, before, after, axiom = tv["errors"][0]
+                    print(f"  First error (step {step}): {err} - {before[:30]}... [{axiom}]")
 #+end_src
 
 #+RESULTS:
@@ -1145,13 +1414,14 @@ with open("results.json", "r") as f:
 
 print(f"Loaded {len(saved['results'])} results from {saved['metadata']['timestamp']}")
 analysis = analyze_results(saved['results'])
-    
+
 # Print full analysis
 print("\n=== FULL RESULTS ===\n")
 print("=== Accuracy by Model ===")
 for model, stats in analysis["by_model"].items():
     pct = stats["accuracy"] * 100
-    print(f"{model}: {pct:.1f}% ({stats['correct']}/{stats['total']})")
+    trace_pct = stats["avg_trace_score"] * 100
+    print(f"{model}: {pct:.1f}% final answer, {trace_pct:.1f}% trace accuracy")
 
 print("\n=== Accuracy by Difficulty ===")
 for model, diffs in analysis["by_difficulty"].items():
@@ -1160,12 +1430,24 @@ for model, diffs in analysis["by_difficulty"].items():
         pct = stats["accuracy"] * 100
         print(f"  {diff}: {pct:.1f}% ({stats['correct']}/{stats['total']})")
 
+if analysis["error_types"]:
+    print("\n=== Trace Error Types ===")
+    for model, errors in analysis["error_types"].items():
+        print(f"\n{model}:")
+        for error_type, count in sorted(errors.items(), key=lambda x: -x[1]):
+            print(f"  {error_type}: {count}")
+
 if analysis["failures"]:
     print("\n=== Sample Failures ===")
     for f in analysis["failures"][:3]:
-        print(f"\n{f['model']}: {f['input']}")
+        print(f"\n{f['model']}: {f['input'][:60]}...")
         print(f"  Expected: {f['target']}, Got: {f['extracted_answer']}")
-        print(f"  Response excerpt: {f['response'][:200]}...")
+        if "trace_validation" in f:
+            tv = f["trace_validation"]
+            print(f"  Trace: {tv['steps_valid']}/{tv['steps_parsed']} steps valid")
+            if tv["errors"]:
+                step, err, before, after, axiom = tv["errors"][0]
+                print(f"  First error (step {step}): {err}")
 #+end_src
 
 #+RESULTS:
