@@ -452,31 +452,44 @@ I2 (Order): (()) = void
 
 Expression: {expression}
 
-Apply the axioms step by step until you reach either:
-- () (the mark)
-- void (empty/nothing)
+Apply axioms until you reach () or void.
 
-At each step, output an exact line of the form:
-STEP k: expr => expr' [I1]  
-or
-STEP k: expr => expr' [I2]
+Structure your response EXACTLY as follows:
 
-Show your reasoning, then state your final answer on the last line as either:
-FINAL: ()
-or
-FINAL: void
+<scratchpad>
+Think through the problem here. Work out the simplification in whatever way helps you.
+</scratchpad>
+
+<trace>
+STEP 1: full_expression => simplified_expression [I1 or I2]
+STEP 2: ...
+...continue until done...
+</trace>
+
+<answer>() or void</answer>
+
+Rules for the trace:
+- Each STEP must show the COMPLETE expression before and after
+- Use exactly [I1] or [I2] to indicate which axiom
+- No explanations inside <trace>, only STEP lines
 """
 
 
 def extract_answer(response: str) -> str:
     """Extract the final answer from LLM response."""
-    # Look for FINAL: pattern
+    # Look for <answer> tag first
+    match = re.search(r'<answer>\s*(\(\)|void)\s*</answer>', response, re.IGNORECASE)
+    if match:
+        ans = match.group(1).lower()
+        return "()" if ans == "()" else "void"
+
+    # Fallback: FINAL: pattern
     match = re.search(r'FINAL:\s*(\(\)|void)', response, re.IGNORECASE)
     if match:
         ans = match.group(1).lower()
         return "()" if ans == "()" else "void"
 
-    # Fallback: look for last occurrence of () or void
+    # Last resort: look for last occurrence of () or void
     response_lower = response.lower()
     last_mark = response_lower.rfind("()")
     last_void = max(response_lower.rfind("void"), response_lower.rfind("empty"))
@@ -491,6 +504,14 @@ def extract_answer(response: str) -> str:
 
 # === Trace Validation ===
 
+def extract_trace_block(response: str) -> str:
+    """Extract content from <trace>...</trace> block, or return full response."""
+    match = re.search(r'<trace>(.*?)</trace>', response, re.DOTALL | re.IGNORECASE)
+    if match:
+        return match.group(1)
+    return response  # Fallback to full response
+
+
 def parse_trace_steps(response: str) -> List[Tuple[str, str, str]]:
     """
     Parse STEP lines from LLM response.
@@ -498,10 +519,13 @@ def parse_trace_steps(response: str) -> List[Tuple[str, str, str]]:
     Returns:
         List of (before, after, axiom) tuples
     """
+    # Extract trace block if present
+    trace_text = extract_trace_block(response)
+
     # Pattern: STEP k: expr => expr' [I1] or [I2]
     # Handle variations in whitespace and formatting
     pattern = r'STEP\s*\d+\s*:\s*([^\s].*?)\s*=>\s*([^\s].*?)\s*\[(I[12])\]'
-    matches = re.findall(pattern, response, re.IGNORECASE)
+    matches = re.findall(pattern, trace_text, re.IGNORECASE)
 
     steps = []
     for before, after, axiom in matches:
@@ -720,17 +744,37 @@ print(f"  (()()) -> (()) [I1]: valid={valid}, err='{err}'")
 valid, err = validate_step("(()())", "()", "I1")
 print(f"  (()()) -> () [I1]: valid={valid}, err='{err}'")  # Scope collapse!
 
-# Test parsing from realistic response
-print("\nParsing test:")
-sample_response = """
+# Test parsing from realistic response (old format - fallback)
+print("\nParsing test (old format):")
+sample_response_old = """
 STEP 1: (())(()) => (()) [I1]
 STEP 2: (()) => void [I2]
 FINAL: void
 """
-steps = parse_trace_steps(sample_response)
+steps = parse_trace_steps(sample_response_old)
 print(f"  Parsed {len(steps)} steps: {steps}")
 
-validation = validate_trace(sample_response, "(())(())")
+# Test new structured format
+print("\nParsing test (new structured format):")
+sample_response_new = """
+<scratchpad>
+Let me work through this. I see (())(()) which has two (()) marks.
+They're identical so I1 applies. Then (()) cancels by I2.
+</scratchpad>
+
+<trace>
+STEP 1: (())(()) => (()) [I1]
+STEP 2: (()) => void [I2]
+</trace>
+
+<answer>void</answer>
+"""
+steps = parse_trace_steps(sample_response_new)
+print(f"  Parsed {len(steps)} steps: {steps}")
+answer = extract_answer(sample_response_new)
+print(f"  Extracted answer: {answer}")
+
+validation = validate_trace(sample_response_new, "(())(())")
 print(f"  Validation: {validation['steps_valid']}/{validation['steps_parsed']} valid")
 print(f"  Trace score: {validation['trace_score']:.1%}")
 #+end_src
