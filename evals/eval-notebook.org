@@ -552,7 +552,6 @@ def find_i1_sites(expr: str) -> List[Tuple[int, int, str]]:
     # Use stack-based parsing to find adjacent identical marks
     stack = [[]]  # Each frame: list of (start_pos, content) tuples
 
-    pos = 0
     start_positions = []
 
     for i, c in enumerate(expr):
@@ -560,6 +559,9 @@ def find_i1_sites(expr: str) -> List[Tuple[int, int, str]]:
             start_positions.append(i)
             stack.append([])
         elif c == ')':
+            # Guard against malformed expressions
+            if not start_positions or len(stack) < 2:
+                return []  # Malformed - return empty
             start = start_positions.pop()
             children = stack.pop()
             content = expr[start:i+1]
@@ -574,7 +576,9 @@ def find_i1_sites(expr: str) -> List[Tuple[int, int, str]]:
                     last_end = i + 1
                     sites.append((first_start, last_end, contents[0]))
 
-    # Check root level
+    # Check root level (only if balanced)
+    if start_positions:  # Unbalanced - unclosed parens
+        return []
     if len(stack[0]) > 1:
         contents = [c for _, c in stack[0]]
         if all(c == contents[0] for c in contents):
@@ -1008,50 +1012,6 @@ I will analyze the expression by breaking it down into its nested components and
 1. The first large block `((((...))))` contains a sequence of items that reduce to `void`, `void`, `()`, `void`, resulting in a content of `()`. The 4-level wrapper alternates the value, resulting in `()`.
 2. The second large blo...
 #+end_example
-
-* Analyze Sample Results
-
-Run trace validation on the sample results.
-
-#+begin_src python
-# Analyze sample results with trace validation
-if 'sample_results' in dir() and sample_results:
-    print(f"Analyzing {len(sample_results)} sample results...\n")
-
-    analysis = analyze_results(sample_results)
-
-    print("=== Accuracy by Model ===")
-    for model, stats in sorted(analysis["by_model"].items()):
-        pct = stats["accuracy"] * 100
-        trace_pct = stats["avg_trace_score"] * 100
-        print(f"{model}: {pct:.1f}% final, {trace_pct:.1f}% trace ({stats['correct']}/{stats['total']})")
-
-    if analysis["error_types"]:
-        print("\n=== Trace Error Types ===")
-        for model, errors in sorted(analysis["error_types"].items()):
-            if errors:
-                print(f"\n{model}:")
-                for error_type, count in sorted(errors.items(), key=lambda x: -x[1]):
-                    print(f"  {error_type}: {count}")
-
-    # Show detailed trace analysis for failures
-    failures = [r for r in sample_results if not r["correct"]]
-    if failures:
-        print(f"\n=== Failure Trace Analysis ({len(failures)} failures) ===")
-        for f in failures[:3]:
-            print(f"\n{f['model']}: {f['input'][:40]}...")
-            print(f"  Expected: {f['target']}, Got: {f['extracted_answer']}")
-            if "trace_validation" in f:
-                tv = f["trace_validation"]
-                print(f"  Trace: {tv['steps_valid']}/{tv['steps_parsed']} steps valid, score={tv['trace_score']:.1%}")
-                if tv["errors"]:
-                    for step_num, err_type, before, after, axiom in tv["errors"][:2]:
-                        print(f"    Step {step_num} ({err_type}): {before[:25]}... [{axiom}]")
-else:
-    print("No sample_results found. Run the Sample Run cell first.")
-#+end_src
-
-#+RESULTS:
 
 * Set up Analysis 
 
