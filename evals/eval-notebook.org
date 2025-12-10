@@ -327,7 +327,7 @@ Difficulty is defined by *minimum* depth:
 - Hard: depth 3-4 (multiple nested reductions)
 
 #+begin_src python
-def generate_test_cases(n: int = 30, seed: int = 2024) -> List[dict]:
+def generate_test_cases(n: int = 500, seed: int = 2024) -> List[dict]:
     """Generate n test cases with varying difficulty."""
     random.seed(seed)
     cases = []
@@ -335,9 +335,11 @@ def generate_test_cases(n: int = 30, seed: int = 2024) -> List[dict]:
     # Distribution with (difficulty, min_depth, max_depth, max_width, max_marks)
     # max_marks caps complexity to keep simplification fast
     difficulties = (
-        [("1. easy", 1, 2, 2, 20)] * 10 +
-        [("2. medium", 4, 5, 4, 50)] * 10 +
-        [("3. hard", 7, 10, 5, 100)] * 10
+        [("1. easy", 1, 2, 4, 20)] * 100 +
+        [("2. medium", 3, 4, 4, 30)] * 100 +
+        [("3. hard", 5, 6, 5, 50)] * 100 +
+        [("4. lunatic", 7, 8, 5, 70)] * 100 +
+        [("5. extra", 9, 10, 6, 100)] * 100
     )
     random.shuffle(difficulties)
 
@@ -363,7 +365,7 @@ def generate_test_cases(n: int = 30, seed: int = 2024) -> List[dict]:
 
 
 # Generate and preview test cases
-test_cases = generate_test_cases(100)
+test_cases = generate_test_cases(500)
 print(f"Generated {len(test_cases)} test cases\n")
 
 # Preview distribution
@@ -375,7 +377,7 @@ for c in test_cases:
     depth_by_diff.setdefault(c["difficulty"], []).append(c["depth"])
 
 print("By difficulty:")
-for diff in ["1. easy", "2. medium", "3. hard"]:
+for diff in ["1. easy", "2. medium", "3. hard", "4. lunatic", "5. extra"]:
     depths = depth_by_diff.get(diff, [])
     avg_depth = sum(depths) / len(depths) if depths else 0
     print(f"  {diff}: {diff_counts[diff]} cases, avg depth={avg_depth:.1f}, range=[{min(depths)}-{max(depths)}]")
@@ -385,29 +387,46 @@ for target, count in sorted(target_counts.items()):
     print(f"  {target}: {count}")
 
 print("\nSample cases:")
-for case in test_cases[:5]:
+for case in test_cases[:20]:
     print(f"  {case['id']}: {case['input']:20} -> {case['target']:6} (d={case['depth']}, {case['difficulty']}, {case['steps']} steps)")
 #+end_src
 
 #+RESULTS:
 #+begin_example
-Generated 30 test cases
+Generated 500 test cases
 
 By difficulty:
-  1. easy: 10 cases, avg depth=2.4, range=[1-3]
-  2. medium: 10 cases, avg depth=6.0, range=[6-6]
-  3. hard: 10 cases, avg depth=11.0, range=[11-11]
+  1. easy: 100 cases, avg depth=2.8, range=[1-3]
+  2. medium: 100 cases, avg depth=5.0, range=[3-5]
+  3. hard: 100 cases, avg depth=7.0, range=[7-7]
+  4. lunatic: 100 cases, avg depth=9.0, range=[9-9]
+  5. extra: 100 cases, avg depth=11.0, range=[11-11]
 
 By target value:
-  (): 18
-  void: 12
+  (): 258
+  void: 242
 
 Sample cases:
-  lof_001: (())(()())           -> void   (d=2, 1. easy, 3 steps)
-  lof_002: ()(())               -> ()     (d=2, 1. easy, 1 steps)
-  lof_003: ((((()))(())((()(())(())())())))(((((())))((())((())(())()))((()(()))((())(())(()))(())((())))())()) -> ()     (d=6, 2. medium, 26 steps)
-  lof_004: ((((())(()()))(((())(())()(()))(()())((())()))((()(())()))())) -> ()     (d=6, 2. medium, 16 steps)
-  lof_005: ((((()()(())((((((())(())()())(()()(())(())(()))((())(())(())(()))(()())(()))))(((((())(())(())())(()(())(()))((())()(())()())(()()()()())((())()(())))((()(())()()))(((())()()())((())())((())))))))))) -> ()     (d=11, 3. hard, 51 steps)
+  lof_001: (((()(()(()(())(())(())(()))((())()(())()())()(()(())()()(())))((()())((())()()()))()(((())())())))) -> void   (d=7, 3. hard, 26 steps)
+  lof_002: (()(())(((((()(((()()()(())(())))()(((())()(())(())(())())((())()(())(())(()))))(((()(())(()))((())()(())(())()())((())()(())(())()(())))(((())(())(())(()))((())(()))((())()()))(((())(())(())))))))))) -> void   (d=11, 5. extra, 52 steps)
+  lof_003: ((()))(((((()(())(()(()()()(()))((())(())()(())))()(((()))(()())(())()(())))())(()(()(()(())()((()))((())))((())))(((()(())(())(()))())))))) -> ()     (d=9, 4. lunatic, 37 steps)
+  lof_004: ((((())())))()((((()))((())()())((())(())(())(())))((()()))) -> ()     (d=5, 2. medium, 16 steps)
+  lof_005: ((()((())()(())(())))((()(())(()))(()()()(()))(()()(()))))() -> ()     (d=5, 2. medium, 15 steps)
+  lof_006: ((((((())()(())(())())((())()(())(()))((())(()))((())))))(((((())()(())())((())())())((()))((()))))) -> void   (d=7, 3. hard, 27 steps)
+  lof_007: ((((((((())(()))((())()()()()))()(((())()()(())(()))()(()()()(()))())()))((((()()()(()))(()(()))()()((())(())()()(()))))(((())((())()))))))) -> void   (d=9, 4. lunatic, 37 steps)
+  lof_008: ((((((()))(())((())()(())()(()))))((((())()(())()())(()()()(())(()))((())(())()()())((())(())()))))) -> ()     (d=7, 3. hard, 25 steps)
+  lof_009: ()(()((((((()()(()))((())()(())()(()))((())(())(())(())))((())(()()()()())((())(())(())(())())))(((()(()))(()()(()))()(()(()))())((()))))))) -> ()     (d=9, 4. lunatic, 36 steps)
+  lof_010: ((((()(()()()()((()(())()()())((())(())(())())()))((((())()()(())())(()(())(()))((())()(())(()))((())()()(()))))())((((())(()(())(())))))))) -> void   (d=9, 4. lunatic, 35 steps)
+  lof_011: (((((()(((())(()))(()(())(())())((())()))((()()))(((())(())(())()(()))(()(())()))(()()()((())()())(()()(()))))((()(()(())(())(())(())))))))) -> ()     (d=9, 4. lunatic, 37 steps)
+  lof_012: ((((())(((()(((()()(())())((())(())(())(())())(()(())(()))(()(())())(()()()))((()())()()())))()((((()(())(())()(())(()))(()(())()()(()))(()(())()(())(())(()))(()(())())((())()()))(()((())()()))))))))) -> void   (d=11, 5. extra, 54 steps)
+  lof_013: ((((()(()(())()()()))((()(())(())()(()))((())(())(())()()))(((())(())())((())(())()(())())))(()()))) -> void   (d=7, 3. hard, 27 steps)
+  lof_014: ((())()())()((())(())()) -> ()     (d=3, 1. easy, 6 steps)
+  lof_015: ((()((())(())))(((())())((())())(()()(())(()))())(((()))())) -> ()     (d=5, 2. medium, 16 steps)
+  lof_016: ((((((())(())(())()(()))))((((())()(())()())(()())((())()()(()))((()))())))((((()()))(((())())())))) -> void   (d=7, 3. hard, 27 steps)
+  lof_017: ((((())(())())))(((()(()))))(()((()(()))((())()(())(())))()) -> void   (d=5, 2. medium, 15 steps)
+  lof_018: ((((()((((())()()(())(()))))((()()((())())((())()(())()())())())(()((()(())()(())(()))((()))((())())(())())(((())(()))((())(())()))())())))) -> ()     (d=9, 4. lunatic, 37 steps)
+  lof_019: ((()))((((())(()))(()()()())((())(())()))(()(()(())(())()))) -> ()     (d=5, 2. medium, 15 steps)
+  lof_020: ((((((((())(())())((())())()((())))((()()(())()())((())()(()))((())))(((())(())()(())))(()((())(())(()))(()(())(())()())((())()()()()))))))) -> void   (d=9, 4. lunatic, 35 steps)
 #+end_example
 
 
@@ -421,7 +440,7 @@ print(f"Saved {len(test_cases)} test cases to test_cases.json")
 #+end_src
 
 #+RESULTS:
-: Saved 30 test cases to test_cases.json
+: Saved 500 test cases to test_cases.json
 
 * Load Test Cases
 
@@ -956,61 +975,70 @@ Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GOOGLE_API_KEY.
 Saved 15 results to sample_results.json
 
 === Sample Results ===
-✅ lof_001 (openai): (())(()())                     -> void (target: void)
-✅ lof_001 (anthropic): (())(()())                     -> void (target: void)
-✅ lof_001 (google): (())(()())                     -> void (target: void)
-✅ lof_002 (openai): ()(())                         -> () (target: ())
-✅ lof_002 (anthropic): ()(())                         -> () (target: ())
-✅ lof_002 (google): ()(())                         -> () (target: ())
-✅ lof_003 (openai): ((((()))(())((()(())(())())()) -> () (target: ())
-✅ lof_003 (anthropic): ((((()))(())((()(())(())())()) -> () (target: ())
-✅ lof_003 (google): ((((()))(())((()(())(())())()) -> () (target: ())
-❌ lof_004 (openai): ((((())(()()))(((())(())()(()) -> void (target: ())
-✅ lof_004 (anthropic): ((((())(()()))(((())(())()(()) -> () (target: ())
-✅ lof_004 (google): ((((())(()()))(((())(())()(()) -> () (target: ())
-✅ lof_005 (openai): ((((()()(())((((((())(())()()) -> () (target: ())
-✅ lof_005 (anthropic): ((((()()(())((((((())(())()()) -> () (target: ())
-❌ lof_005 (google): ((((()()(())((((((())(())()()) -> void (target: ())
+✅ lof_001 (openai): (((()(()(()(())(())(())(()))(( -> void (target: void)
+❌ lof_001 (anthropic): (((()(()(()(())(())(())(()))(( -> () (target: void)
+❌ lof_001 (google): (((()(()(()(())(())(())(()))(( -> () (target: void)
+✅ lof_002 (openai): (()(())(((((()(((()()()(())(() -> void (target: void)
+❌ lof_002 (anthropic): (()(())(((((()(((()()()(())(() -> () (target: void)
+✅ lof_002 (google): (()(())(((((()(((()()()(())(() -> void (target: void)
+✅ lof_003 (openai): ((()))(((((()(())(()(()()()(() -> () (target: ())
+✅ lof_003 (anthropic): ((()))(((((()(())(()(()()()(() -> () (target: ())
+✅ lof_003 (google): ((()))(((((()(())(()(()()()(() -> () (target: ())
+✅ lof_004 (openai): ((((())())))()((((()))((())()( -> () (target: ())
+✅ lof_004 (anthropic): ((((())())))()((((()))((())()( -> () (target: ())
+✅ lof_004 (google): ((((())())))()((((()))((())()( -> () (target: ())
+✅ lof_005 (openai): ((()((())()(())(())))((()(())( -> () (target: ())
+✅ lof_005 (anthropic): ((()((())()(())(())))((()(())( -> () (target: ())
+✅ lof_005 (google): ((()((())()(())(())))((()(())( -> () (target: ())
 
-=== 2 Failures - Full Reasoning ===
+=== 3 Failures - Full Reasoning ===
 
---- lof_004 (gpt-5.1) ---
-Input: ((((())(()()))(((())(())()(()))(()())((())()))((()(())()))()))
-Expected: (), Got: void
+--- lof_001 (claude-opus-4-5-20251101) ---
+Input: (((()(()(()(())(())(())(()))((())()(())()())()(()(())()()(())))((()())((())()()()))()(((())())()))))
+Expected: void, Got: ()
 Response:
 <scratchpad>
-Let’s simplify systematically.
+Let me parse this expression carefully first by tracking the nesting levels.
 
-Expression:
-((((())(()()))(((())(())()(()))(()())((())()))((()(())()))()))
+(((()(()(()(())(())(())(()))((())()(())()())()(()(())()()(())))((()())((())()()()))()(((())())()))))
 
-First, parse the outer structure. Count parentheses to see the main grouping.
+Let me work from the inside out, identifying opportunities to apply axioms.
 
-The whole thing is of the form: ( A ) where A is:
+First, let me find all (()) patterns which can be eliminated by I2.
 
-(((())(()()))(((())(())()(()))(()())((())()))((()(())()))())
+Looking for (()) patterns:
+- (()) appears multiple times in the expression
 
-Now parse A into concatenated subexpressions:
+Let me rewrite with better structure:
+(((()(()(()(())(())(())(()))((())()(())()())()(...
 
-A = X Y Z W
-
-Scan:
-
-1. X = ((())(()()))
-   - Check: ((())(()()))
-     = ( (()) ( ()() ) )
-   Inside:
-     (()) is one subpart
-     (()()) is...
-
---- lof_005 (gemini-3-pro-preview) ---
-Input: ((((()()(())((((((())(())()())(()()(())(())(()))((())(())(())(()))(()())(()))))(((((())(())(())())(()(())(()))((())()(())()())(()()()()())((())()(())))((()(())()()))(((())()()())((())())((()))))))))))
-Expected: (), Got: void
+--- lof_001 (gemini-3-pro-preview) ---
+Input: (((()(()(()(())(())(())(()))((())()(())()())()(()(())()()(())))((()())((())()()()))()(((())())()))))
+Expected: void, Got: ()
 Response:
 <scratchpad>
-I will analyze the expression by breaking it down into its nested components and reducing them recursively. The expression consists of a main wrapper containing a sequence of elements and two large complex blocks. I will evaluate the two large blocks first.
-1. The first large block `((((...))))` contains a sequence of items that reduce to `void`, `void`, `()`, `void`, resulting in a content of `()`. The 4-level wrapper alternates the value, resulting in `()`.
-2. The second large blo...
+I will simplify the expression by applying the Laws of Form axioms I1 (condensing marks) and I2 (canceling nested marks) from the innermost structures outward.
+1.  Identify the main sub-expressions T2, T3, M, and T4 within the structure `(( T2 T3 M T4 ))`.
+2.  Recursively simplify the contents of T2, T3, and T4.
+3.  T2's inner components reduce to `void`, making T2 `(())`, which becomes `void`.
+4.  T3 reduces to `()`. M is `()`. T4 reduces to `()`.
+5.  The list `T2 T3 M T4` becomes ...
+
+--- lof_002 (claude-opus-4-5-20251101) ---
+Input: (()(())(((((()(((()()()(())(())))()(((())()(())(())(())())((())()(())(())(()))))(((()(())(()))((())()(())(())()())((())()(())(())()(())))(((())(())(())(()))((())(()))((())()()))(((())(())(()))))))))))
+Expected: void, Got: ()
+Response:
+<scratchpad>
+Let me work through this step by step. First, let me parse the expression and understand its structure.
+
+(()(())(((((()(((()()()(())(())))()(((())()(())(())(())())((())()(())(())(()))))(((()(())(()))((())()(())(())()())((())()(())(())()(())))(((())(())(())(()))((())(()))((())()()))(((())(())(()))))))))))
+
+Let me start simplifying from the inside out.
+
+First, I see ()()() which can be simplified to () by I1.
+I see (()) which can be simplified to void by I2.
+
+Let me work through this ...
 #+end_example
 
 * Set up Analysis 
@@ -1107,51 +1135,62 @@ if 'sample_results' in dir() and sample_results:
 #+RESULTS:
 #+begin_example
 === Accuracy by Model ===
-gpt-5.1: 80.0% final answer, 33.3% trace accuracy
-claude-opus-4-5-20251101: 100.0% final answer, 50.0% trace accuracy
-gemini-3-pro-preview: 80.0% final answer, 61.1% trace accuracy
+gpt-5.1: 100.0% final answer, 28.7% trace accuracy
+claude-opus-4-5-20251101: 60.0% final answer, 7.1% trace accuracy
+gemini-3-pro-preview: 80.0% final answer, 29.2% trace accuracy
 
 === Accuracy by Difficulty ===
 
 gpt-5.1:
-  1. easy: 100.0% (2/2)
-  2. medium: 50.0% (1/2)
+  2. medium: 100.0% (2/2)
   3. hard: 100.0% (1/1)
+  4. lunatic: 100.0% (1/1)
+  5. extra: 100.0% (1/1)
 
 claude-opus-4-5-20251101:
-  1. easy: 100.0% (2/2)
-  2. medium: 100.0% (2/2)
-  3. hard: 100.0% (1/1)
-
-gemini-3-pro-preview:
-  1. easy: 100.0% (2/2)
   2. medium: 100.0% (2/2)
   3. hard: 0.0% (0/1)
+  4. lunatic: 100.0% (1/1)
+  5. extra: 0.0% (0/1)
+
+gemini-3-pro-preview:
+  2. medium: 100.0% (2/2)
+  3. hard: 0.0% (0/1)
+  4. lunatic: 100.0% (1/1)
+  5. extra: 100.0% (1/1)
 
 === Trace Error Types ===
 
 gpt-5.1:
-  wrong_result: 34
-  wrong_axiom: 1
+  wrong_result: 13
+  wrong_axiom: 5
+  scope_collapse: 1
 
 claude-opus-4-5-20251101:
-  malformed: 6
+  malformed: 13
+  wrong_result: 1
 
 gemini-3-pro-preview:
-  wrong_result: 16
-  malformed: 8
+  wrong_result: 13
+  malformed: 7
+  wrong_axiom: 7
 
 === Sample Failures ===
 
-gpt-5.1: ((((())(()()))(((())(())()(()))(()())((())()))((()...
-  Expected: (), Got: void
-  Trace: 1/15 steps valid
-  First error (step 1): wrong_result - ((((())(()()))(((())(())()(())... [I2]
+claude-opus-4-5-20251101: (((()(()(()(())(())(())(()))((())()(())()())()(()(...
+  Expected: void, Got: ()
+  Trace: 0/5 steps valid
+  First error (step 1): malformed - (((()(()(()(())(())(())(()))((... [I2]
 
-gemini-3-pro-preview: ((((()()(())((((((())(())()())(()()(())(())(()))((...
-  Expected: (), Got: void
-  Trace: 2/5 steps valid
-  First error (step 1): wrong_result - (((((()()(())()())))))... [I2]
+gemini-3-pro-preview: (((()(()(()(())(())(())(()))((())()(())()())()(()(...
+  Expected: void, Got: ()
+  Trace: 0/10 steps valid
+  First error (step 1): malformed - (((()(()(()(())(())(())(()))((... [I2]
+
+claude-opus-4-5-20251101: (()(())(((((()(((()()()(())(())))()(((())()(())(()...
+  Expected: void, Got: ()
+  Trace: 0/2 steps valid
+  First error (step 1): malformed - (()(())(((((()(((()()()(())(()... [I1]
 #+end_example
 
 * Batch API: Prepare Jobs
@@ -1327,12 +1366,18 @@ print(f"\nBatch events appended to {BATCH_LOG}")
 #+end_src
 
 #+RESULTS:
-: Submitting batches for 30 test cases...
-:   Submitting Gemini batch...
-: Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GOOGLE_API_KEY.
-:     Gemini batch ID: batches/izt2k94rwktvv4pre8ai2cmkv5ax2yo4htv6
-: 
-: Batch events appended to batch_log.jsonl
+#+begin_example
+Submitting batches for 500 test cases...
+  Submitting OpenAI batch...
+    OpenAI batch ID: batch_6939e6ddb9108190909adc4e1369f234
+  Submitting Anthropic batch...
+    Anthropic batch ID: msgbatch_01CnXznANgLoLuvaw7B479vY
+  Submitting Gemini batch...
+Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GOOGLE_API_KEY.
+    Gemini batch ID: batches/lhydhmxj6bn73y4dwtcmeo9g0pifta6xlwr4
+
+Batch events appended to batch_log.jsonl
+#+end_example
 
 * Batch API: Check Status
 
