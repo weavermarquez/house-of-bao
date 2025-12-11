@@ -1,5 +1,3 @@
-#+title: Laws of Form Arithmetic Evaluation Suite
-#+author: Valerie Kim
 #+property: header-args:python :session lof :results output :python ".venv/bin/python"
 
 * Introduction
@@ -65,12 +63,6 @@ print(f"Anthropic key: {'set' if ANTHROPIC_API_KEY else 'missing'}")
 print(f"Gemini key: {'set' if GEMINI_API_KEY else 'missing'}")
 #+end_src
 
-#+RESULTS:
-: Setup complete.
-: OpenAI key: set
-: Anthropic key: set
-: Gemini key: set
-
 * Form Representation
 
 We use two representations:
@@ -113,13 +105,6 @@ for s in test_forms:
     back = form_to_string(f)
     print(f"{s:12} -> {str(f):20} -> {back}")
 #+end_src
-
-#+RESULTS:
-: ()           -> [[]]                 -> ()
-: (())         -> [[[]]]               -> (())
-: ()()         -> [[], []]             -> ()()
-: ((()))       -> [[[[]]]]             -> ((()))
-: (()())       -> [[[], []]]           -> (()())
 
 * Form Generator
 
@@ -201,21 +186,6 @@ for i in range(10):
     print(f"  {i+1:2}. depth={d}: {s if s else '<void>'}")
 #+end_src
 
-#+RESULTS:
-#+begin_example
-Sample generated forms (min_depth=2, max_depth=3):
-   1. depth=4: ((())((())))
-   2. depth=4: (((()))(()(())))
-   3. depth=4: ((())((())))
-   4. depth=4: (((())))((()))
-   5. depth=2: (()())
-   6. depth=4: (((())()))
-   7. depth=4: (((())))
-   8. depth=3: ((()))((()())(()))
-   9. depth=4: (((())())(()))
-  10. depth=4: ((()(()))((())()))(((())(())))
-#+end_example
-
 * Ground-Truth Simplifier
 
 O(n) stack-based simplifier. Single pass, applies I1 and I2 as marks close.
@@ -284,38 +254,6 @@ for expr in test_exprs:
         after_display = after if after else "void"
         print(f"  {before} -> {after_display} [{axiom}]")
 #+end_src
-
-#+RESULTS:
-#+begin_example
-Simplification examples:
-
-()() -> ()
-  ()() -> () [I1]
-
-(()) -> void
-  (()) -> void [I2]
-
-((())) -> ()
-  (()) -> void [I2]
-
-(()()) -> void
-  (()()) -> (()) [I1]
-  (()) -> void [I2]
-
-()(()) -> ()
-  (()) -> void [I2]
-
-(()(())) -> void
-  (()) -> void [I2]
-  (()) -> void [I2]
-
-(())() -> ()
-  (()) -> void [I2]
-
-(())(()) -> void
-  (()) -> void [I2]
-  (()) -> void [I2]
-#+end_example
 
 * Test Case Generation
 
@@ -391,44 +329,6 @@ for case in test_cases[:20]:
     print(f"  {case['id']}: {case['input']:20} -> {case['target']:6} (d={case['depth']}, {case['difficulty']}, {case['steps']} steps)")
 #+end_src
 
-#+RESULTS:
-#+begin_example
-Generated 500 test cases
-
-By difficulty:
-  1. easy: 100 cases, avg depth=2.8, range=[1-3]
-  2. medium: 100 cases, avg depth=5.0, range=[3-5]
-  3. hard: 100 cases, avg depth=7.0, range=[7-7]
-  4. lunatic: 100 cases, avg depth=9.0, range=[9-9]
-  5. extra: 100 cases, avg depth=11.0, range=[11-11]
-
-By target value:
-  (): 258
-  void: 242
-
-Sample cases:
-  lof_001: (((()(()(()(())(())(())(()))((())()(())()())()(()(())()()(())))((()())((())()()()))()(((())())())))) -> void   (d=7, 3. hard, 26 steps)
-  lof_002: (()(())(((((()(((()()()(())(())))()(((())()(())(())(())())((())()(())(())(()))))(((()(())(()))((())()(())(())()())((())()(())(())()(())))(((())(())(())(()))((())(()))((())()()))(((())(())(())))))))))) -> void   (d=11, 5. extra, 52 steps)
-  lof_003: ((()))(((((()(())(()(()()()(()))((())(())()(())))()(((()))(()())(())()(())))())(()(()(()(())()((()))((())))((())))(((()(())(())(()))())))))) -> ()     (d=9, 4. lunatic, 37 steps)
-  lof_004: ((((())())))()((((()))((())()())((())(())(())(())))((()()))) -> ()     (d=5, 2. medium, 16 steps)
-  lof_005: ((()((())()(())(())))((()(())(()))(()()()(()))(()()(()))))() -> ()     (d=5, 2. medium, 15 steps)
-  lof_006: ((((((())()(())(())())((())()(())(()))((())(()))((())))))(((((())()(())())((())())())((()))((()))))) -> void   (d=7, 3. hard, 27 steps)
-  lof_007: ((((((((())(()))((())()()()()))()(((())()()(())(()))()(()()()(()))())()))((((()()()(()))(()(()))()()((())(())()()(()))))(((())((())()))))))) -> void   (d=9, 4. lunatic, 37 steps)
-  lof_008: ((((((()))(())((())()(())()(()))))((((())()(())()())(()()()(())(()))((())(())()()())((())(())()))))) -> ()     (d=7, 3. hard, 25 steps)
-  lof_009: ()(()((((((()()(()))((())()(())()(()))((())(())(())(())))((())(()()()()())((())(())(())(())())))(((()(()))(()()(()))()(()(()))())((()))))))) -> ()     (d=9, 4. lunatic, 36 steps)
-  lof_010: ((((()(()()()()((()(())()()())((())(())(())())()))((((())()()(())())(()(())(()))((())()(())(()))((())()()(()))))())((((())(()(())(())))))))) -> void   (d=9, 4. lunatic, 35 steps)
-  lof_011: (((((()(((())(()))(()(())(())())((())()))((()()))(((())(())(())()(()))(()(())()))(()()()((())()())(()()(()))))((()(()(())(())(())(())))))))) -> ()     (d=9, 4. lunatic, 37 steps)
-  lof_012: ((((())(((()(((()()(())())((())(())(())(())())(()(())(()))(()(())())(()()()))((()())()()())))()((((()(())(())()(())(()))(()(())()()(()))(()(())()(())(())(()))(()(())())((())()()))(()((())()()))))))))) -> void   (d=11, 5. extra, 54 steps)
-  lof_013: ((((()(()(())()()()))((()(())(())()(()))((())(())(())()()))(((())(())())((())(())()(())())))(()()))) -> void   (d=7, 3. hard, 27 steps)
-  lof_014: ((())()())()((())(())()) -> ()     (d=3, 1. easy, 6 steps)
-  lof_015: ((()((())(())))(((())())((())())(()()(())(()))())(((()))())) -> ()     (d=5, 2. medium, 16 steps)
-  lof_016: ((((((())(())(())()(()))))((((())()(())()())(()())((())()()(()))((()))())))((((()()))(((())())())))) -> void   (d=7, 3. hard, 27 steps)
-  lof_017: ((((())(())())))(((()(()))))(()((()(()))((())()(())(())))()) -> void   (d=5, 2. medium, 15 steps)
-  lof_018: ((((()((((())()()(())(()))))((()()((())())((())()(())()())())())(()((()(())()(())(()))((()))((())())(())())(((())(()))((())(())()))())())))) -> ()     (d=9, 4. lunatic, 37 steps)
-  lof_019: ((()))((((())(()))(()()()())((())(())()))(()(()(())(())()))) -> ()     (d=5, 2. medium, 15 steps)
-  lof_020: ((((((((())(())())((())())()((())))((()()(())()())((())()(()))((())))(((())(())()(())))(()((())(())(()))(()(())(())()())((())()()()()))))))) -> void   (d=9, 4. lunatic, 35 steps)
-#+end_example
-
 
 * Save Test Cases
 
@@ -438,9 +338,6 @@ with open("test_cases.json", "w") as f:
     json.dump(test_cases, f, indent=2)
 print(f"Saved {len(test_cases)} test cases to test_cases.json")
 #+end_src
-
-#+RESULTS:
-: Saved 500 test cases to test_cases.json
 
 * Load Test Cases
 
@@ -452,9 +349,6 @@ with open("test_cases.json", "r") as f:
     test_cases = json.load(f)
 print(f"Loaded {len(test_cases)} test cases from test_cases.json")
 #+end_src
-
-#+RESULTS:
-: Loaded 500 test cases from test_cases.json
 
 * Set up Prompt
 
@@ -836,31 +730,6 @@ print(f"  Validation: {validation['steps_valid']}/{validation['steps_parsed']} v
 print(f"  Trace score: {validation['trace_score']:.1%}")
 #+end_src
 
-#+RESULTS:
-#+begin_example
-=== Trace Validation Tests ===
-
-I2 (Order) tests:
-  (()) -> void [I2]: valid=True, err=''
-  ()(()) -> () [I2]: valid=True, err=''
-  ((())) -> () [I2]: valid=True, err=''
-  ((())) -> void [I2]: valid=False, err='scope_collapse'
-
-I1 (Number) tests:
-  ()() -> () [I1]: valid=True, err=''
-  (()()) -> (()) [I1]: valid=True, err=''
-  (()()) -> () [I1]: valid=False, err='scope_collapse'
-
-Parsing test (old format - trailing marker):
-  Parsed 2 steps: [('(())(())', '(())', 'I1'), ('(())', '', 'I2')]
-
-Parsing test (new format - inline marker):
-  Parsed 2 steps: [('(())(())', '(())', 'I1'), ('(())', '', 'I2')]
-  Extracted answer: void
-  Validation: 2/2 valid
-  Trace score: 100.0%
-#+end_example
-
 * Async Eval Functions
 
 Async evaluation using context managers for clean client lifecycle.
@@ -920,9 +789,6 @@ async def eval_google_async(expression: str, model: str = MODELS["google"]) -> T
 
 print("Async eval functions defined.")
 #+end_src
-
-#+RESULTS:
-: Async eval functions defined.
 
 * Sample Run (Async)
 
@@ -1002,68 +868,6 @@ if failures:
         print(f"Expected: {f['target']}, Got: {f['extracted_answer']}")
         print(f"Response:\n{f['response'][:500]}...")
 #+end_src
-
-#+RESULTS:
-#+begin_example
-Running async sample evaluation...
-Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GOOGLE_API_KEY.
-Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GOOGLE_API_KEY.
-Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GOOGLE_API_KEY.
-Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GOOGLE_API_KEY.
-Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GOOGLE_API_KEY.
-Saved 15 results to sample_results.json
-
-=== Sample Results ===
-✅ lof_001 (openai): (((()(()(()(())(())(())(()))(( -> void (target: void)
-✅ lof_001 (anthropic): (((()(()(()(())(())(())(()))(( -> void (target: void)
-✅ lof_001 (google): (((()(()(()(())(())(())(()))(( -> void (target: void)
-✅ lof_002 (openai): (()(())(((((()(((()()()(())(() -> void (target: void)
-❌ lof_002 (anthropic): (()(())(((((()(((()()()(())(() -> () (target: void)
-✅ lof_002 (google): (()(())(((((()(((()()()(())(() -> void (target: void)
-✅ lof_003 (openai): ((()))(((((()(())(()(()()()(() -> () (target: ())
-❌ lof_003 (anthropic): ((()))(((((()(())(()(()()()(() -> void (target: ())
-✅ lof_003 (google): ((()))(((((()(())(()(()()()(() -> () (target: ())
-✅ lof_004 (openai): ((((())())))()((((()))((())()( -> () (target: ())
-✅ lof_004 (anthropic): ((((())())))()((((()))((())()( -> () (target: ())
-✅ lof_004 (google): ((((())())))()((((()))((())()( -> () (target: ())
-✅ lof_005 (openai): ((()((())()(())(())))((()(())( -> () (target: ())
-✅ lof_005 (anthropic): ((()((())()(())(())))((()(())( -> () (target: ())
-✅ lof_005 (google): ((()((())()(())(())))((()(())( -> () (target: ())
-
-=== 2 Failures - Full Reasoning ===
-
---- lof_002 (claude-opus-4-5-20251101) ---
-Input: (()(())(((((()(((()()()(())(())))()(((())()(())(())(())())((())()(())(())(()))))(((()(())(()))((())()(())(())()())((())()(())(())()(())))(((())(())(())(()))((())(()))((())()()))(((())(())(()))))))))))
-Expected: void, Got: ()
-Response:
-<scratchpad>
-Let me work through this complex expression step by step.
-
-Expression: (()(())(((((()(((()()()(())(())))()(((())()(())(())(())())((())()(())(())(()))))(((()(())(()))((())()(())(())()())((())()(())(())()(())))(((())(())(())(()))((())(()))((())()()))(((())(())(()))))))))))
-
-Let me first try to understand the structure by identifying matching parentheses.
-
-Starting from innermost parts and applying axioms:
-
-Let me look for patterns:
-- ()()() can become () by I1
-- (()) can become void b...
-
---- lof_003 (claude-opus-4-5-20251101) ---
-Input: ((()))(((((()(())(()(()()()(()))((())(())()(())))()(((()))(()())(())()(())))())(()(()(()(())()((()))((())))((())))(((()(())(())(()))()))))))
-Expected: (), Got: void
-Response:
-<scratchpad>
-Let me work through this expression step by step.
-
-Expression: ((()))(((((()(())(()(()()()(()))((())(())()(())))()(((()))(()())(())()(())))())(()(()(()(())()((()))((())))((())))(((()(())(())(()))()))))))
-
-First, let me identify the structure. The outer level has:
-- ((())) which is a mark containing (()) which by I2 = (), so ((())) = (())
-- Then another large expression starting with (((((...
-
-Let me work from the inside out, looking for I2 patterns ((())) and I1 patterns (adjacent m...
-#+end_example
 
 * Set up Analysis 
 
@@ -1155,63 +959,6 @@ if 'sample_results' in dir() and sample_results:
                     step, err, before, after, axiom = tv["errors"][0]
                     print(f"  First error (step {step}): {err} - {before[:30]}... [{axiom}]")
 #+end_src
-
-#+RESULTS:
-#+begin_example
-=== Accuracy by Model ===
-gpt-5.1: 100.0% final answer, 25.0% trace accuracy
-claude-opus-4-5-20251101: 60.0% final answer, 12.6% trace accuracy
-gemini-3-pro-preview: 100.0% final answer, 58.9% trace accuracy
-
-=== Accuracy by Difficulty ===
-
-gpt-5.1:
-  2. medium: 100.0% (2/2)
-  3. hard: 100.0% (1/1)
-  4. lunatic: 100.0% (1/1)
-  5. extra: 100.0% (1/1)
-
-claude-opus-4-5-20251101:
-  2. medium: 100.0% (2/2)
-  3. hard: 100.0% (1/1)
-  4. lunatic: 0.0% (0/1)
-  5. extra: 0.0% (0/1)
-
-gemini-3-pro-preview:
-  2. medium: 100.0% (2/2)
-  3. hard: 100.0% (1/1)
-  4. lunatic: 100.0% (1/1)
-  5. extra: 100.0% (1/1)
-
-=== Trace Error Types ===
-
-gpt-5.1:
-  wrong_result: 2
-
-claude-opus-4-5-20251101:
-  malformed: 129
-  wrong_result: 2
-  scope_collapse: 1
-  wrong_axiom: 1
-
-gemini-3-pro-preview:
-  malformed: 33
-  wrong_result: 17
-  wrong_axiom: 3
-  scope_collapse: 1
-
-=== Sample Failures ===
-
-claude-opus-4-5-20251101: (()(())(((((()(((()()()(())(())))()(((())()(())(()...
-  Expected: void, Got: ()
-  Trace: 3/50 steps valid
-  First error (step 1): malformed - (()(())(((((()(((()()(()(())((... [I1]
-
-claude-opus-4-5-20251101: ((()))(((((()(())(()(()()()(()))((())(())()(())))(...
-  Expected: (), Got: void
-  Trace: 0/30 steps valid
-  First error (step 1): malformed - (())(((((()(())(()(()()()(()))... [I2]
-#+end_example
 
 * Batch API: Prepare Jobs
 
@@ -1348,8 +1095,6 @@ def create_gemini_batch(cases: List[dict], model: str = MODELS["google"]) -> str
     
 #+end_src
 
-#+RESULTS:
-
 * Submit Jobs
 #+begin_src python :async
 # Submit all batches (appends to log, never overwrites)
@@ -1384,20 +1129,6 @@ if GEMINI_API_KEY:
 
 print(f"\nBatch events appended to {BATCH_LOG}")
 #+end_src
-
-#+RESULTS:
-#+begin_example
-Submitting batches for 500 test cases...
-  Submitting OpenAI batch...
-    OpenAI batch ID: batch_6939e6ddb9108190909adc4e1369f234
-  Submitting Anthropic batch...
-    Anthropic batch ID: msgbatch_01CnXznANgLoLuvaw7B479vY
-  Submitting Gemini batch...
-Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GOOGLE_API_KEY.
-    Gemini batch ID: batches/lhydhmxj6bn73y4dwtcmeo9g0pifta6xlwr4
-
-Batch events appended to batch_log.jsonl
-#+end_example
 
 * Batch API: Check Status
 
@@ -1515,15 +1246,6 @@ else:
         print("\nSome batches still processing. Re-run this cell to check again.")
 #+end_src
 
-#+RESULTS:
-: Checking batch status...
-:   openai: completed (already)
-:   anthropic: completed (already)
-: Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GOOGLE_API_KEY.
-:   google: completed
-: 
-: All batches complete! Run the next cell to process results.
-
 * Process Batch Results
 
 Combine batch results into unified format.
@@ -1578,9 +1300,6 @@ with open("results.json", "w") as f:
 print(f"Saved {len(all_results)} results to results.json")
 #+end_src
 
-#+RESULTS:
-: Saved 1488 results to results.json
-
 * Load and Analyze Saved Results
 
 #+begin_src python
@@ -1625,75 +1344,3 @@ if analysis["failures"]:
                 step, err, before, after, axiom = tv["errors"][0]
                 print(f"  First error (step {step}): {err}")
 #+end_src
-
-#+RESULTS:
-#+begin_example
-Loaded 1488 results from 2025-12-10T19:21:43.528751
-
-=== FULL RESULTS ===
-
-=== Accuracy by Model ===
-gpt-5.1: 65.2% final answer, 24.4% trace accuracy
-claude-opus-4-5-20251101: 59.0% final answer, 24.6% trace accuracy
-gemini-3-pro-preview: 77.8% final answer, 48.9% trace accuracy
-
-=== Accuracy by Difficulty ===
-
-gpt-5.1:
-  1. easy: 87.0% (87/100)
-  2. medium: 69.4% (68/98)
-  3. hard: 61.7% (58/94)
-  4. lunatic: 52.1% (50/96)
-  5. extra: 55.0% (55/100)
-
-claude-opus-4-5-20251101:
-  1. easy: 94.0% (94/100)
-  2. medium: 52.0% (52/100)
-  3. hard: 43.0% (43/100)
-  4. lunatic: 51.0% (51/100)
-  5. extra: 55.0% (55/100)
-
-gemini-3-pro-preview:
-  1. easy: 99.0% (99/100)
-  2. medium: 83.0% (83/100)
-  3. hard: 62.0% (62/100)
-  4. lunatic: 78.0% (78/100)
-  5. extra: 67.0% (67/100)
-
-=== Trace Error Types ===
-
-gpt-5.1:
-  wrong_result: 2049
-  malformed: 1239
-  wrong_axiom: 273
-  scope_collapse: 17
-
-claude-opus-4-5-20251101:
-  malformed: 632
-  wrong_result: 294
-  wrong_axiom: 27
-  scope_collapse: 2
-
-gemini-3-pro-preview:
-  wrong_result: 997
-  malformed: 939
-  wrong_axiom: 321
-  scope_collapse: 30
-
-=== Sample Failures ===
-
-gpt-5.1: ((((((())()(())(())())((())()(())(()))((())(()))((())))))(((...
-  Expected: void, Got: ()
-  Trace: 2/44 steps valid
-  First error (step 1): wrong_result
-
-gpt-5.1: ((((((((())(()))((())()()()()))()(((())()()(())(()))()(()()(...
-  Expected: void, Got: ()
-  Trace: 0/1 steps valid
-  First error (step 1): wrong_result
-
-gpt-5.1: ((((((()))(())((())()(())()(()))))((((())()(())()())(()()()(...
-  Expected: (), Got: void
-  Trace: 2/5 steps valid
-  First error (step 1): wrong_result
-#+end_example
