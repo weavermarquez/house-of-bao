@@ -454,7 +454,7 @@ print(f"Loaded {len(test_cases)} test cases from test_cases.json")
 #+end_src
 
 #+RESULTS:
-: Loaded 30 test cases from test_cases.json
+: Loaded 500 test cases from test_cases.json
 
 * Set up Prompt
 
@@ -847,7 +847,11 @@ async def eval_openai_async(expression: str, model: str = MODELS["openai"]) -> T
         response = await client.chat.completions.create(
             model=model,
             messages=[{"role": "user", "content": prompt}],
-            temperature=0
+            response_format={
+                "type": "text"
+            },
+            verbosity="medium",
+            reasoning_effort="medium",
         )
     text = response.choices[0].message.content
     return text, extract_answer(text), model
@@ -858,13 +862,14 @@ async def eval_anthropic_async(expression: str, model: str = MODELS["anthropic"]
     if not ANTHROPIC_API_KEY:
         return "", "no_client", model
     prompt = PROMPT_TEMPLATE.format(expression=expression)
-    async with AsyncAnthropic() as client:
-        response = await client.messages.create(
-            model=model,
-            max_tokens=1024,
-            messages=[{"role": "user", "content": prompt}]
-        )
-    text = response.content[0].text
+    client = AsyncAnthropic()
+    async with client.messages.stream(
+        model=model,
+        max_tokens=64000,
+        messages=[{"role": "user", "content": prompt}]
+    ) as stream:
+        message = await stream.get_final_message()
+    text = message.content[0].text
     return text, extract_answer(text), model
 
 
@@ -889,11 +894,11 @@ print("Async eval functions defined.")
 
 Run a small subset with async for quick iteration. Saves full outputs.
 
-#+begin_src python
+#+begin_src python :async
 PROVIDERS = [
     ("openai", OPENAI_API_KEY, eval_openai_async),
-    ("anthropic", ANTHROPIC_API_KEY, eval_anthropic_async),
-    ("google", GEMINI_API_KEY, eval_google_async),
+    # ("anthropic", ANTHROPIC_API_KEY, eval_anthropic_async),
+    # ("google", GEMINI_API_KEY, eval_google_async),
 ]
 
 
@@ -965,81 +970,11 @@ if failures:
 #+end_src
 
 #+RESULTS:
-#+begin_example
-Running async sample evaluation...
-Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GOOGLE_API_KEY.
-Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GOOGLE_API_KEY.
-Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GOOGLE_API_KEY.
-Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GOOGLE_API_KEY.
-Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GOOGLE_API_KEY.
-Saved 15 results to sample_results.json
-
-=== Sample Results ===
-✅ lof_001 (openai): (((()(()(()(())(())(())(()))(( -> void (target: void)
-❌ lof_001 (anthropic): (((()(()(()(())(())(())(()))(( -> () (target: void)
-❌ lof_001 (google): (((()(()(()(())(())(())(()))(( -> () (target: void)
-✅ lof_002 (openai): (()(())(((((()(((()()()(())(() -> void (target: void)
-❌ lof_002 (anthropic): (()(())(((((()(((()()()(())(() -> () (target: void)
-✅ lof_002 (google): (()(())(((((()(((()()()(())(() -> void (target: void)
-✅ lof_003 (openai): ((()))(((((()(())(()(()()()(() -> () (target: ())
-✅ lof_003 (anthropic): ((()))(((((()(())(()(()()()(() -> () (target: ())
-✅ lof_003 (google): ((()))(((((()(())(()(()()()(() -> () (target: ())
-✅ lof_004 (openai): ((((())())))()((((()))((())()( -> () (target: ())
-✅ lof_004 (anthropic): ((((())())))()((((()))((())()( -> () (target: ())
-✅ lof_004 (google): ((((())())))()((((()))((())()( -> () (target: ())
-✅ lof_005 (openai): ((()((())()(())(())))((()(())( -> () (target: ())
-✅ lof_005 (anthropic): ((()((())()(())(())))((()(())( -> () (target: ())
-✅ lof_005 (google): ((()((())()(())(())))((()(())( -> () (target: ())
-
-=== 3 Failures - Full Reasoning ===
-
---- lof_001 (claude-opus-4-5-20251101) ---
-Input: (((()(()(()(())(())(())(()))((())()(())()())()(()(())()()(())))((()())((())()()()))()(((())())()))))
-Expected: void, Got: ()
-Response:
-<scratchpad>
-Let me parse this expression carefully first by tracking the nesting levels.
-
-(((()(()(()(())(())(())(()))((())()(())()())()(()(())()()(())))((()())((())()()()))()(((())())()))))
-
-Let me work from the inside out, identifying opportunities to apply axioms.
-
-First, let me find all (()) patterns which can be eliminated by I2.
-
-Looking for (()) patterns:
-- (()) appears multiple times in the expression
-
-Let me rewrite with better structure:
-(((()(()(()(())(())(())(()))((())()(())()())()(...
-
---- lof_001 (gemini-3-pro-preview) ---
-Input: (((()(()(()(())(())(())(()))((())()(())()())()(()(())()()(())))((()())((())()()()))()(((())())()))))
-Expected: void, Got: ()
-Response:
-<scratchpad>
-I will simplify the expression by applying the Laws of Form axioms I1 (condensing marks) and I2 (canceling nested marks) from the innermost structures outward.
-1.  Identify the main sub-expressions T2, T3, M, and T4 within the structure `(( T2 T3 M T4 ))`.
-2.  Recursively simplify the contents of T2, T3, and T4.
-3.  T2's inner components reduce to `void`, making T2 `(())`, which becomes `void`.
-4.  T3 reduces to `()`. M is `()`. T4 reduces to `()`.
-5.  The list `T2 T3 M T4` becomes ...
-
---- lof_002 (claude-opus-4-5-20251101) ---
-Input: (()(())(((((()(((()()()(())(())))()(((())()(())(())(())())((())()(())(())(()))))(((()(())(()))((())()(())(())()())((())()(())(())()(())))(((())(())(())(()))((())(()))((())()()))(((())(())(()))))))))))
-Expected: void, Got: ()
-Response:
-<scratchpad>
-Let me work through this step by step. First, let me parse the expression and understand its structure.
-
-(()(())(((((()(((()()()(())(())))()(((())()(())(())(())())((())()(())(())(()))))(((()(())(()))((())()(())(())()())((())()(())(())()(())))(((())(())(())(()))((())(()))((())()()))(((())(())(()))))))))))
-
-Let me start simplifying from the inside out.
-
-First, I see ()()() which can be simplified to () by I1.
-I see (()) which can be simplified to void by I2.
-
-Let me work through this ...
-#+end_example
+: Running async sample evaluation...
+: Saved 1 results to sample_results.json
+: 
+: === Sample Results ===
+: ✅ lof_001 (openai): (((()(()(()(())(())(())(()))(( -> void (target: void)
 
 * Set up Analysis 
 
@@ -1298,7 +1233,7 @@ def create_anthropic_batch(cases: List[dict], model: str = MODELS["anthropic"]) 
             "custom_id": case["id"],
             "params": {
                 "model": model,
-                "max_tokens": 1024,
+                "max_tokens": 64000,
                 "messages": [{"role": "user", "content": prompt}]
             }
         })
@@ -1331,7 +1266,7 @@ def create_gemini_batch(cases: List[dict], model: str = MODELS["google"]) -> str
 #+RESULTS:
 
 * Submit Jobs
-#+begin_src python
+#+begin_src python :async
 # Submit all batches (appends to log, never overwrites)
 print(f"Submitting batches for {len(test_cases)} test cases...")
 
@@ -1383,7 +1318,7 @@ Batch events appended to batch_log.jsonl
 
 Poll batch job status and download results when complete.
 
-#+begin_src python
+#+begin_src python :async
 def check_openai_batch(batch_id: str) -> Tuple[str, Optional[List[dict]]]:
     """Check OpenAI batch status. Returns (status, results_or_none)."""
     client = OpenAI()
