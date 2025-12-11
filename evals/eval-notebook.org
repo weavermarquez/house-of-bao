@@ -1497,12 +1497,12 @@ else:
 
 #+RESULTS:
 : Checking batch status...
-:   openai: in_progress
-:   anthropic: in_progress
+:   openai: completed (already)
+:   anthropic: completed (already)
 : Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GOOGLE_API_KEY.
-:   google: job_state_running
+:   google: completed
 : 
-: Some batches still processing. Re-run this cell to check again.
+: All batches complete! Run the next cell to process results.
 
 * Process Batch Results
 
@@ -1559,7 +1559,7 @@ print(f"Saved {len(all_results)} results to results.json")
 #+end_src
 
 #+RESULTS:
-: Saved 90 results to results.json
+: Saved 1488 results to results.json
 
 * Load and Analyze Saved Results
 
@@ -1608,43 +1608,72 @@ if analysis["failures"]:
 
 #+RESULTS:
 #+begin_example
-Loaded 90 results from 2025-12-07T11:53:36.408677
+Loaded 1488 results from 2025-12-10T19:21:43.528751
 
 === FULL RESULTS ===
 
 === Accuracy by Model ===
-gpt-5.1: 53.3% final answer, 0.0% trace accuracy
-claude-opus-4-5-20251101: 63.3% final answer, 0.0% trace accuracy
-gemini-3-pro-preview: 66.7% final answer, 0.0% trace accuracy
+gpt-5.1: 65.2% final answer, 24.4% trace accuracy
+claude-opus-4-5-20251101: 59.0% final answer, 24.6% trace accuracy
+gemini-3-pro-preview: 77.8% final answer, 48.9% trace accuracy
 
 === Accuracy by Difficulty ===
 
 gpt-5.1:
-  1. easy: 90.0% (9/10)
-  2. medium: 40.0% (4/10)
-  3. hard: 30.0% (3/10)
+  1. easy: 87.0% (87/100)
+  2. medium: 69.4% (68/98)
+  3. hard: 61.7% (58/94)
+  4. lunatic: 52.1% (50/96)
+  5. extra: 55.0% (55/100)
 
 claude-opus-4-5-20251101:
-  1. easy: 100.0% (10/10)
-  2. medium: 60.0% (6/10)
-  3. hard: 30.0% (3/10)
+  1. easy: 94.0% (94/100)
+  2. medium: 52.0% (52/100)
+  3. hard: 43.0% (43/100)
+  4. lunatic: 51.0% (51/100)
+  5. extra: 55.0% (55/100)
 
 gemini-3-pro-preview:
-  1. easy: 90.0% (9/10)
-  2. medium: 60.0% (6/10)
-  3. hard: 50.0% (5/10)
+  1. easy: 99.0% (99/100)
+  2. medium: 83.0% (83/100)
+  3. hard: 62.0% (62/100)
+  4. lunatic: 78.0% (78/100)
+  5. extra: 67.0% (67/100)
+
+=== Trace Error Types ===
+
+gpt-5.1:
+  wrong_result: 2049
+  malformed: 1239
+  wrong_axiom: 273
+  scope_collapse: 17
+
+claude-opus-4-5-20251101:
+  malformed: 632
+  wrong_result: 294
+  wrong_axiom: 27
+  scope_collapse: 2
+
+gemini-3-pro-preview:
+  wrong_result: 997
+  malformed: 939
+  wrong_axiom: 321
+  scope_collapse: 30
 
 === Sample Failures ===
 
-gpt-5.1: ((((()()(())((((((())(())()())(()()(())(())(()))((())(())(()...
-  Expected: (), Got: void
-  Trace: 0/0 steps valid
-
-gpt-5.1: ((((((((((())()(()))()(()(())))((()(())(())(())(()))(()())((...
+gpt-5.1: ((((((())()(())(())())((())()(())(()))((())(()))((())))))(((...
   Expected: void, Got: ()
-  Trace: 0/0 steps valid
+  Trace: 2/44 steps valid
+  First error (step 1): wrong_result
 
-gpt-5.1: ((())((((())()(())))(((())(()))((())(())(()))((())(())(())))...
+gpt-5.1: ((((((((())(()))((())()()()()))()(((())()()(())(()))()(()()(...
+  Expected: void, Got: ()
+  Trace: 0/1 steps valid
+  First error (step 1): wrong_result
+
+gpt-5.1: ((((((()))(())((())()(())()(()))))((((())()(())()())(()()()(...
   Expected: (), Got: void
-  Trace: 0/0 steps valid
+  Trace: 2/5 steps valid
+  First error (step 1): wrong_result
 #+end_example
