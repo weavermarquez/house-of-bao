@@ -39,28 +39,51 @@ import json
 import random
 import re
 from datetime import datetime
-from typing import Tuple, List, Optional
+from dataclasses import dataclass, field
+from typing import Tuple, List, Optional, Callable, Any
 from dotenv import load_dotenv
 
-# Load environment variables from .env file
 load_dotenv()
 
-# API clients (we'll initialize these when needed)
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
-ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY")
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+# === CONFIGURATION ===
+# Edit these values to customize the evaluation
 
-# Model defaults
-MODELS = {
-    "openai": "gpt-5.1",
-    "anthropic": "claude-opus-4-5-20251101",
-    "google": "gemini-3-pro-preview"
-}
+@dataclass
+class Config:
+    """Central configuration for all evaluations."""
+    # API Keys (auto-loaded from environment)
+    openai_key: str = field(default_factory=lambda: os.environ.get("OPENAI_API_KEY", ""))
+    anthropic_key: str = field(default_factory=lambda: os.environ.get("ANTHROPIC_API_KEY", ""))
+    gemini_key: str = field(default_factory=lambda: os.environ.get("GEMINI_API_KEY", ""))
+
+    # Models to evaluate
+    models: dict = field(default_factory=lambda: {
+        "openai": "gpt-5.1",
+        "anthropic": "claude-opus-4-5-20251101",
+        "google": "gemini-3-pro-preview"
+    })
+
+    # Evaluation settings
+    sample_size: int = 5          # Quick test size
+    composite_group_size: int = 8  # Problems per composite test
+    seed: int = 2024              # Reproducibility
+
+    @property
+    def available_providers(self) -> List[str]:
+        """Return list of providers with valid API keys."""
+        providers = []
+        if self.openai_key: providers.append("openai")
+        if self.anthropic_key: providers.append("anthropic")
+        if self.gemini_key: providers.append("google")
+        return providers
+
+CFG = Config()
 
 print("Setup complete.")
-print(f"OpenAI key: {'set' if OPENAI_API_KEY else 'missing'}")
-print(f"Anthropic key: {'set' if ANTHROPIC_API_KEY else 'missing'}")
-print(f"Gemini key: {'set' if GEMINI_API_KEY else 'missing'}")
+for p in ["openai", "anthropic", "google"]:
+    key = getattr(CFG, f"{p}_key" if p != "google" else "gemini_key")
+    status = "✓" if key else "✗"
+    print(f"  {status} {p}: {CFG.models[p]}")
 #+end_src
 
 * Form Representation
@@ -398,27 +421,346 @@ def extract_answer(response: str) -> str:
     return "unknown"
 
 
+# --- Composite prompt (for multi-problem tests) ---
+
+COMPOSITE_PROMPT_TEMPLATE = """Simplify each Laws of Form expression using the two axioms:
+
+**Axiom I1 (Number):** ()() = ()
+Multiple adjacent marks condense into a single mark.
+
+**Axiom I2 (Order):** (()) = void
+A mark containing only another mark cancels to void (nothing).
+
+Each expression simplifies to either () or void.
+
+Expressions:
+{expressions}
+
+Simplify each expression, then count how many simplify to ().
+
+State your final count in <answer> tags as a single number (0-{n}).
+"""
+
+
+def extract_composite_answer(response: str, n: int) -> int:
+    """Extract the count from LLM response. Returns -1 if unparseable."""
+    match = re.search(r'<answer>\s*(\d+)\s*</answer>', response, re.IGNORECASE)
+    if match:
+        val = int(match.group(1))
+        return val if 0 <= val <= n else -1
+
+    match = re.search(r'(?:count|total)[:\s]+(\d+)', response, re.IGNORECASE)
+    if match:
+        val = int(match.group(1))
+        return val if 0 <= val <= n else -1
+
+    matches = re.findall(r'\b(\d+)\b', response)
+    for m in reversed(matches):
+        val = int(m)
+        if 0 <= val <= n:
+            return val
+
+    return -1
+
+
 # Test answer extraction
 print("Testing extract_answer:")
-test_responses = [
-    "<answer>()</answer>",
-    "<answer>void</answer>",
-    "The result is ().",
-    "This simplifies to void.",
-]
-for resp in test_responses:
-    print(f"  {repr(resp[:30])} -> {extract_answer(resp)}")
+for resp in ["<answer>()</answer>", "<answer>void</answer>", "Result: ().", "Void."]:
+    print(f"  {repr(resp[:25]):28} → {extract_answer(resp)}")
+print("Testing extract_composite_answer:")
+for resp, n in [("<answer>5</answer>", 8), ("Count: 7", 8)]:
+    print(f"  {repr(resp):28} → {extract_composite_answer(resp, n)}")
 #+end_src
 
-* Async Eval Functions
+* Unified Eval Framework
 
-Async evaluation using context managers for clean client lifecycle.
+Generic evaluation that works for both single and composite tests.
 
 #+begin_src python
 from openai import AsyncOpenAI
 from anthropic import AsyncAnthropic
 from google import genai
 import asyncio
+from collections import defaultdict
+
+
+# === TASK TYPES ===
+# Each task type defines how to format prompts and extract answers
+
+class SingleTask:
+    """Single expression → () or void."""
+
+    prompt = PROMPT_TEMPLATE
+
+    @staticmethod
+    def format_prompt(case: dict) -> str:
+        return PROMPT_TEMPLATE.format(expression=case["input"])
+
+    @staticmethod
+    def extract(response: str, case: dict) -> Any:
+        return extract_answer(response)
+
+    @staticmethod
+    def is_correct(answer: Any, case: dict) -> bool:
+        return answer == case["target"]
+
+    @staticmethod
+    def make_result(case: dict, provider: str, model: str, response: str, answer: Any) -> dict:
+        return {
+            "id": case["id"],
+            "input": case["input"],
+            "target": case["target"],
+            "difficulty": case["difficulty"],
+            "depth": case.get("depth", 0),
+            "provider": provider,
+            "model": model,
+            "response": response,
+            "extracted_answer": answer,
+            "correct": SingleTask.is_correct(answer, case)
+        }
+
+
+class CompositeTask:
+    """Multiple expressions → count of () results."""
+
+    @staticmethod
+    def format_prompt(case: dict) -> str:
+        lines = [f"{i}. {expr}" for i, expr in enumerate(case["expressions"], 1)]
+        return COMPOSITE_PROMPT_TEMPLATE.format(
+            expressions="\n".join(lines),
+            n=case["group_size"]
+        )
+
+    @staticmethod
+    def extract(response: str, case: dict) -> int:
+        return extract_composite_answer(response, case["group_size"])
+
+    @staticmethod
+    def is_correct(answer: int, case: dict) -> bool:
+        return answer == case["count"]
+
+    @staticmethod
+    def make_result(case: dict, provider: str, model: str, response: str, answer: int) -> dict:
+        return {
+            "id": case["id"],
+            "expressions": case["expressions"],
+            "targets": case["targets"],
+            "target_count": case["count"],
+            "difficulty": case["difficulty"],
+            "provider": provider,
+            "model": model,
+            "response": response,
+            "extracted_answer": answer,
+            "correct": CompositeTask.is_correct(answer, case)
+        }
+
+
+# === GENERIC EVAL FUNCTIONS ===
+
+async def eval_openai(prompt: str, model: str) -> str:
+    """Call OpenAI API. Returns response text."""
+    async with AsyncOpenAI() as client:
+        response = await client.chat.completions.create(
+            model=model,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0
+        )
+    return response.choices[0].message.content
+
+
+async def eval_anthropic(prompt: str, model: str) -> str:
+    """Call Anthropic API. Returns response text."""
+    client = AsyncAnthropic()
+    async with client.messages.stream(
+        model=model,
+        max_tokens=16000,
+        messages=[{"role": "user", "content": prompt}]
+    ) as stream:
+        message = await stream.get_final_message()
+    return message.content[0].text
+
+
+async def eval_google(prompt: str, model: str) -> str:
+    """Call Google API. Returns response text."""
+    async with genai.Client().aio as client:
+        response = await client.models.generate_content(model=model, contents=prompt)
+    return response.text
+
+
+EVAL_FNS = {
+    "openai": eval_openai,
+    "anthropic": eval_anthropic,
+    "google": eval_google
+}
+
+
+# === UNIFIED RUNNER ===
+
+async def run_eval(
+    cases: List[dict],
+    task_type: type = SingleTask,
+    providers: List[str] = None,
+    n: int = None
+) -> List[dict]:
+    """
+    Run evaluation on cases using specified task type.
+
+    Args:
+        cases: Test cases to evaluate
+        task_type: SingleTask or CompositeTask
+        providers: List of providers to use (default: all available)
+        n: Limit to first n cases (default: all)
+
+    Returns:
+        List of result dicts
+    """
+    if providers is None:
+        providers = CFG.available_providers
+    if n is not None:
+        cases = cases[:n]
+
+    tasks = []
+    task_info = []
+
+    for case in cases:
+        prompt = task_type.format_prompt(case)
+        for provider in providers:
+            model = CFG.models[provider]
+            fn = EVAL_FNS[provider]
+            tasks.append(fn(prompt, model))
+            task_info.append((case, provider, model))
+
+    responses = await asyncio.gather(*tasks, return_exceptions=True)
+
+    results = []
+    for (case, provider, model), resp in zip(task_info, responses):
+        if isinstance(resp, Exception):
+            response, answer = f"ERROR: {resp}", None
+        else:
+            response = resp
+            answer = task_type.extract(response, case)
+
+        results.append(task_type.make_result(case, provider, model, response, answer))
+
+    return results
+
+
+# === CONVENIENCE FUNCTIONS ===
+
+def quick_test(cases: List[dict], task_type: type = SingleTask, n: int = None) -> List[dict]:
+    """Run a quick sample evaluation. Returns results."""
+    n = n or CFG.sample_size
+    print(f"Running {task_type.__name__} on {n} cases...")
+    results = asyncio.run(run_eval(cases, task_type, n=n))
+
+    # Print summary
+    correct = sum(1 for r in results if r["correct"])
+    print(f"\n{'='*40}")
+    print(f"Results: {correct}/{len(results)} ({100*correct/len(results):.1f}%)")
+
+    for r in results:
+        status = "✓" if r["correct"] else "✗"
+        if task_type == SingleTask:
+            print(f"  {status} {r['id']} ({r['provider']}): {r['input'][:25]}... → {r['extracted_answer']}")
+        else:
+            print(f"  {status} {r['id']} ({r['provider']}): count={r['extracted_answer']} (target: {r['target_count']})")
+
+    return results
+
+
+def analyze(results: List[dict]) -> dict:
+    """Unified analysis for both single and composite results."""
+    is_composite = "target_count" in results[0] if results else False
+
+    by_model = defaultdict(lambda: {"correct": 0, "total": 0, "off_by": []})
+    by_diff = defaultdict(lambda: defaultdict(lambda: {"correct": 0, "total": 0}))
+
+    for r in results:
+        model = r["model"]
+        by_model[model]["total"] += 1
+        if r["correct"]:
+            by_model[model]["correct"] += 1
+        elif is_composite and r["extracted_answer"] is not None and r["extracted_answer"] >= 0:
+            off = abs(r["extracted_answer"] - r["target_count"])
+            by_model[model]["off_by"].append(off)
+
+        by_diff[model][r["difficulty"]]["total"] += 1
+        if r["correct"]:
+            by_diff[model][r["difficulty"]]["correct"] += 1
+
+    return {
+        "by_model": {m: {
+            "accuracy": d["correct"]/d["total"] if d["total"] > 0 else 0,
+            "correct": d["correct"],
+            "total": d["total"],
+            "avg_off_by": sum(d["off_by"])/len(d["off_by"]) if d["off_by"] else None
+        } for m, d in by_model.items()},
+        "by_difficulty": {m: {diff: {
+            "accuracy": d["correct"]/d["total"] if d["total"] > 0 else 0,
+            "correct": d["correct"],
+            "total": d["total"]
+        } for diff, d in diffs.items()} for m, diffs in by_diff.items()},
+        "failures": [r for r in results if not r["correct"]][:10]
+    }
+
+
+def print_analysis(results: List[dict]):
+    """Print formatted analysis of results."""
+    analysis = analyze(results)
+
+    print("\n=== Accuracy by Model ===")
+    for model, stats in analysis["by_model"].items():
+        pct = stats["accuracy"] * 100
+        off_str = f", avg off: {stats['avg_off_by']:.1f}" if stats["avg_off_by"] else ""
+        print(f"{model}: {pct:.1f}% ({stats['correct']}/{stats['total']}){off_str}")
+
+    print("\n=== Accuracy by Difficulty ===")
+    for model, diffs in analysis["by_difficulty"].items():
+        print(f"\n{model}:")
+        for diff, stats in sorted(diffs.items()):
+            pct = stats["accuracy"] * 100
+            print(f"  {diff}: {pct:.1f}% ({stats['correct']}/{stats['total']})")
+
+
+print("Unified eval framework loaded.")
+print(f"Available: quick_test(cases), run_eval(cases), analyze(results)")
+#+end_src
+
+* Quick Start
+
+Run evaluations with minimal code using the unified framework.
+
+#+begin_src python
+# === SINGLE EXPRESSION TESTS ===
+# quick_test(test_cases, SingleTask, n=5)
+
+# === COMPOSITE TESTS (8 problems, count-based) ===
+# quick_test(composite_cases, CompositeTask, n=5)
+
+# === FULL RUN (async) ===
+# results = asyncio.run(run_eval(test_cases, SingleTask))
+# results = asyncio.run(run_eval(composite_cases, CompositeTask))
+
+# === ANALYSIS ===
+# print_analysis(results)
+
+# === SAVE/LOAD ===
+# with open("results.json", "w") as f: json.dump(results, f, indent=2)
+# with open("results.json", "r") as f: results = json.load(f)
+
+print("Quick start ready. Uncomment lines above to run.")
+#+end_src
+
+* Legacy Async Eval Functions
+
+These are kept for backwards compatibility with existing batch jobs.
+
+#+begin_src python
+# Legacy compatibility - maps to new framework
+OPENAI_API_KEY = CFG.openai_key
+ANTHROPIC_API_KEY = CFG.anthropic_key
+GEMINI_API_KEY = CFG.gemini_key
+MODELS = CFG.models
 
 
 async def eval_openai_async(expression: str, model: str = MODELS["openai"]) -> Tuple[str, str, str]:
@@ -988,72 +1330,7 @@ for the count of =()= results. Random guessing drops from 50% to 1/(N+1).
 
 For N=8: random guess accuracy = 1/9 ≈ 11%
 
-** Composite Prompt Template
-
-#+begin_src python
-COMPOSITE_PROMPT_TEMPLATE = """Simplify each Laws of Form expression using the two axioms:
-
-**Axiom I1 (Number):** ()() = ()
-Multiple adjacent marks condense into a single mark.
-
-**Axiom I2 (Order):** (()) = void
-A mark containing only another mark cancels to void (nothing).
-
-Each expression simplifies to either () or void.
-
-Expressions:
-{expressions}
-
-Simplify each expression, then count how many simplify to ().
-
-State your final count in <answer> tags as a single number (0-{n}).
-"""
-
-
-def format_composite_expressions(expressions: List[str]) -> str:
-    """Format a list of expressions for the composite prompt."""
-    lines = []
-    for i, expr in enumerate(expressions, 1):
-        lines.append(f"{i}. {expr}")
-    return "\n".join(lines)
-
-
-def extract_composite_answer(response: str, n: int) -> int:
-    """Extract the count from LLM response. Returns -1 if unparseable."""
-    # Look for <answer> tag first
-    match = re.search(r'<answer>\s*(\d+)\s*</answer>', response, re.IGNORECASE)
-    if match:
-        val = int(match.group(1))
-        return val if 0 <= val <= n else -1
-
-    # Fallback: look for "count: N" or "total: N" patterns
-    match = re.search(r'(?:count|total)[:\s]+(\d+)', response, re.IGNORECASE)
-    if match:
-        val = int(match.group(1))
-        return val if 0 <= val <= n else -1
-
-    # Last resort: find last standalone number in reasonable range
-    matches = re.findall(r'\b(\d+)\b', response)
-    for m in reversed(matches):
-        val = int(m)
-        if 0 <= val <= n:
-            return val
-
-    return -1
-
-
-# Test answer extraction
-print("Testing extract_composite_answer:")
-test_responses = [
-    ("<answer>5</answer>", 8),
-    ("The count is <answer>3</answer>.", 8),
-    ("Count: 7", 8),
-    ("After simplifying, total: 4 expressions are ().", 8),
-    ("There are 6 marks remaining.", 8),
-]
-for resp, n in test_responses:
-    print(f"  {repr(resp[:40])} -> {extract_composite_answer(resp, n)}")
-#+end_src
+Use with the unified framework: =quick_test(composite_cases, CompositeTask)=
 
 ** Generate Composite Test Cases
 
@@ -1157,209 +1434,20 @@ with open("composite_test_cases.json", "r") as f:
 print(f"Loaded {len(composite_cases)} composite test cases")
 #+end_src
 
-** Composite Async Eval Functions
-
-#+begin_src python
-async def eval_composite_openai_async(
-    case: dict,
-    model: str = MODELS["openai"]
-) -> Tuple[str, int, str]:
-    """Evaluate composite case using OpenAI. Returns (response, answer, model)."""
-    if not OPENAI_API_KEY:
-        return "", -1, model
-
-    expr_text = format_composite_expressions(case["expressions"])
-    prompt = COMPOSITE_PROMPT_TEMPLATE.format(
-        expressions=expr_text,
-        n=case["group_size"]
-    )
-
-    async with AsyncOpenAI() as client:
-        response = await client.chat.completions.create(
-            model=model,
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0
-        )
-    text = response.choices[0].message.content
-    return text, extract_composite_answer(text, case["group_size"]), model
-
-
-async def eval_composite_anthropic_async(
-    case: dict,
-    model: str = MODELS["anthropic"]
-) -> Tuple[str, int, str]:
-    """Evaluate composite case using Anthropic. Returns (response, answer, model)."""
-    if not ANTHROPIC_API_KEY:
-        return "", -1, model
-
-    expr_text = format_composite_expressions(case["expressions"])
-    prompt = COMPOSITE_PROMPT_TEMPLATE.format(
-        expressions=expr_text,
-        n=case["group_size"]
-    )
-
-    client = AsyncAnthropic()
-    async with client.messages.stream(
-        model=model,
-        max_tokens=16000,
-        messages=[{"role": "user", "content": prompt}]
-    ) as stream:
-        message = await stream.get_final_message()
-    text = message.content[0].text
-    return text, extract_composite_answer(text, case["group_size"]), model
-
-
-async def eval_composite_google_async(
-    case: dict,
-    model: str = MODELS["google"]
-) -> Tuple[str, int, str]:
-    """Evaluate composite case using Google. Returns (response, answer, model)."""
-    if not GEMINI_API_KEY:
-        return "", -1, model
-
-    expr_text = format_composite_expressions(case["expressions"])
-    prompt = COMPOSITE_PROMPT_TEMPLATE.format(
-        expressions=expr_text,
-        n=case["group_size"]
-    )
-
-    async with genai.Client().aio as client:
-        response = await client.models.generate_content(model=model, contents=prompt)
-    text = response.text
-    return text, extract_composite_answer(text, case["group_size"]), model
-
-
-print("Composite async eval functions defined.")
-#+end_src
-
-** Composite Sample Run
+** Run Composite Tests
 
 #+begin_src python :async
-COMPOSITE_PROVIDERS = [
-    ("openai", OPENAI_API_KEY, eval_composite_openai_async),
-    ("anthropic", ANTHROPIC_API_KEY, eval_composite_anthropic_async),
-    ("google", GEMINI_API_KEY, eval_composite_google_async),
-]
-
-
-async def run_composite_sample_async(cases: List[dict], n: int = 5) -> List[dict]:
-    """Run async evaluation on composite sample cases."""
-    sample = cases[:n]
-    results = []
-
-    tasks = []
-    task_info = []
-
-    for case in sample:
-        for name, key, fn in COMPOSITE_PROVIDERS:
-            if key:
-                tasks.append(fn(case))
-                task_info.append((case, name))
-
-    responses = await asyncio.gather(*tasks, return_exceptions=True)
-
-    for (case, provider), resp in zip(task_info, responses):
-        if isinstance(resp, Exception):
-            response, answer, model = f"ERROR: {resp}", -1, "unknown"
-        else:
-            response, answer, model = resp
-
-        results.append({
-            "id": case["id"],
-            "expressions": case["expressions"],
-            "targets": case["targets"],
-            "target_count": case["count"],
-            "difficulty": case["difficulty"],
-            "provider": provider,
-            "model": model,
-            "response": response,
-            "extracted_answer": answer,
-            "correct": answer == case["count"]
-        })
-
-    return results
-
-
-# Run composite sample evaluation
-print("Running composite sample evaluation...")
-composite_results = asyncio.run(run_composite_sample_async(composite_cases, n=5))
+# Quick test with unified framework
+composite_results = quick_test(composite_cases, CompositeTask, n=5)
 
 # Save results
 with open("composite_sample_results.json", "w") as f:
     json.dump(composite_results, f, indent=2)
-print(f"Saved {len(composite_results)} results to composite_sample_results.json")
 
-# Display summary
-print("\n=== Composite Sample Results ===")
-for r in composite_results:
-    status = "✅" if r["correct"] else "❌"
-    print(f"{status} {r['id']} ({r['provider']}): answer={r['extracted_answer']} (target: {r['target_count']})")
+# Full analysis
+print_analysis(composite_results)
 
-# Summary stats
-correct = sum(1 for r in composite_results if r["correct"])
-print(f"\nOverall: {correct}/{len(composite_results)} ({100*correct/len(composite_results):.1f}%)")
-
-# Compare to random baseline
-n_problems = composite_cases[0]["group_size"]
-random_baseline = 100 / (n_problems + 1)
-print(f"Random baseline for {n_problems} problems: {random_baseline:.1f}%")
-#+end_src
-
-** Analyze Composite Results
-
-#+begin_src python
-def analyze_composite_results(results: List[dict]) -> dict:
-    """Compute accuracy metrics for composite results."""
-    from collections import defaultdict
-
-    by_model = defaultdict(lambda: {"correct": 0, "total": 0, "off_by": []})
-    by_diff = defaultdict(lambda: defaultdict(lambda: {"correct": 0, "total": 0}))
-
-    for r in results:
-        model = r["model"]
-        by_model[model]["total"] += 1
-        if r["correct"]:
-            by_model[model]["correct"] += 1
-        else:
-            # Track how far off the answer was
-            if r["extracted_answer"] >= 0:
-                off = abs(r["extracted_answer"] - r["target_count"])
-                by_model[model]["off_by"].append(off)
-
-        by_diff[model][r["difficulty"]]["total"] += 1
-        if r["correct"]:
-            by_diff[model][r["difficulty"]]["correct"] += 1
-
-    return {
-        "by_model": {m: {
-            "accuracy": d["correct"]/d["total"] if d["total"] > 0 else 0,
-            "correct": d["correct"],
-            "total": d["total"],
-            "avg_off_by": sum(d["off_by"])/len(d["off_by"]) if d["off_by"] else 0
-        } for m, d in by_model.items()},
-        "by_difficulty": {m: {diff: {
-            "accuracy": d["correct"]/d["total"] if d["total"] > 0 else 0,
-            "correct": d["correct"],
-            "total": d["total"]
-        } for diff, d in diffs.items()} for m, diffs in by_diff.items()},
-        "failures": [r for r in results if not r["correct"]][:10]
-    }
-
-
-# Analyze if we have results
-if 'composite_results' in dir() and composite_results:
-    comp_analysis = analyze_composite_results(composite_results)
-
-    print("=== Composite Accuracy by Model ===")
-    for model, stats in comp_analysis["by_model"].items():
-        pct = stats["accuracy"] * 100
-        off = stats["avg_off_by"]
-        print(f"{model}: {pct:.1f}% ({stats['correct']}/{stats['total']}), avg off by: {off:.1f}")
-
-    print("\n=== Composite Accuracy by Difficulty ===")
-    for model, diffs in comp_analysis["by_difficulty"].items():
-        print(f"\n{model}:")
-        for diff, stats in sorted(diffs.items()):
-            pct = stats["accuracy"] * 100
-            print(f"  {diff}: {pct:.1f}% ({stats['correct']}/{stats['total']})")
+# Random baseline comparison
+n_problems = CFG.composite_group_size
+print(f"\nRandom baseline for {n_problems} problems: {100/(n_problems+1):.1f}%")
 #+end_src
