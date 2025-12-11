@@ -358,42 +358,16 @@ Initialize API clients for each provider.
 PROMPT_TEMPLATE = """Simplify this Laws of Form expression using the two axioms:
 
 **Axiom I1 (Number):** ()() = ()
-Multiple marks (parenthesis pairs) adjacent at the same nesting level condense into a single mark.
+Multiple adjacent marks condense into a single mark.
 
 **Axiom I2 (Order):** (()) = void
-A mark containing only another mark (and nothing else) cancels out completely to void (nothing).
+A mark containing only another mark cancels to void (nothing).
 
 Expression: {expression}
 
-Apply axioms until you reach () or void.
+Apply axioms repeatedly until you reach () or void.
 
-## Output Format
-
-Structure your response in exactly three sections:
-
-### 1. Scratchpad
-
-In <scratchpad> tags, work through the problem. You may:
-- Map out nesting depths
-- Identify where axioms apply
-- Plan your sequence of transformations
-
-### 2. Trace
-
-In <trace> tags, record each step. Rules:
-- Each line: STEP n: before_expression => after_expression
-- Place [I1] or [I2] immediately after the sub-expression being transformed in the BEFORE expression
-- Show the COMPLETE expression before and after (not just the changed part)
-- No explanatory text, only STEP lines
-
-Examples of correct marker placement:
-- I1 (condense adjacent): STEP 1: (()()[I1]) => (())
-- I2 (cancel nested): STEP 2: (())[I2] => void
-- Nested example: STEP 3: ((())[I2]()) => (())
-
-### 3. Answer
-
-In <answer> tags, state exactly "()" or "void".
+State your final answer in <answer> tags: either "()" or "void".
 """
 
 
@@ -424,310 +398,16 @@ def extract_answer(response: str) -> str:
     return "unknown"
 
 
-# === Trace Validation ===
-
-def extract_trace_block(response: str) -> str:
-    """Extract content from <trace>...</trace> block, or return full response."""
-    match = re.search(r'<trace>(.*?)</trace>', response, re.DOTALL | re.IGNORECASE)
-    if match:
-        return match.group(1)
-    return response  # Fallback to full response
-
-
-def parse_trace_steps(response: str) -> List[Tuple[str, str, str]]:
-    """
-    Parse STEP lines from LLM response.
-
-    Handles two formats:
-    - Inline marker: STEP n: (()()[I1]) => (())
-    - Trailing marker: STEP n: ()() => () [I1]
-
-    Returns:
-        List of (before, after, axiom) tuples where before has marker stripped
-    """
-    # Extract trace block if present
-    trace_text = extract_trace_block(response)
-
-    # Pattern: STEP k: before_expr => after_expr
-    # The axiom marker [I1]/[I2] may be inline in before_expr or trailing after after_expr
-    pattern = r'STEP\s*\d+\s*:\s*(.+?)\s*=>\s*(.+?)(?:\s*$|\s*(?=STEP))'
-    matches = re.findall(pattern, trace_text, re.IGNORECASE | re.MULTILINE)
-
-    steps = []
-    for before_raw, after_raw in matches:
-        before_raw = before_raw.strip().strip('`').strip()
-        after_raw = after_raw.strip().strip('`').strip()
-
-        # Look for axiom marker [I1] or [I2]
-        axiom = None
-        before = before_raw
-        after = after_raw
-
-        # Check for inline marker in before expression
-        inline_match = re.search(r'\[(I[12])\]', before_raw, re.IGNORECASE)
-        if inline_match:
-            axiom = inline_match.group(1).upper()
-            before = re.sub(r'\[I[12]\]', '', before_raw, flags=re.IGNORECASE).strip()
-
-        # Check for trailing marker after the after expression (old format)
-        if not axiom:
-            trailing_match = re.search(r'\[(I[12])\]\s*$', after_raw, re.IGNORECASE)
-            if trailing_match:
-                axiom = trailing_match.group(1).upper()
-                after = re.sub(r'\s*\[I[12]\]\s*$', '', after_raw, flags=re.IGNORECASE).strip()
-
-        if not axiom:
-            continue  # Skip malformed steps
-
-        # Normalize void
-        if after.lower() == 'void' or after == '':
-            after = ''
-
-        steps.append((before, after, axiom))
-
-    return steps
-
-
-def find_i1_sites(expr: str) -> List[Tuple[int, int, str]]:
-    """
-    Find all positions where I1 (condensation) can apply.
-
-    Returns:
-        List of (start, end, condensed) tuples where expr[start:end] can condense
-    """
-    sites = []
-    # Use stack-based parsing to find adjacent identical marks
-    stack = [[]]  # Each frame: list of (start_pos, content) tuples
-
-    start_positions = []
-
-    for i, c in enumerate(expr):
-        if c == '(':
-            start_positions.append(i)
-            stack.append([])
-        elif c == ')':
-            # Guard against malformed expressions
-            if not start_positions or len(stack) < 2:
-                return []  # Malformed - return empty
-            start = start_positions.pop()
-            children = stack.pop()
-            content = expr[start:i+1]
-            stack[-1].append((start, content))
-
-            # Check if this level has adjacent identical marks
-            if len(stack[-1]) > 1:
-                contents = [c for _, c in stack[-1]]
-                if all(c == contents[0] for c in contents):
-                    # All adjacent marks are identical - I1 applies
-                    first_start = stack[-1][0][0]
-                    last_end = i + 1
-                    sites.append((first_start, last_end, contents[0]))
-
-    # Check root level (only if balanced)
-    if start_positions:  # Unbalanced - unclosed parens
-        return []
-    if len(stack[0]) > 1:
-        contents = [c for _, c in stack[0]]
-        if all(c == contents[0] for c in contents):
-            sites.append((0, len(expr), contents[0]))
-
-    return sites
-
-
-def find_i2_sites(expr: str) -> List[Tuple[int, int]]:
-    """
-    Find all positions where I2 (cancellation) can apply.
-
-    Returns:
-        List of (start, end) tuples where expr[start:end] == "(())"
-    """
-    sites = []
-    i = 0
-    while i < len(expr):
-        if expr[i:i+4] == '(())':
-            sites.append((i, i+4))
-            i += 4
-        else:
-            i += 1
-    return sites
-
-
-def validate_step(before: str, after: str, axiom: str) -> Tuple[bool, str]:
-    """
-    Validate a single reasoning step.
-
-    Returns:
-        (is_valid, error_type) where error_type is one of:
-        - "" (no error)
-        - "wrong_axiom" (axiom doesn't apply)
-        - "scope_collapse" (correct inner transform but lost outer context)
-        - "wrong_result" (axiom applies but result is wrong)
-        - "malformed" (can't parse expressions)
-    """
-    # Check for malformed expressions
-    def balanced(s):
-        depth = 0
-        for c in s:
-            if c == '(':
-                depth += 1
-            elif c == ')':
-                depth -= 1
-            if depth < 0:
-                return False
-        return depth == 0
-
-    if not balanced(before) or (after and not balanced(after)):
-        return False, "malformed"
-
-    if axiom == "I1":
-        sites = find_i1_sites(before)
-        if not sites:
-            return False, "wrong_axiom"
-
-        # Check if any valid I1 application produces 'after'
-        for start, end, condensed in sites:
-            expected = before[:start] + condensed + before[end:]
-            if expected == after:
-                return True, ""
-
-            # Check for scope collapse: inner condensation correct but outer lost
-            # This happens when before = (X) and they output X' instead of (X')
-            if before.startswith('(') and before.endswith(')'):
-                inner_before = before[1:-1]
-                inner_sites = find_i1_sites(inner_before)
-                for istart, iend, icondensed in inner_sites:
-                    inner_expected = inner_before[:istart] + icondensed + inner_before[iend:]
-                    if after == inner_expected:
-                        return False, "scope_collapse"
-
-        return False, "wrong_result"
-
-    elif axiom == "I2":
-        sites = find_i2_sites(before)
-        if not sites:
-            return False, "wrong_axiom"
-
-        # Check if any valid I2 application produces 'after'
-        for start, end in sites:
-            expected = before[:start] + before[end:]
-            if expected == after:
-                return True, ""
-
-            # Check for scope collapse
-            if before.startswith('(') and before.endswith(')'):
-                inner_before = before[1:-1]
-                inner_sites = find_i2_sites(inner_before)
-                for istart, iend in inner_sites:
-                    inner_expected = inner_before[:istart] + inner_before[iend:]
-                    if after == inner_expected:
-                        return False, "scope_collapse"
-
-        return False, "wrong_result"
-
-    return False, "wrong_axiom"
-
-
-def validate_trace(response: str, input_expr: str) -> dict:
-    """
-    Validate all reasoning steps in an LLM response.
-
-    Returns:
-        {
-            "steps_parsed": int,
-            "steps_valid": int,
-            "errors": [(step_num, error_type, before, after, axiom), ...],
-            "trace_score": float  # steps_valid / steps_parsed
-        }
-    """
-    steps = parse_trace_steps(response)
-
-    if not steps:
-        return {
-            "steps_parsed": 0,
-            "steps_valid": 0,
-            "errors": [],
-            "trace_score": 0.0
-        }
-
-    valid_count = 0
-    errors = []
-
-    for i, (before, after, axiom) in enumerate(steps):
-        is_valid, error_type = validate_step(before, after, axiom)
-        if is_valid:
-            valid_count += 1
-        else:
-            errors.append((i + 1, error_type, before, after, axiom))
-
-    return {
-        "steps_parsed": len(steps),
-        "steps_valid": valid_count,
-        "errors": errors,
-        "trace_score": valid_count / len(steps) if steps else 0.0
-    }
-
-
-# Test trace validation
-print("=== Trace Validation Tests ===\n")
-
-# Test I2 validation
-print("I2 (Order) tests:")
-valid, err = validate_step("(())", "", "I2")
-print(f"  (()) -> void [I2]: valid={valid}, err='{err}'")
-
-valid, err = validate_step("()(())", "()", "I2")
-print(f"  ()(()) -> () [I2]: valid={valid}, err='{err}'")
-
-valid, err = validate_step("((()))", "()", "I2")
-print(f"  ((())) -> () [I2]: valid={valid}, err='{err}'")  # Should fail - wrong result
-
-valid, err = validate_step("((()))", "", "I2")
-print(f"  ((())) -> void [I2]: valid={valid}, err='{err}'")  # Scope collapse!
-
-# Test I1 validation
-print("\nI1 (Number) tests:")
-valid, err = validate_step("()()", "()", "I1")
-print(f"  ()() -> () [I1]: valid={valid}, err='{err}'")
-
-valid, err = validate_step("(()())", "(())", "I1")
-print(f"  (()()) -> (()) [I1]: valid={valid}, err='{err}'")
-
-valid, err = validate_step("(()())", "()", "I1")
-print(f"  (()()) -> () [I1]: valid={valid}, err='{err}'")  # Scope collapse!
-
-# Test parsing from realistic response (old format - trailing marker)
-print("\nParsing test (old format - trailing marker):")
-sample_response_old = """
-STEP 1: (())(()) => (()) [I1]
-STEP 2: (()) => void [I2]
-FINAL: void
-"""
-steps = parse_trace_steps(sample_response_old)
-print(f"  Parsed {len(steps)} steps: {steps}")
-
-# Test new inline marker format
-print("\nParsing test (new format - inline marker):")
-sample_response_inline = """
-<scratchpad>
-Let me work through this. I see (())(()) which has two (()) marks.
-They're identical so I1 applies. Then (()) cancels by I2.
-</scratchpad>
-
-<trace>
-STEP 1: (())[I1](()) => (())
-STEP 2: (())[I2] => void
-</trace>
-
-<answer>void</answer>
-"""
-steps = parse_trace_steps(sample_response_inline)
-print(f"  Parsed {len(steps)} steps: {steps}")
-answer = extract_answer(sample_response_inline)
-print(f"  Extracted answer: {answer}")
-
-validation = validate_trace(sample_response_inline, "(())(())")
-print(f"  Validation: {validation['steps_valid']}/{validation['steps_parsed']} valid")
-print(f"  Trace score: {validation['trace_score']:.1%}")
+# Test answer extraction
+print("Testing extract_answer:")
+test_responses = [
+    "<answer>()</answer>",
+    "<answer>void</answer>",
+    "The result is ().",
+    "This simplifies to void.",
+]
+for resp in test_responses:
+    print(f"  {repr(resp[:30])} -> {extract_answer(resp)}")
 #+end_src
 
 * Async Eval Functions
@@ -872,23 +552,16 @@ if failures:
 * Set up Analysis 
 
 #+begin_src python
-def analyze_results(results: List[dict], validate_traces: bool = True) -> dict:
-    """Compute accuracy metrics from results, including trace validation."""
+def analyze_results(results: List[dict]) -> dict:
+    """Compute accuracy metrics from results."""
     from collections import defaultdict
 
     # Overall accuracy by model
-    by_model = defaultdict(lambda: {"correct": 0, "total": 0, "trace_scores": []})
+    by_model = defaultdict(lambda: {"correct": 0, "total": 0})
     for r in results:
         by_model[r["model"]]["total"] += 1
         if r["correct"]:
             by_model[r["model"]]["correct"] += 1
-
-        # Validate traces if requested
-        if validate_traces and r.get("response"):
-            trace_result = validate_trace(r["response"], r["input"])
-            r["trace_validation"] = trace_result
-            if trace_result["steps_parsed"] > 0:
-                by_model[r["model"]]["trace_scores"].append(trace_result["trace_score"])
 
     # Accuracy by difficulty
     by_diff = defaultdict(lambda: defaultdict(lambda: {"correct": 0, "total": 0}))
@@ -900,25 +573,16 @@ def analyze_results(results: List[dict], validate_traces: bool = True) -> dict:
     # Failure examples
     failures = [r for r in results if not r["correct"]]
 
-    # Error type breakdown
-    error_counts = defaultdict(lambda: defaultdict(int))
-    for r in results:
-        if "trace_validation" in r:
-            for step_num, error_type, before, after, axiom in r["trace_validation"]["errors"]:
-                error_counts[r["model"]][error_type] += 1
-
     return {
         "by_model": {m: {
             "accuracy": d["correct"]/d["total"] if d["total"] > 0 else 0,
             "correct": d["correct"],
-            "total": d["total"],
-            "avg_trace_score": sum(d["trace_scores"])/len(d["trace_scores"]) if d["trace_scores"] else 0
+            "total": d["total"]
         } for m, d in by_model.items()},
         "by_difficulty": {m: {diff: {"accuracy": d["correct"]/d["total"] if d["total"] > 0 else 0,
                                      "correct": d["correct"], "total": d["total"]}
                               for diff, d in diffs.items()}
                           for m, diffs in by_diff.items()},
-        "error_types": dict(error_counts),
         "failures": failures[:10]
     }
 
@@ -930,8 +594,7 @@ if 'sample_results' in dir() and sample_results:
     print("=== Accuracy by Model ===")
     for model, stats in analysis["by_model"].items():
         pct = stats["accuracy"] * 100
-        trace_pct = stats["avg_trace_score"] * 100
-        print(f"{model}: {pct:.1f}% final answer, {trace_pct:.1f}% trace accuracy")
+        print(f"{model}: {pct:.1f}% ({stats['correct']}/{stats['total']})")
 
     print("\n=== Accuracy by Difficulty ===")
     for model, diffs in analysis["by_difficulty"].items():
@@ -940,24 +603,11 @@ if 'sample_results' in dir() and sample_results:
             pct = stats["accuracy"] * 100
             print(f"  {diff}: {pct:.1f}% ({stats['correct']}/{stats['total']})")
 
-    if analysis["error_types"]:
-        print("\n=== Trace Error Types ===")
-        for model, errors in analysis["error_types"].items():
-            print(f"\n{model}:")
-            for error_type, count in sorted(errors.items(), key=lambda x: -x[1]):
-                print(f"  {error_type}: {count}")
-
     if analysis["failures"]:
         print("\n=== Sample Failures ===")
         for f in analysis["failures"][:3]:
             print(f"\n{f['model']}: {f['input'][:50]}...")
             print(f"  Expected: {f['target']}, Got: {f['extracted_answer']}")
-            if "trace_validation" in f:
-                tv = f["trace_validation"]
-                print(f"  Trace: {tv['steps_valid']}/{tv['steps_parsed']} steps valid")
-                if tv["errors"]:
-                    step, err, before, after, axiom = tv["errors"][0]
-                    print(f"  First error (step {step}): {err} - {before[:30]}... [{axiom}]")
 #+end_src
 
 * Batch API: Prepare Jobs
@@ -1315,8 +965,7 @@ print("\n=== FULL RESULTS ===\n")
 print("=== Accuracy by Model ===")
 for model, stats in analysis["by_model"].items():
     pct = stats["accuracy"] * 100
-    trace_pct = stats["avg_trace_score"] * 100
-    print(f"{model}: {pct:.1f}% final answer, {trace_pct:.1f}% trace accuracy")
+    print(f"{model}: {pct:.1f}% ({stats['correct']}/{stats['total']})")
 
 print("\n=== Accuracy by Difficulty ===")
 for model, diffs in analysis["by_difficulty"].items():
@@ -1325,22 +974,9 @@ for model, diffs in analysis["by_difficulty"].items():
         pct = stats["accuracy"] * 100
         print(f"  {diff}: {pct:.1f}% ({stats['correct']}/{stats['total']})")
 
-if analysis["error_types"]:
-    print("\n=== Trace Error Types ===")
-    for model, errors in analysis["error_types"].items():
-        print(f"\n{model}:")
-        for error_type, count in sorted(errors.items(), key=lambda x: -x[1]):
-            print(f"  {error_type}: {count}")
-
 if analysis["failures"]:
     print("\n=== Sample Failures ===")
     for f in analysis["failures"][:3]:
         print(f"\n{f['model']}: {f['input'][:60]}...")
         print(f"  Expected: {f['target']}, Got: {f['extracted_answer']}")
-        if "trace_validation" in f:
-            tv = f["trace_validation"]
-            print(f"  Trace: {tv['steps_valid']}/{tv['steps_parsed']} steps valid")
-            if tv["errors"]:
-                step, err, before, after, axiom = tv["errors"][0]
-                print(f"  First error (step {step}): {err}")
 #+end_src
