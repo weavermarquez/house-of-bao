@@ -218,77 +218,71 @@ Sample generated forms (min_depth=2, max_depth=3):
 
 * Ground-Truth Simplifier
 
-Apply I1 and I2 exhaustively until fixed point, tracking each step.
+O(n) stack-based simplifier. Single pass, applies I1 and I2 as marks close.
 
 #+begin_src python
-def simplify_step(form: list) -> Tuple[list, Optional[str]]:
+def simplify_string(s: str) -> Tuple[str, List[Tuple[str, str, str]]]:
     """
-    Apply one simplification step if possible.
+    O(n) simplification with step tracking.
 
     Returns:
-        (new_form, axiom_applied) where axiom_applied is None if no change
+        (canonical_form, steps) where steps is [(before, after, axiom), ...]
     """
-    # I1 (Number): IDENTICAL adjacent forms condense (aa = a)
-    # Only applies when ALL adjacent forms are equal
-    if len(form) > 1 and all(child == form[0] for child in form):
-        return [form[0]], "I1"
-
-    # I2 (Order): (()) = void
-    # A mark is (()) if its content is [[]] (representing "()")
-    # Check each top-level mark and remove any that are (())
-    for i, child in enumerate(form):
-        if child == [[]]:
-            # This mark is (()) = void, remove it
-            new_form = form[:i] + form[i+1:]
-            return new_form, "I2"
-
-    # Recursively check children
-    for i, child in enumerate(form):
-        new_child, axiom = simplify_step(child)
-        if axiom:
-            new_form = form[:i] + [new_child] + form[i+1:]
-            return new_form, axiom
-
-    return form, None
-
-
-def simplify(form: list) -> Tuple[list, List[Tuple[str, str]]]:
-    """
-    Fully simplify a form to canonical form.
-
-    Returns:
-        (canonical_form, steps) where steps is list of (form_string, axiom)
-    """
+    stack: List[List[str]] = [[]]  # Stack of frames, each frame is list of child forms
     steps = []
-    current = form
 
-    while True:
-        new_form, axiom = simplify_step(current)
-        if axiom is None:
-            break
-        steps.append((form_to_string(current), axiom))
-        current = new_form
+    for c in s:
+        if c == '(':
+            stack.append([])
+        elif c == ')':
+            children = stack.pop()
 
-    return current, steps
+            # Apply I1: all identical → condense
+            if len(children) > 1 and all(ch == children[0] for ch in children):
+                before = "(" + "".join(children) + ")"
+                children = [children[0]]
+                after = "(" + "".join(children) + ")"
+                steps.append((before, after, "I1"))
+
+            # Apply I2: single mark inside → cancel to void
+            content = "".join(children)
+            if content == "()":
+                before = "(())"
+                steps.append((before, "", "I2"))
+                # Don't append anything to parent (void)
+            else:
+                # Append this mark to parent
+                stack[-1].append("(" + content + ")")
+
+    # Root level
+    result = stack[0]
+
+    # Apply I1 at root if needed
+    if len(result) > 1 and all(ch == result[0] for ch in result):
+        before = "".join(result)
+        result = [result[0]]
+        after = "".join(result)
+        steps.append((before, after, "I1"))
+
+    final = "".join(result)
+    return final if final else "void", steps
 
 
-def canonical_string(form: list) -> str:
-    """Get the canonical string representation."""
-    simplified, _ = simplify(form)
-    s = form_to_string(simplified)
-    return s if s else "void"
+def canonical_string(s: str) -> str:
+    """Get the canonical (simplified) form of a string."""
+    result, _ = simplify_string(s)
+    return result
 
 
 # Test the simplifier
 print("Simplification examples:")
 test_exprs = ["()()", "(())", "((()))", "(()())", "()(())", "(()(()))", "(())()", "(())(())"]
 for expr in test_exprs:
-    form = string_to_form(expr)
-    result, steps = simplify(form)
-    result_str = form_to_string(result) if result else "void"
-    print(f"\n{expr} -> {result_str}")
-    for step_form, axiom in steps:
-        print(f"  {step_form} [{axiom}]")
+    result, steps = simplify_string(expr)
+    print(f"\n{expr} -> {result}")
+    for before, after, axiom in steps:
+        after_display = after if after else "void"
+        print(f"  {before} -> {after_display} [{axiom}]")
 #+end_src
 
 #+RESULTS:
@@ -296,31 +290,31 @@ for expr in test_exprs:
 Simplification examples:
 
 ()() -> ()
-  ()() [I1]
+  ()() -> () [I1]
 
 (()) -> void
-  (()) [I2]
+  (()) -> void [I2]
 
 ((())) -> ()
-  ((())) [I2]
+  (()) -> void [I2]
 
 (()()) -> void
-  (()()) [I1]
-  (()) [I2]
+  (()()) -> (()) [I1]
+  (()) -> void [I2]
 
 ()(()) -> ()
-  ()(()) [I2]
+  (()) -> void [I2]
 
 (()(())) -> void
-  (()(())) [I2]
-  (()) [I2]
+  (()) -> void [I2]
+  (()) -> void [I2]
 
 (())() -> ()
-  (())() [I2]
+  (()) -> void [I2]
 
 (())(()) -> void
-  (())(()) [I1]
-  (()) [I2]
+  (()) -> void [I2]
+  (()) -> void [I2]
 #+end_example
 
 * Test Case Generation
@@ -333,7 +327,7 @@ Difficulty is defined by *minimum* depth:
 - Hard: depth 3-4 (multiple nested reductions)
 
 #+begin_src python
-def generate_test_cases(n: int = 30, seed: int = 2024) -> List[dict]:
+def generate_test_cases(n: int = 500, seed: int = 2024) -> List[dict]:
     """Generate n test cases with varying difficulty."""
     random.seed(seed)
     cases = []
@@ -341,9 +335,11 @@ def generate_test_cases(n: int = 30, seed: int = 2024) -> List[dict]:
     # Distribution with (difficulty, min_depth, max_depth, max_width, max_marks)
     # max_marks caps complexity to keep simplification fast
     difficulties = (
-        [("1. easy", 1, 2, 2, 20)] * 10 +
-        [("2. medium", 4, 5, 4, 50)] * 10 +
-        [("3. hard", 7, 10, 5, 100)] * 10
+        [("1. easy", 1, 2, 4, 20)] * 100 +
+        [("2. medium", 3, 4, 4, 30)] * 100 +
+        [("3. hard", 5, 6, 5, 50)] * 100 +
+        [("4. lunatic", 7, 8, 5, 70)] * 100 +
+        [("5. extra", 9, 10, 6, 100)] * 100
     )
     random.shuffle(difficulties)
 
@@ -353,10 +349,8 @@ def generate_test_cases(n: int = 30, seed: int = 2024) -> List[dict]:
             input_str = "()"  # Ensure non-empty
         depth = string_depth(input_str)
 
-        # Convert to list only for simplification
-        form = string_to_form(input_str)
-        target = canonical_string(form)
-        _, steps = simplify(form)
+        # O(n) simplification directly on string
+        target, steps = simplify_string(input_str)
 
         cases.append({
             "id": f"lof_{i+1:03d}",
@@ -371,7 +365,7 @@ def generate_test_cases(n: int = 30, seed: int = 2024) -> List[dict]:
 
 
 # Generate and preview test cases
-test_cases = generate_test_cases(100)
+test_cases = generate_test_cases(500)
 print(f"Generated {len(test_cases)} test cases\n")
 
 # Preview distribution
@@ -383,7 +377,7 @@ for c in test_cases:
     depth_by_diff.setdefault(c["difficulty"], []).append(c["depth"])
 
 print("By difficulty:")
-for diff in ["1. easy", "2. medium", "3. hard"]:
+for diff in ["1. easy", "2. medium", "3. hard", "4. lunatic", "5. extra"]:
     depths = depth_by_diff.get(diff, [])
     avg_depth = sum(depths) / len(depths) if depths else 0
     print(f"  {diff}: {diff_counts[diff]} cases, avg depth={avg_depth:.1f}, range=[{min(depths)}-{max(depths)}]")
@@ -393,29 +387,46 @@ for target, count in sorted(target_counts.items()):
     print(f"  {target}: {count}")
 
 print("\nSample cases:")
-for case in test_cases[:5]:
+for case in test_cases[:20]:
     print(f"  {case['id']}: {case['input']:20} -> {case['target']:6} (d={case['depth']}, {case['difficulty']}, {case['steps']} steps)")
 #+end_src
 
 #+RESULTS:
 #+begin_example
-Generated 30 test cases
+Generated 500 test cases
 
 By difficulty:
-  1. easy: 10 cases, avg depth=2.4, range=[1-3]
-  2. medium: 10 cases, avg depth=6.0, range=[6-6]
-  3. hard: 10 cases, avg depth=11.0, range=[11-11]
+  1. easy: 100 cases, avg depth=2.8, range=[1-3]
+  2. medium: 100 cases, avg depth=5.0, range=[3-5]
+  3. hard: 100 cases, avg depth=7.0, range=[7-7]
+  4. lunatic: 100 cases, avg depth=9.0, range=[9-9]
+  5. extra: 100 cases, avg depth=11.0, range=[11-11]
 
 By target value:
-  (): 18
-  void: 12
+  (): 258
+  void: 242
 
 Sample cases:
-  lof_001: (())(()())           -> void   (d=2, 1. easy, 3 steps)
-  lof_002: ()(())               -> ()     (d=2, 1. easy, 1 steps)
-  lof_003: ((((()))(())((()(())(())())())))(((((())))((())((())(())()))((()(()))((())(())(()))(())((())))())()) -> ()     (d=6, 2. medium, 24 steps)
-  lof_004: ((((())(()()))(((())(())()(()))(()())((())()))((()(())()))())) -> ()     (d=6, 2. medium, 16 steps)
-  lof_005: ((((()()(())((((((())(())()())(()()(())(())(()))((())(())(())(()))(()())(()))))(((((())(())(())())(()(())(()))((())()(())()())(()()()()())((())()(())))((()(())()()))(((())()()())((())())((())))))))))) -> ()     (d=11, 3. hard, 49 steps)
+  lof_001: (((()(()(()(())(())(())(()))((())()(())()())()(()(())()()(())))((()())((())()()()))()(((())())())))) -> void   (d=7, 3. hard, 26 steps)
+  lof_002: (()(())(((((()(((()()()(())(())))()(((())()(())(())(())())((())()(())(())(()))))(((()(())(()))((())()(())(())()())((())()(())(())()(())))(((())(())(())(()))((())(()))((())()()))(((())(())(())))))))))) -> void   (d=11, 5. extra, 52 steps)
+  lof_003: ((()))(((((()(())(()(()()()(()))((())(())()(())))()(((()))(()())(())()(())))())(()(()(()(())()((()))((())))((())))(((()(())(())(()))())))))) -> ()     (d=9, 4. lunatic, 37 steps)
+  lof_004: ((((())())))()((((()))((())()())((())(())(())(())))((()()))) -> ()     (d=5, 2. medium, 16 steps)
+  lof_005: ((()((())()(())(())))((()(())(()))(()()()(()))(()()(()))))() -> ()     (d=5, 2. medium, 15 steps)
+  lof_006: ((((((())()(())(())())((())()(())(()))((())(()))((())))))(((((())()(())())((())())())((()))((()))))) -> void   (d=7, 3. hard, 27 steps)
+  lof_007: ((((((((())(()))((())()()()()))()(((())()()(())(()))()(()()()(()))())()))((((()()()(()))(()(()))()()((())(())()()(()))))(((())((())()))))))) -> void   (d=9, 4. lunatic, 37 steps)
+  lof_008: ((((((()))(())((())()(())()(()))))((((())()(())()())(()()()(())(()))((())(())()()())((())(())()))))) -> ()     (d=7, 3. hard, 25 steps)
+  lof_009: ()(()((((((()()(()))((())()(())()(()))((())(())(())(())))((())(()()()()())((())(())(())(())())))(((()(()))(()()(()))()(()(()))())((()))))))) -> ()     (d=9, 4. lunatic, 36 steps)
+  lof_010: ((((()(()()()()((()(())()()())((())(())(())())()))((((())()()(())())(()(())(()))((())()(())(()))((())()()(()))))())((((())(()(())(())))))))) -> void   (d=9, 4. lunatic, 35 steps)
+  lof_011: (((((()(((())(()))(()(())(())())((())()))((()()))(((())(())(())()(()))(()(())()))(()()()((())()())(()()(()))))((()(()(())(())(())(())))))))) -> ()     (d=9, 4. lunatic, 37 steps)
+  lof_012: ((((())(((()(((()()(())())((())(())(())(())())(()(())(()))(()(())())(()()()))((()())()()())))()((((()(())(())()(())(()))(()(())()()(()))(()(())()(())(())(()))(()(())())((())()()))(()((())()()))))))))) -> void   (d=11, 5. extra, 54 steps)
+  lof_013: ((((()(()(())()()()))((()(())(())()(()))((())(())(())()()))(((())(())())((())(())()(())())))(()()))) -> void   (d=7, 3. hard, 27 steps)
+  lof_014: ((())()())()((())(())()) -> ()     (d=3, 1. easy, 6 steps)
+  lof_015: ((()((())(())))(((())())((())())(()()(())(()))())(((()))())) -> ()     (d=5, 2. medium, 16 steps)
+  lof_016: ((((((())(())(())()(()))))((((())()(())()())(()())((())()()(()))((()))())))((((()()))(((())())())))) -> void   (d=7, 3. hard, 27 steps)
+  lof_017: ((((())(())())))(((()(()))))(()((()(()))((())()(())(())))()) -> void   (d=5, 2. medium, 15 steps)
+  lof_018: ((((()((((())()()(())(()))))((()()((())())((())()(())()())())())(()((()(())()(())(()))((()))((())())(())())(((())(()))((())(())()))())())))) -> ()     (d=9, 4. lunatic, 37 steps)
+  lof_019: ((()))((((())(()))(()()()())((())(())()))(()(()(())(())()))) -> ()     (d=5, 2. medium, 15 steps)
+  lof_020: ((((((((())(())())((())())()((())))((()()(())()())((())()(()))((())))(((())(())()(())))(()((())(())(()))(()(())(())()())((())()()()()))))))) -> void   (d=9, 4. lunatic, 35 steps)
 #+end_example
 
 
@@ -429,7 +440,7 @@ print(f"Saved {len(test_cases)} test cases to test_cases.json")
 #+end_src
 
 #+RESULTS:
-: Saved 100 test cases to test_cases.json
+: Saved 500 test cases to test_cases.json
 
 * Load Test Cases
 
@@ -443,7 +454,7 @@ print(f"Loaded {len(test_cases)} test cases from test_cases.json")
 #+end_src
 
 #+RESULTS:
-: Loaded 30 test cases from test_cases.json
+: Loaded 500 test cases from test_cases.json
 
 * Set up Prompt
 
@@ -452,34 +463,61 @@ Initialize API clients for each provider.
 #+begin_src python
 PROMPT_TEMPLATE = """Simplify this Laws of Form expression using the two axioms:
 
-I1 (Number): ()() = ()
-   Multiple adjacent marks condense to a single mark.
+**Axiom I1 (Number):** ()() = ()
+Multiple marks (parenthesis pairs) adjacent at the same nesting level condense into a single mark.
 
-I2 (Order): (()) = void
-   A mark containing only a mark cancels to void (nothing).
+**Axiom I2 (Order):** (()) = void
+A mark containing only another mark (and nothing else) cancels out completely to void (nothing).
 
 Expression: {expression}
 
-Apply the axioms step by step until you reach either:
-- () (the mark)
-- void (empty/nothing)
+Apply axioms until you reach () or void.
 
-Show your reasoning, then state your final answer on the last line as either:
-FINAL: ()
-or
-FINAL: void
+## Output Format
+
+Structure your response in exactly three sections:
+
+### 1. Scratchpad
+
+In <scratchpad> tags, work through the problem. You may:
+- Map out nesting depths
+- Identify where axioms apply
+- Plan your sequence of transformations
+
+### 2. Trace
+
+In <trace> tags, record each step. Rules:
+- Each line: STEP n: before_expression => after_expression
+- Place [I1] or [I2] immediately after the sub-expression being transformed in the BEFORE expression
+- Show the COMPLETE expression before and after (not just the changed part)
+- No explanatory text, only STEP lines
+
+Examples of correct marker placement:
+- I1 (condense adjacent): STEP 1: (()()[I1]) => (())
+- I2 (cancel nested): STEP 2: (())[I2] => void
+- Nested example: STEP 3: ((())[I2]()) => (())
+
+### 3. Answer
+
+In <answer> tags, state exactly "()" or "void".
 """
 
 
 def extract_answer(response: str) -> str:
     """Extract the final answer from LLM response."""
-    # Look for FINAL: pattern
+    # Look for <answer> tag first
+    match = re.search(r'<answer>\s*(\(\)|void)\s*</answer>', response, re.IGNORECASE)
+    if match:
+        ans = match.group(1).lower()
+        return "()" if ans == "()" else "void"
+
+    # Fallback: FINAL: pattern
     match = re.search(r'FINAL:\s*(\(\)|void)', response, re.IGNORECASE)
     if match:
         ans = match.group(1).lower()
         return "()" if ans == "()" else "void"
 
-    # Fallback: look for last occurrence of () or void
+    # Last resort: look for last occurrence of () or void
     response_lower = response.lower()
     last_mark = response_lower.rfind("()")
     last_void = max(response_lower.rfind("void"), response_lower.rfind("empty"))
@@ -490,9 +528,338 @@ def extract_answer(response: str) -> str:
         return "void"
 
     return "unknown"
+
+
+# === Trace Validation ===
+
+def extract_trace_block(response: str) -> str:
+    """Extract content from <trace>...</trace> block, or return full response."""
+    match = re.search(r'<trace>(.*?)</trace>', response, re.DOTALL | re.IGNORECASE)
+    if match:
+        return match.group(1)
+    return response  # Fallback to full response
+
+
+def parse_trace_steps(response: str) -> List[Tuple[str, str, str]]:
+    """
+    Parse STEP lines from LLM response.
+
+    Handles two formats:
+    - Inline marker: STEP n: (()()[I1]) => (())
+    - Trailing marker: STEP n: ()() => () [I1]
+
+    Returns:
+        List of (before, after, axiom) tuples where before has marker stripped
+    """
+    # Extract trace block if present
+    trace_text = extract_trace_block(response)
+
+    # Pattern: STEP k: before_expr => after_expr
+    # The axiom marker [I1]/[I2] may be inline in before_expr or trailing after after_expr
+    pattern = r'STEP\s*\d+\s*:\s*(.+?)\s*=>\s*(.+?)(?:\s*$|\s*(?=STEP))'
+    matches = re.findall(pattern, trace_text, re.IGNORECASE | re.MULTILINE)
+
+    steps = []
+    for before_raw, after_raw in matches:
+        before_raw = before_raw.strip().strip('`').strip()
+        after_raw = after_raw.strip().strip('`').strip()
+
+        # Look for axiom marker [I1] or [I2]
+        axiom = None
+        before = before_raw
+        after = after_raw
+
+        # Check for inline marker in before expression
+        inline_match = re.search(r'\[(I[12])\]', before_raw, re.IGNORECASE)
+        if inline_match:
+            axiom = inline_match.group(1).upper()
+            before = re.sub(r'\[I[12]\]', '', before_raw, flags=re.IGNORECASE).strip()
+
+        # Check for trailing marker after the after expression (old format)
+        if not axiom:
+            trailing_match = re.search(r'\[(I[12])\]\s*$', after_raw, re.IGNORECASE)
+            if trailing_match:
+                axiom = trailing_match.group(1).upper()
+                after = re.sub(r'\s*\[I[12]\]\s*$', '', after_raw, flags=re.IGNORECASE).strip()
+
+        if not axiom:
+            continue  # Skip malformed steps
+
+        # Normalize void
+        if after.lower() == 'void' or after == '':
+            after = ''
+
+        steps.append((before, after, axiom))
+
+    return steps
+
+
+def find_i1_sites(expr: str) -> List[Tuple[int, int, str]]:
+    """
+    Find all positions where I1 (condensation) can apply.
+
+    Returns:
+        List of (start, end, condensed) tuples where expr[start:end] can condense
+    """
+    sites = []
+    # Use stack-based parsing to find adjacent identical marks
+    stack = [[]]  # Each frame: list of (start_pos, content) tuples
+
+    start_positions = []
+
+    for i, c in enumerate(expr):
+        if c == '(':
+            start_positions.append(i)
+            stack.append([])
+        elif c == ')':
+            # Guard against malformed expressions
+            if not start_positions or len(stack) < 2:
+                return []  # Malformed - return empty
+            start = start_positions.pop()
+            children = stack.pop()
+            content = expr[start:i+1]
+            stack[-1].append((start, content))
+
+            # Check if this level has adjacent identical marks
+            if len(stack[-1]) > 1:
+                contents = [c for _, c in stack[-1]]
+                if all(c == contents[0] for c in contents):
+                    # All adjacent marks are identical - I1 applies
+                    first_start = stack[-1][0][0]
+                    last_end = i + 1
+                    sites.append((first_start, last_end, contents[0]))
+
+    # Check root level (only if balanced)
+    if start_positions:  # Unbalanced - unclosed parens
+        return []
+    if len(stack[0]) > 1:
+        contents = [c for _, c in stack[0]]
+        if all(c == contents[0] for c in contents):
+            sites.append((0, len(expr), contents[0]))
+
+    return sites
+
+
+def find_i2_sites(expr: str) -> List[Tuple[int, int]]:
+    """
+    Find all positions where I2 (cancellation) can apply.
+
+    Returns:
+        List of (start, end) tuples where expr[start:end] == "(())"
+    """
+    sites = []
+    i = 0
+    while i < len(expr):
+        if expr[i:i+4] == '(())':
+            sites.append((i, i+4))
+            i += 4
+        else:
+            i += 1
+    return sites
+
+
+def validate_step(before: str, after: str, axiom: str) -> Tuple[bool, str]:
+    """
+    Validate a single reasoning step.
+
+    Returns:
+        (is_valid, error_type) where error_type is one of:
+        - "" (no error)
+        - "wrong_axiom" (axiom doesn't apply)
+        - "scope_collapse" (correct inner transform but lost outer context)
+        - "wrong_result" (axiom applies but result is wrong)
+        - "malformed" (can't parse expressions)
+    """
+    # Check for malformed expressions
+    def balanced(s):
+        depth = 0
+        for c in s:
+            if c == '(':
+                depth += 1
+            elif c == ')':
+                depth -= 1
+            if depth < 0:
+                return False
+        return depth == 0
+
+    if not balanced(before) or (after and not balanced(after)):
+        return False, "malformed"
+
+    if axiom == "I1":
+        sites = find_i1_sites(before)
+        if not sites:
+            return False, "wrong_axiom"
+
+        # Check if any valid I1 application produces 'after'
+        for start, end, condensed in sites:
+            expected = before[:start] + condensed + before[end:]
+            if expected == after:
+                return True, ""
+
+            # Check for scope collapse: inner condensation correct but outer lost
+            # This happens when before = (X) and they output X' instead of (X')
+            if before.startswith('(') and before.endswith(')'):
+                inner_before = before[1:-1]
+                inner_sites = find_i1_sites(inner_before)
+                for istart, iend, icondensed in inner_sites:
+                    inner_expected = inner_before[:istart] + icondensed + inner_before[iend:]
+                    if after == inner_expected:
+                        return False, "scope_collapse"
+
+        return False, "wrong_result"
+
+    elif axiom == "I2":
+        sites = find_i2_sites(before)
+        if not sites:
+            return False, "wrong_axiom"
+
+        # Check if any valid I2 application produces 'after'
+        for start, end in sites:
+            expected = before[:start] + before[end:]
+            if expected == after:
+                return True, ""
+
+            # Check for scope collapse
+            if before.startswith('(') and before.endswith(')'):
+                inner_before = before[1:-1]
+                inner_sites = find_i2_sites(inner_before)
+                for istart, iend in inner_sites:
+                    inner_expected = inner_before[:istart] + inner_before[iend:]
+                    if after == inner_expected:
+                        return False, "scope_collapse"
+
+        return False, "wrong_result"
+
+    return False, "wrong_axiom"
+
+
+def validate_trace(response: str, input_expr: str) -> dict:
+    """
+    Validate all reasoning steps in an LLM response.
+
+    Returns:
+        {
+            "steps_parsed": int,
+            "steps_valid": int,
+            "errors": [(step_num, error_type, before, after, axiom), ...],
+            "trace_score": float  # steps_valid / steps_parsed
+        }
+    """
+    steps = parse_trace_steps(response)
+
+    if not steps:
+        return {
+            "steps_parsed": 0,
+            "steps_valid": 0,
+            "errors": [],
+            "trace_score": 0.0
+        }
+
+    valid_count = 0
+    errors = []
+
+    for i, (before, after, axiom) in enumerate(steps):
+        is_valid, error_type = validate_step(before, after, axiom)
+        if is_valid:
+            valid_count += 1
+        else:
+            errors.append((i + 1, error_type, before, after, axiom))
+
+    return {
+        "steps_parsed": len(steps),
+        "steps_valid": valid_count,
+        "errors": errors,
+        "trace_score": valid_count / len(steps) if steps else 0.0
+    }
+
+
+# Test trace validation
+print("=== Trace Validation Tests ===\n")
+
+# Test I2 validation
+print("I2 (Order) tests:")
+valid, err = validate_step("(())", "", "I2")
+print(f"  (()) -> void [I2]: valid={valid}, err='{err}'")
+
+valid, err = validate_step("()(())", "()", "I2")
+print(f"  ()(()) -> () [I2]: valid={valid}, err='{err}'")
+
+valid, err = validate_step("((()))", "()", "I2")
+print(f"  ((())) -> () [I2]: valid={valid}, err='{err}'")  # Should fail - wrong result
+
+valid, err = validate_step("((()))", "", "I2")
+print(f"  ((())) -> void [I2]: valid={valid}, err='{err}'")  # Scope collapse!
+
+# Test I1 validation
+print("\nI1 (Number) tests:")
+valid, err = validate_step("()()", "()", "I1")
+print(f"  ()() -> () [I1]: valid={valid}, err='{err}'")
+
+valid, err = validate_step("(()())", "(())", "I1")
+print(f"  (()()) -> (()) [I1]: valid={valid}, err='{err}'")
+
+valid, err = validate_step("(()())", "()", "I1")
+print(f"  (()()) -> () [I1]: valid={valid}, err='{err}'")  # Scope collapse!
+
+# Test parsing from realistic response (old format - trailing marker)
+print("\nParsing test (old format - trailing marker):")
+sample_response_old = """
+STEP 1: (())(()) => (()) [I1]
+STEP 2: (()) => void [I2]
+FINAL: void
+"""
+steps = parse_trace_steps(sample_response_old)
+print(f"  Parsed {len(steps)} steps: {steps}")
+
+# Test new inline marker format
+print("\nParsing test (new format - inline marker):")
+sample_response_inline = """
+<scratchpad>
+Let me work through this. I see (())(()) which has two (()) marks.
+They're identical so I1 applies. Then (()) cancels by I2.
+</scratchpad>
+
+<trace>
+STEP 1: (())[I1](()) => (())
+STEP 2: (())[I2] => void
+</trace>
+
+<answer>void</answer>
+"""
+steps = parse_trace_steps(sample_response_inline)
+print(f"  Parsed {len(steps)} steps: {steps}")
+answer = extract_answer(sample_response_inline)
+print(f"  Extracted answer: {answer}")
+
+validation = validate_trace(sample_response_inline, "(())(())")
+print(f"  Validation: {validation['steps_valid']}/{validation['steps_parsed']} valid")
+print(f"  Trace score: {validation['trace_score']:.1%}")
 #+end_src
 
 #+RESULTS:
+#+begin_example
+=== Trace Validation Tests ===
+
+I2 (Order) tests:
+  (()) -> void [I2]: valid=True, err=''
+  ()(()) -> () [I2]: valid=True, err=''
+  ((())) -> () [I2]: valid=True, err=''
+  ((())) -> void [I2]: valid=False, err='scope_collapse'
+
+I1 (Number) tests:
+  ()() -> () [I1]: valid=True, err=''
+  (()()) -> (()) [I1]: valid=True, err=''
+  (()()) -> () [I1]: valid=False, err='scope_collapse'
+
+Parsing test (old format - trailing marker):
+  Parsed 2 steps: [('(())(())', '(())', 'I1'), ('(())', '', 'I2')]
+
+Parsing test (new format - inline marker):
+  Parsed 2 steps: [('(())(())', '(())', 'I1'), ('(())', '', 'I2')]
+  Extracted answer: void
+  Validation: 2/2 valid
+  Trace score: 100.0%
+#+end_example
 
 * Async Eval Functions
 
@@ -514,7 +881,11 @@ async def eval_openai_async(expression: str, model: str = MODELS["openai"]) -> T
         response = await client.chat.completions.create(
             model=model,
             messages=[{"role": "user", "content": prompt}],
-            temperature=0
+            response_format={
+                "type": "text"
+            },
+            verbosity="medium",
+            reasoning_effort="medium",
         )
     text = response.choices[0].message.content
     return text, extract_answer(text), model
@@ -525,13 +896,14 @@ async def eval_anthropic_async(expression: str, model: str = MODELS["anthropic"]
     if not ANTHROPIC_API_KEY:
         return "", "no_client", model
     prompt = PROMPT_TEMPLATE.format(expression=expression)
-    async with AsyncAnthropic() as client:
-        response = await client.messages.create(
-            model=model,
-            max_tokens=1024,
-            messages=[{"role": "user", "content": prompt}]
-        )
-    text = response.content[0].text
+    client = AsyncAnthropic()
+    async with client.messages.stream(
+        model=model,
+        max_tokens=64000,
+        messages=[{"role": "user", "content": prompt}]
+    ) as stream:
+        message = await stream.get_final_message()
+    text = message.content[0].text
     return text, extract_answer(text), model
 
 
@@ -556,7 +928,7 @@ print("Async eval functions defined.")
 
 Run a small subset with async for quick iteration. Saves full outputs.
 
-#+begin_src python
+#+begin_src python :async
 PROVIDERS = [
     ("openai", OPENAI_API_KEY, eval_openai_async),
     ("anthropic", ANTHROPIC_API_KEY, eval_anthropic_async),
@@ -634,118 +1006,85 @@ if failures:
 #+RESULTS:
 #+begin_example
 Running async sample evaluation...
+Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GOOGLE_API_KEY.
+Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GOOGLE_API_KEY.
+Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GOOGLE_API_KEY.
+Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GOOGLE_API_KEY.
+Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GOOGLE_API_KEY.
 Saved 15 results to sample_results.json
 
 === Sample Results ===
-✅ lof_001 (openai): ()(())                         -> () (target: ())
-✅ lof_001 (anthropic): ()(())                         -> () (target: ())
-✅ lof_001 (google): ()(())                         -> () (target: ())
-❌ lof_002 (openai): (()((((((((()(())))()(((())(() -> () (target: void)
-✅ lof_002 (anthropic): (()((((((((()(())))()(((())(() -> void (target: void)
-✅ lof_002 (google): (()((((((((()(())))()(((())(() -> void (target: void)
-❌ lof_003 (openai): (((((())()())(()(())(())())(() -> () (target: void)
-✅ lof_003 (anthropic): (((((())()())(()(())(())())(() -> void (target: void)
-✅ lof_003 (google): (((((())()())(()(())(())())(() -> void (target: void)
-✅ lof_004 (openai): ()((())())                     -> () (target: ())
-✅ lof_004 (anthropic): ()((())())                     -> () (target: ())
-✅ lof_004 (google): ()((())())                     -> () (target: ())
-✅ lof_005 (openai): ((((()))(()(((((((())()(()))(( -> () (target: ())
-✅ lof_005 (anthropic): ((((()))(()(((((((())()(()))(( -> () (target: ())
-❌ lof_005 (google): ((((()))(()(((((((())()(()))(( -> void (target: ())
+✅ lof_001 (openai): (((()(()(()(())(())(())(()))(( -> void (target: void)
+✅ lof_001 (anthropic): (((()(()(()(())(())(())(()))(( -> void (target: void)
+✅ lof_001 (google): (((()(()(()(())(())(())(()))(( -> void (target: void)
+✅ lof_002 (openai): (()(())(((((()(((()()()(())(() -> void (target: void)
+❌ lof_002 (anthropic): (()(())(((((()(((()()()(())(() -> () (target: void)
+✅ lof_002 (google): (()(())(((((()(((()()()(())(() -> void (target: void)
+✅ lof_003 (openai): ((()))(((((()(())(()(()()()(() -> () (target: ())
+❌ lof_003 (anthropic): ((()))(((((()(())(()(()()()(() -> void (target: ())
+✅ lof_003 (google): ((()))(((((()(())(()(()()()(() -> () (target: ())
+✅ lof_004 (openai): ((((())())))()((((()))((())()( -> () (target: ())
+✅ lof_004 (anthropic): ((((())())))()((((()))((())()( -> () (target: ())
+✅ lof_004 (google): ((((())())))()((((()))((())()( -> () (target: ())
+✅ lof_005 (openai): ((()((())()(())(())))((()(())( -> () (target: ())
+✅ lof_005 (anthropic): ((()((())()(())(())))((()(())( -> () (target: ())
+✅ lof_005 (google): ((()((())()(())(())))((()(())( -> () (target: ())
 
-=== 3 Failures - Full Reasoning ===
+=== 2 Failures - Full Reasoning ===
 
---- lof_002 (gpt-5.1) ---
-Input: (()((((((((()(())))()(((())(())(())(())())()(()(())(())(()))())((())((())()()(()))((())(())(())(()))(()(())()()))))(())())))(((((((()()()()))(((())(())(()))(())((())(())())(())(()()()))()()(()))))))))
+--- lof_002 (claude-opus-4-5-20251101) ---
+Input: (()(())(((((()(((()()()(())(())))()(((())()(())(())(())())((())()(())(())(()))))(((()(())(()))((())()(())(())()())((())()(())(())()(())))(((())(())(())(()))((())(()))((())()()))(((())(())(()))))))))))
 Expected: void, Got: ()
 Response:
-I’ll rewrite the expression with some spacing and then simplify systematically using only:
+<scratchpad>
+Let me work through this complex expression step by step.
 
-- I1 (Number): `()() = ()`
-- I2 (Order): `(()) =` void
+Expression: (()(())(((((()(((()()()(())(())))()(((())()(())(())(())())((())()(())(())(()))))(((()(())(()))((())()(())(())()())((())()(())(())()(())))(((())(())(())(()))((())(()))((())()()))(((())(())(()))))))))))
 
-Given expression:
+Let me first try to understand the structure by identifying matching parentheses.
 
-```
-(()((((((((()(())))()(((())(())(())(())())()(()(())(())(()))())((())((())()()(()))((())(())(())(()))(()(())()()))))(())())))(((((((()()()()))(((())(())(()))(())((())(())())(())(()()()))()()(()))))))))
-```
+Starting from innermost parts and applying axioms:
 
----
+Let me look for patterns:
+- ()()() can become () by I1
+- (()) can become void b...
 
-### 1. Top-level structure
-
-The whole thing is of the form:
-
-```
-( A ) B
-```
-
-where:
-
-- The very first `(` matches a `...
-
---- lof_003 (gpt-5.1) ---
-Input: (((((())()())(()(())(())())(())())((())(()(()))(()(())(()))((())()(()))))()((((()))()())(()(()()))))
-Expected: void, Got: ()
-Response:
-I’ll rewrite the expression clearly, then simplify step by step using only:
-
-- I1 (Number): `()() = ()`
-- I2 (Order): `(()) =` void
-
-Given expression:
-
-```
-(((((())()())(()(())(())())(())())((())(()(()))(()(())(()))((())()(()))))()((((()))()())(()(()()))))
-```
-
----
-
-## 1. Parse the structure
-
-Top level:
-
-- It is of the form:  
-  ` ( A () B ) `  
-  where:
-  - `A = ((((())()())(()(())(())())(())())((())(()(()))(()(())(()))((())()(()))))`
-  - `B = ((((()))()())(()(()())))`
-
-So the whole expression ...
-
---- lof_005 (gemini-3-pro-preview) ---
-Input: ((((()))(()(((((((())()(()))((()))((())()))(((())()(()))((())()))((())((())()(())))(((())()())))(((()()))(((())(()))((())))((())(()(()))((())(())(()))((())(())(())))((()(())()()())()(()(())())))))))))
+--- lof_003 (claude-opus-4-5-20251101) ---
+Input: ((()))(((((()(())(()(()()()(()))((())(())()(())))()(((()))(()())(())()(())))())(()(()(()(())()((()))((())))((())))(((()(())(())(()))()))))))
 Expected: (), Got: void
 Response:
-To simplify the expression, we will break it down structurally and apply the axioms.
+<scratchpad>
+Let me work through this expression step by step.
 
-,**Axioms:**
-1.  **I1 (Number):** `()()` = `()`
-2.  **I2 (Order):** `(())` = `void`
+Expression: ((()))(((((()(())(()(()()()(()))((())(())()(())))()(((()))(()())(())()(())))())(()(()(()(())()((()))((())))((())))(((()(())(())(()))()))))))
 
-,**Derivations:**
-,*   From I2, `(void)` = `()`. (A mark containing nothing is a mark).
-,*   From I1, `() x` = `()`. (The "Dominance" rule: any expression `x` adjacent to `()` inside a mark is absorbed. If `x` is `void`, `() void` = `()`. If `x` is `()`, `()()` = `()`).
-,*   Consequently, `( () x )` = `(())` = `void`.
+First, let me identify the structure. The outer level has:
+- ((())) which is a mark containing (()) which by I2 = (), so ((())) = (())
+- Then another large expression starting with (((((...
 
----
-
-,**Step 1...
+Let me work from the inside out, looking for I2 patterns ((())) and I1 patterns (adjacent m...
 #+end_example
 
 * Set up Analysis 
 
 #+begin_src python
-def analyze_results(results: List[dict]) -> dict:
-    """Compute accuracy metrics from results."""
+def analyze_results(results: List[dict], validate_traces: bool = True) -> dict:
+    """Compute accuracy metrics from results, including trace validation."""
     from collections import defaultdict
 
     # Overall accuracy by model
-    by_model = defaultdict(lambda: {"correct": 0, "total": 0})
+    by_model = defaultdict(lambda: {"correct": 0, "total": 0, "trace_scores": []})
     for r in results:
         by_model[r["model"]]["total"] += 1
         if r["correct"]:
             by_model[r["model"]]["correct"] += 1
+
+        # Validate traces if requested
+        if validate_traces and r.get("response"):
+            trace_result = validate_trace(r["response"], r["input"])
+            r["trace_validation"] = trace_result
+            if trace_result["steps_parsed"] > 0:
+                by_model[r["model"]]["trace_scores"].append(trace_result["trace_score"])
 
     # Accuracy by difficulty
     by_diff = defaultdict(lambda: defaultdict(lambda: {"correct": 0, "total": 0}))
@@ -757,15 +1096,26 @@ def analyze_results(results: List[dict]) -> dict:
     # Failure examples
     failures = [r for r in results if not r["correct"]]
 
+    # Error type breakdown
+    error_counts = defaultdict(lambda: defaultdict(int))
+    for r in results:
+        if "trace_validation" in r:
+            for step_num, error_type, before, after, axiom in r["trace_validation"]["errors"]:
+                error_counts[r["model"]][error_type] += 1
+
     return {
-        "by_model": {m: {"accuracy": d["correct"]/d["total"] if d["total"] > 0 else 0,
-                        "correct": d["correct"], "total": d["total"]}
-                     for m, d in by_model.items()},
+        "by_model": {m: {
+            "accuracy": d["correct"]/d["total"] if d["total"] > 0 else 0,
+            "correct": d["correct"],
+            "total": d["total"],
+            "avg_trace_score": sum(d["trace_scores"])/len(d["trace_scores"]) if d["trace_scores"] else 0
+        } for m, d in by_model.items()},
         "by_difficulty": {m: {diff: {"accuracy": d["correct"]/d["total"] if d["total"] > 0 else 0,
                                      "correct": d["correct"], "total": d["total"]}
                               for diff, d in diffs.items()}
                           for m, diffs in by_diff.items()},
-        "failures": failures[:10]  # First 10 failures
+        "error_types": dict(error_counts),
+        "failures": failures[:10]
     }
 
 
@@ -776,7 +1126,8 @@ if 'sample_results' in dir() and sample_results:
     print("=== Accuracy by Model ===")
     for model, stats in analysis["by_model"].items():
         pct = stats["accuracy"] * 100
-        print(f"{model}: {pct:.1f}% ({stats['correct']}/{stats['total']})")
+        trace_pct = stats["avg_trace_score"] * 100
+        print(f"{model}: {pct:.1f}% final answer, {trace_pct:.1f}% trace accuracy")
 
     print("\n=== Accuracy by Difficulty ===")
     for model, diffs in analysis["by_difficulty"].items():
@@ -785,15 +1136,82 @@ if 'sample_results' in dir() and sample_results:
             pct = stats["accuracy"] * 100
             print(f"  {diff}: {pct:.1f}% ({stats['correct']}/{stats['total']})")
 
+    if analysis["error_types"]:
+        print("\n=== Trace Error Types ===")
+        for model, errors in analysis["error_types"].items():
+            print(f"\n{model}:")
+            for error_type, count in sorted(errors.items(), key=lambda x: -x[1]):
+                print(f"  {error_type}: {count}")
+
     if analysis["failures"]:
         print("\n=== Sample Failures ===")
         for f in analysis["failures"][:3]:
-            print(f"\n{f['model']}: {f['input']}")
+            print(f"\n{f['model']}: {f['input'][:50]}...")
             print(f"  Expected: {f['target']}, Got: {f['extracted_answer']}")
-            print(f"  Response excerpt: {f['response'][:200]}...")
+            if "trace_validation" in f:
+                tv = f["trace_validation"]
+                print(f"  Trace: {tv['steps_valid']}/{tv['steps_parsed']} steps valid")
+                if tv["errors"]:
+                    step, err, before, after, axiom = tv["errors"][0]
+                    print(f"  First error (step {step}): {err} - {before[:30]}... [{axiom}]")
 #+end_src
 
 #+RESULTS:
+#+begin_example
+=== Accuracy by Model ===
+gpt-5.1: 100.0% final answer, 25.0% trace accuracy
+claude-opus-4-5-20251101: 60.0% final answer, 12.6% trace accuracy
+gemini-3-pro-preview: 100.0% final answer, 58.9% trace accuracy
+
+=== Accuracy by Difficulty ===
+
+gpt-5.1:
+  2. medium: 100.0% (2/2)
+  3. hard: 100.0% (1/1)
+  4. lunatic: 100.0% (1/1)
+  5. extra: 100.0% (1/1)
+
+claude-opus-4-5-20251101:
+  2. medium: 100.0% (2/2)
+  3. hard: 100.0% (1/1)
+  4. lunatic: 0.0% (0/1)
+  5. extra: 0.0% (0/1)
+
+gemini-3-pro-preview:
+  2. medium: 100.0% (2/2)
+  3. hard: 100.0% (1/1)
+  4. lunatic: 100.0% (1/1)
+  5. extra: 100.0% (1/1)
+
+=== Trace Error Types ===
+
+gpt-5.1:
+  wrong_result: 2
+
+claude-opus-4-5-20251101:
+  malformed: 129
+  wrong_result: 2
+  scope_collapse: 1
+  wrong_axiom: 1
+
+gemini-3-pro-preview:
+  malformed: 33
+  wrong_result: 17
+  wrong_axiom: 3
+  scope_collapse: 1
+
+=== Sample Failures ===
+
+claude-opus-4-5-20251101: (()(())(((((()(((()()()(())(())))()(((())()(())(()...
+  Expected: void, Got: ()
+  Trace: 3/50 steps valid
+  First error (step 1): malformed - (()(())(((((()(((()()(()(())((... [I1]
+
+claude-opus-4-5-20251101: ((()))(((((()(())(()(()()()(()))((())(())()(())))(...
+  Expected: (), Got: void
+  Trace: 0/30 steps valid
+  First error (step 1): malformed - (())(((((()(())(()(()()()(()))... [I2]
+#+end_example
 
 * Batch API: Prepare Jobs
 
@@ -900,7 +1318,7 @@ def create_anthropic_batch(cases: List[dict], model: str = MODELS["anthropic"]) 
             "custom_id": case["id"],
             "params": {
                 "model": model,
-                "max_tokens": 1024,
+                "max_tokens": 64000,
                 "messages": [{"role": "user", "content": prompt}]
             }
         })
@@ -933,7 +1351,7 @@ def create_gemini_batch(cases: List[dict], model: str = MODELS["google"]) -> str
 #+RESULTS:
 
 * Submit Jobs
-#+begin_src python
+#+begin_src python :async
 # Submit all batches (appends to log, never overwrites)
 print(f"Submitting batches for {len(test_cases)} test cases...")
 
@@ -968,18 +1386,24 @@ print(f"\nBatch events appended to {BATCH_LOG}")
 #+end_src
 
 #+RESULTS:
-: Submitting batches for 30 test cases...
-:   Submitting Gemini batch...
-: Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GOOGLE_API_KEY.
-:     Gemini batch ID: batches/izt2k94rwktvv4pre8ai2cmkv5ax2yo4htv6
-: 
-: Batch events appended to batch_log.jsonl
+#+begin_example
+Submitting batches for 500 test cases...
+  Submitting OpenAI batch...
+    OpenAI batch ID: batch_6939e6ddb9108190909adc4e1369f234
+  Submitting Anthropic batch...
+    Anthropic batch ID: msgbatch_01CnXznANgLoLuvaw7B479vY
+  Submitting Gemini batch...
+Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GOOGLE_API_KEY.
+    Gemini batch ID: batches/lhydhmxj6bn73y4dwtcmeo9g0pifta6xlwr4
+
+Batch events appended to batch_log.jsonl
+#+end_example
 
 * Batch API: Check Status
 
 Poll batch job status and download results when complete.
 
-#+begin_src python
+#+begin_src python :async
 def check_openai_batch(batch_id: str) -> Tuple[str, Optional[List[dict]]]:
     """Check OpenAI batch status. Returns (status, results_or_none)."""
     client = OpenAI()
@@ -1093,12 +1517,12 @@ else:
 
 #+RESULTS:
 : Checking batch status...
-:   openai: in_progress
-:   anthropic: in_progress
+:   openai: completed (already)
+:   anthropic: completed (already)
 : Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GOOGLE_API_KEY.
-:   google: job_state_running
+:   google: completed
 : 
-: Some batches still processing. Re-run this cell to check again.
+: All batches complete! Run the next cell to process results.
 
 * Process Batch Results
 
@@ -1155,7 +1579,7 @@ print(f"Saved {len(all_results)} results to results.json")
 #+end_src
 
 #+RESULTS:
-: Saved 90 results to results.json
+: Saved 1488 results to results.json
 
 * Load and Analyze Saved Results
 
@@ -1166,13 +1590,14 @@ with open("results.json", "r") as f:
 
 print(f"Loaded {len(saved['results'])} results from {saved['metadata']['timestamp']}")
 analysis = analyze_results(saved['results'])
-    
+
 # Print full analysis
 print("\n=== FULL RESULTS ===\n")
 print("=== Accuracy by Model ===")
 for model, stats in analysis["by_model"].items():
     pct = stats["accuracy"] * 100
-    print(f"{model}: {pct:.1f}% ({stats['correct']}/{stats['total']})")
+    trace_pct = stats["avg_trace_score"] * 100
+    print(f"{model}: {pct:.1f}% final answer, {trace_pct:.1f}% trace accuracy")
 
 print("\n=== Accuracy by Difficulty ===")
 for model, diffs in analysis["by_difficulty"].items():
@@ -1181,82 +1606,94 @@ for model, diffs in analysis["by_difficulty"].items():
         pct = stats["accuracy"] * 100
         print(f"  {diff}: {pct:.1f}% ({stats['correct']}/{stats['total']})")
 
+if analysis["error_types"]:
+    print("\n=== Trace Error Types ===")
+    for model, errors in analysis["error_types"].items():
+        print(f"\n{model}:")
+        for error_type, count in sorted(errors.items(), key=lambda x: -x[1]):
+            print(f"  {error_type}: {count}")
+
 if analysis["failures"]:
     print("\n=== Sample Failures ===")
     for f in analysis["failures"][:3]:
-        print(f"\n{f['model']}: {f['input']}")
+        print(f"\n{f['model']}: {f['input'][:60]}...")
         print(f"  Expected: {f['target']}, Got: {f['extracted_answer']}")
-        print(f"  Response excerpt: {f['response'][:200]}...")
+        if "trace_validation" in f:
+            tv = f["trace_validation"]
+            print(f"  Trace: {tv['steps_valid']}/{tv['steps_parsed']} steps valid")
+            if tv["errors"]:
+                step, err, before, after, axiom = tv["errors"][0]
+                print(f"  First error (step {step}): {err}")
 #+end_src
 
 #+RESULTS:
 #+begin_example
-Loaded 90 results from 2025-12-07T11:53:36.408677
+Loaded 1488 results from 2025-12-10T19:21:43.528751
 
 === FULL RESULTS ===
 
 === Accuracy by Model ===
-gpt-5.1: 53.3% (16/30)
-claude-opus-4-5-20251101: 63.3% (19/30)
-gemini-3-pro-preview: 66.7% (20/30)
+gpt-5.1: 65.2% final answer, 24.4% trace accuracy
+claude-opus-4-5-20251101: 59.0% final answer, 24.6% trace accuracy
+gemini-3-pro-preview: 77.8% final answer, 48.9% trace accuracy
 
 === Accuracy by Difficulty ===
 
 gpt-5.1:
-  1. easy: 90.0% (9/10)
-  2. medium: 40.0% (4/10)
-  3. hard: 30.0% (3/10)
+  1. easy: 87.0% (87/100)
+  2. medium: 69.4% (68/98)
+  3. hard: 61.7% (58/94)
+  4. lunatic: 52.1% (50/96)
+  5. extra: 55.0% (55/100)
 
 claude-opus-4-5-20251101:
-  1. easy: 100.0% (10/10)
-  2. medium: 60.0% (6/10)
-  3. hard: 30.0% (3/10)
+  1. easy: 94.0% (94/100)
+  2. medium: 52.0% (52/100)
+  3. hard: 43.0% (43/100)
+  4. lunatic: 51.0% (51/100)
+  5. extra: 55.0% (55/100)
 
 gemini-3-pro-preview:
-  1. easy: 90.0% (9/10)
-  2. medium: 60.0% (6/10)
-  3. hard: 50.0% (5/10)
+  1. easy: 99.0% (99/100)
+  2. medium: 83.0% (83/100)
+  3. hard: 62.0% (62/100)
+  4. lunatic: 78.0% (78/100)
+  5. extra: 67.0% (67/100)
+
+=== Trace Error Types ===
+
+gpt-5.1:
+  wrong_result: 2049
+  malformed: 1239
+  wrong_axiom: 273
+  scope_collapse: 17
+
+claude-opus-4-5-20251101:
+  malformed: 632
+  wrong_result: 294
+  wrong_axiom: 27
+  scope_collapse: 2
+
+gemini-3-pro-preview:
+  wrong_result: 997
+  malformed: 939
+  wrong_axiom: 321
+  scope_collapse: 30
 
 === Sample Failures ===
 
-gpt-5.1: ((((()()(())((((((())(())()())(()()(())(())(()))((())(())(())(()))(()())(()))))(((((())(())(())())(()(())(()))((())()(())()())(()()()()())((())()(())))((()(())()()))(((())()()())((())())((()))))))))))
-  Expected: (), Got: void
-  Response excerpt: Let’s simplify the expression step by step using only:
-
-- I1 (Number): `()() = ()`
-- I2 (Order): `(()) =` void (i.e., disappears)
-
-We’ll treat “void” as just “nothing” in the string.
-
----
-
-### 1. Rewr...
-
-gpt-5.1: ((((((((((())()(()))()(()(())))((()(())(())(())(()))(()())(()(())()())((())()(())(())))())(()(((())()(())))(((())(())(())(())()))(((())()(()))((())())))))(((((()(())(())())((())()(())()())(())))))))))
+gpt-5.1: ((((((())()(())(())())((())()(())(()))((())(()))((())))))(((...
   Expected: void, Got: ()
-  Response excerpt: I’ll rewrite the expression with some spacing and then simplify systematically using only:
+  Trace: 2/44 steps valid
+  First error (step 1): wrong_result
 
-- I1 (Number): `()() = ()`
-- I2 (Order): `(()) =` void (i.e., disappears)
+gpt-5.1: ((((((((())(()))((())()()()()))()(((())()()(())(()))()(()()(...
+  Expected: void, Got: ()
+  Trace: 0/1 steps valid
+  First error (step 1): wrong_result
 
----
-
-Original expression:
-
-```
-((...
-
-gpt-5.1: ((())((((())()(())))(((())(()))((())(())(()))((())(())(())))()((()(())(())())(()(())(())(()))(()))))
+gpt-5.1: ((((((()))(())((())()(())()(()))))((((())()(())()())(()()()(...
   Expected: (), Got: void
-  Response excerpt: Let’s simplify the expression step by step using only:
-
-- I1 (Number): `()() = ()`
-- I2 (Order): `(()) =` void
-
----
-
-We start with:
-
-\[
-E = ((())((((())()(())))(((())(()))((())(())(()))((())(())(())))...
+  Trace: 2/5 steps valid
+  First error (step 1): wrong_result
 #+end_example
