@@ -86,6 +86,12 @@ for p in ["openai", "anthropic", "google"]:
     print(f"  {status} {p}: {CFG.models[p]}")
 #+end_src
 
+#+RESULTS:
+: Setup complete.
+:   ✓ openai: gpt-5.1
+:   ✓ anthropic: claude-opus-4-5-20251101
+:   ✓ google: gemini-3-pro-preview
+
 * Form Representation
 
 We use two representations:
@@ -128,6 +134,13 @@ for s in test_forms:
     back = form_to_string(f)
     print(f"{s:12} -> {str(f):20} -> {back}")
 #+end_src
+
+#+RESULTS:
+: ()           -> [[]]                 -> ()
+: (())         -> [[[]]]               -> (())
+: ()()         -> [[], []]             -> ()()
+: ((()))       -> [[[[]]]]             -> ((()))
+: (()())       -> [[[], []]]           -> (()())
 
 * Form Generator
 
@@ -209,6 +222,21 @@ for i in range(10):
     print(f"  {i+1:2}. depth={d}: {s if s else '<void>'}")
 #+end_src
 
+#+RESULTS:
+#+begin_example
+Sample generated forms (min_depth=2, max_depth=3):
+   1. depth=4: ((())((())))
+   2. depth=4: (((()))(()(())))
+   3. depth=4: ((())((())))
+   4. depth=4: (((())))((()))
+   5. depth=2: (()())
+   6. depth=4: (((())()))
+   7. depth=4: (((())))
+   8. depth=3: ((()))((()())(()))
+   9. depth=4: (((())())(()))
+  10. depth=4: ((()(()))((())()))(((())(())))
+#+end_example
+
 * Ground-Truth Simplifier
 
 O(n) stack-based simplifier. Single pass, applies I1 and I2 as marks close.
@@ -277,6 +305,38 @@ for expr in test_exprs:
         after_display = after if after else "void"
         print(f"  {before} -> {after_display} [{axiom}]")
 #+end_src
+
+#+RESULTS:
+#+begin_example
+Simplification examples:
+
+()() -> ()
+  ()() -> () [I1]
+
+(()) -> void
+  (()) -> void [I2]
+
+((())) -> ()
+  (()) -> void [I2]
+
+(()()) -> void
+  (()()) -> (()) [I1]
+  (()) -> void [I2]
+
+()(()) -> ()
+  (()) -> void [I2]
+
+(()(())) -> void
+  (()) -> void [I2]
+  (()) -> void [I2]
+
+(())() -> ()
+  (()) -> void [I2]
+
+(())(()) -> void
+  (()) -> void [I2]
+  (()) -> void [I2]
+#+end_example
 
 * Test Case Generation
 
@@ -354,6 +414,195 @@ for case in test_cases[:20]:
     print(f"  {case['id']}: {case['input']:20} -> {case['target']:6} (d={case['depth']}, {case['difficulty']}, {case['steps']} steps)")
 #+end_src
 
+#+RESULTS:
+#+begin_example
+Generated 4000 test cases
+
+By difficulty:
+  1. easy: 800 cases, avg depth=3.4, range=[2-4]
+  2. medium: 800 cases, avg depth=4.9, range=[3-5]
+  3. hard: 800 cases, avg depth=6.0, range=[5-6]
+  4. lunatic: 800 cases, avg depth=9.0, range=[9-9]
+  5. extra: 800 cases, avg depth=9.8, range=[4-10]
+
+By target value:
+  (): 2145
+  void: 1855
+
+Sample cases:
+  lof_001: (((())(())))(((()))(()())) -> void   (d=4, 1. easy, 7 steps)
+  lof_002: ((()())())(())       -> void   (d=3, 1. easy, 4 steps)
+  lof_003: (((()()(()((()(((())(())(()))((())))())()())))())())((((((((())))))))) -> ()     (d=10, 5. extra, 19 steps)
+  lof_004: (((()(()))((())()(())))()) -> void   (d=5, 2. medium, 7 steps)
+  lof_005: ((())((())()))       -> ()     (d=4, 1. easy, 3 steps)
+  lof_006: (((())()(()(())(())))((())(()()())(()))) -> void   (d=5, 2. medium, 10 steps)
+  lof_007: (((((((()(()))((())(()))((())(())(())(())(()))(()(())))))))) -> ()     (d=9, 4. lunatic, 15 steps)
+  lof_008: (((()))((())))(())   -> void   (d=4, 1. easy, 5 steps)
+  lof_009: (((())()))((()((())))((()())(()(())()))) -> ()     (d=5, 2. medium, 11 steps)
+  lof_010: ((((())()(()))))     -> void   (d=5, 2. medium, 4 steps)
+  lof_011: ((()(()(()))())((()(())))(()))(((()()))) -> void   (d=5, 2. medium, 11 steps)
+  lof_012: ()(((()))())         -> ()     (d=4, 1. easy, 3 steps)
+  lof_013: ((()(()(()()(())))()(((())(())()(())()())(()())))) -> ()     (d=6, 3. hard, 13 steps)
+  lof_014: ((((()()(())()()())((())())(()()())(()(())(()))))) -> ()     (d=6, 3. hard, 11 steps)
+  lof_015: ((((((((())()()(()))()((())()(())()(())(()))((())()()))))))) -> ()     (d=9, 4. lunatic, 16 steps)
+  lof_016: ((()(())))           -> ()     (d=4, 1. easy, 2 steps)
+  lof_017: ((((()(((()(())(())(())())((())()()()(()))(()(())(())))))))) -> ()     (d=9, 4. lunatic, 15 steps)
+  lof_018: (((()(())(()))(()()))()())() -> ()     (d=5, 2. medium, 7 steps)
+  lof_019: ((()((()(())(()))(()(())()()()))))((((()(()))()))) -> ()     (d=6, 3. hard, 12 steps)
+  lof_020: (((((())(())()(())))()((()(()))((())())((())())))) -> ()     (d=6, 3. hard, 12 steps)
+#+end_example
+
+* Generate Composite Test Cases
+
+Instead of individual 50/50 questions, composite tests present N problems and ask
+for the count of =()= results. Random guessing drops from 50% to 1/(N+1).
+
+For N=8: random guess accuracy = 1/9 ≈ 11%
+
+Use with the unified framework: =quick_test(composite_cases, CompositeTask)=
+
+#+begin_src python
+def generate_composite_test_cases(
+    n_groups: int = 500,
+    group_size: int = 8,
+    seed: int = 2024
+) -> List[dict]:
+    """
+    Generate composite test cases (groups of problems).
+
+    Args:
+        n_groups: Number of composite test cases
+        group_size: Problems per group
+        seed: Random seed for reproducibility
+
+    Returns:
+        List of composite test case dicts with 'expressions', 'targets', 'count'
+    """
+    random.seed(seed)
+    cases = []
+
+    # Difficulty configs: (name, min_depth, max_depth, max_width, max_marks)
+    difficulties = [
+        ("1. easy", 2, 3, 2, 15),
+        ("2. medium", 3, 4, 3, 20),
+        ("3. hard", 4, 5, 6, 25),
+        ("4. lunatic", 3, 8, 9, 30),
+        ("5. extra", 4, 9, 3, 35)
+    ]
+
+    for i in range(n_groups):
+        # Rotate through difficulties
+        diff_name, min_d, max_d, max_w, max_m = difficulties[i % len(difficulties)]
+
+        expressions = []
+        targets = []
+
+        for _ in range(group_size):
+            expr = generate_form_string(min_depth=min_d, max_depth=max_d,
+                                         max_width=max_w, max_marks=max_m)
+            if not expr:
+                expr = "()"  # Ensure non-empty
+            target = canonical_string(expr)
+            expressions.append(expr)
+            targets.append(target)
+
+        # Count how many simplify to ()
+        mark_count = sum(1 for t in targets if t == "()")
+
+        cases.append({
+            "id": f"comp_{i+1:03d}",
+            "expressions": expressions,
+            "targets": targets,
+            "count": mark_count,
+            "difficulty": diff_name,
+            "group_size": group_size
+        })
+
+    return cases
+
+
+# Generate and preview composite test cases
+composite_cases = generate_composite_test_cases(group_size=8)
+print(f"Generated {len(composite_cases)} composite test cases\n")
+
+# Distribution analysis
+from collections import Counter
+count_dist = Counter(c["count"] for c in composite_cases)
+diff_dist = Counter(c["difficulty"] for c in composite_cases)
+
+print("By target count (how many () in each group):")
+for count in range(9):
+    print(f"  {count}: {count_dist[count]} cases")
+
+print("\nBy difficulty:")
+for diff, cnt in sorted(diff_dist.items()):
+    print(f"  {diff}: {cnt} cases")
+
+print("\nSample cases:")
+for case in composite_cases[:3]:
+    print(f"\n{case['id']} ({case['difficulty']}):")
+    print(f"  Count: {case['count']} marks out of {case['group_size']}")
+    for j, (expr, target) in enumerate(zip(case['expressions'], case['targets']), 1):
+        print(f"    {j}. {expr[:40]:40} -> {target}")
+#+end_src
+
+#+RESULTS:
+#+begin_example
+Generated 500 composite test cases
+
+By target count (how many () in each group):
+  0: 1 cases
+  1: 12 cases
+  2: 43 cases
+  3: 99 cases
+  4: 141 cases
+  5: 118 cases
+  6: 64 cases
+  7: 20 cases
+  8: 2 cases
+
+By difficulty:
+  1. easy: 100 cases
+  2. medium: 100 cases
+  3. hard: 100 cases
+  4. lunatic: 100 cases
+  5. extra: 100 cases
+
+Sample cases:
+
+comp_001 (1. easy):
+  Count: 2 marks out of 8
+    1. ((()(()))((())))((()())((())))           -> void
+    2. (((())(()))((())()))                     -> void
+    3. (((()))(()))                             -> void
+    4. (((()))(()))                             -> void
+    5. (()())(()())                             -> void
+    6. ((()())((())()))(()())                   -> ()
+    7. ((()())(()))(((())(()))((())))           -> ()
+    8. (())                                     -> void
+
+comp_002 (2. medium):
+  Count: 7 marks out of 8
+    1. (((()()))(((())()(()))((()))))(((()()))) -> void
+    2. (()(((()))(()(())())()))(()()(()))((())) -> ()
+    3. (((())((()))()))()((()()))               -> ()
+    4. ((((()))))(((()(())(())))(((())()()))()) -> ()
+    5. ((((()))(()())))(()(((())()(()))))(()()) -> ()
+    6. ()(((())())((())(()(())))((())((())()))) -> ()
+    7. (())((((()))()))                         -> ()
+    8. ((((())(()))))                           -> ()
+
+comp_003 (3. hard):
+  Count: 5 marks out of 8
+    1. ((((()()()())((())()(()))((())))(((())() -> ()
+    2. ((()(((())()(()))((()))(()()()()(())(()) -> ()
+    3. ()((((()()()()(()))((())(())(())()()())( -> ()
+    4. ((()((()()(())()())(()(()))()((())()(()) -> ()
+    5. (((((())()())(()(())(())(()))(()(())()() -> void
+    6. (()(((()(())(()))(()(())()(())()(()))))( -> void
+    7. (((((())()(())(())(())))((()()(()))(()() -> ()
+    8. (((((())(())(())()())((())(())()())(()() -> void
+#+end_example
 
 * Save Test Cases
 
@@ -378,6 +627,25 @@ with open("test_cases.json", "r") as f:
 print(f"Loaded {len(test_cases)} test cases from test_cases.json")
 #+end_src
 
+* Save/Load Composite Test Cases
+
+#+begin_src python
+# Save composite test cases
+with open("composite_test_cases.json", "w") as f:
+    json.dump(composite_cases, f, indent=2)
+print(f"Saved {len(composite_cases)} composite test cases to composite_test_cases.json")
+#+end_src
+
+#+RESULTS:
+: Saved 500 composite test cases to composite_test_cases.json
+
+#+begin_src python
+# Load composite test cases
+with open("composite_test_cases.json", "r") as f:
+    composite_cases = json.load(f)
+print(f"Loaded {len(composite_cases)} composite test cases")
+#+end_src
+
 * Set up Prompt
 
 Initialize API clients for each provider.
@@ -388,18 +656,47 @@ PROMPT_TEMPLATE = """You are an expert in evaluating Laws of Form expressions. Y
 Here is the expression you need to evaluate:
 
 <expression>
-{{expression}}
+{expression}
 </expression>
 
 The expression may be presented in various formats both text and image: nested parens, ASCII diagrams, emoji grids, JSON, s-exprs, nested rings, buckets, contours, or something unlisted, including arbitrary combinations. Your first step is to interpret what structure is being represented into a tree structure that you are comfortable manipulating.
 
-## The Two Axioms
+## The form and axioms
+We take as given the idea of distinction and the idea of indication, and that we cannot make an indication without drawing a distinction. We take, therefore, the form of distinction for the form.
 
-,**Axiom I1 (Number):** ()() = ()
-Multiple adjacent marks condense into a single mark.
+### Definition
 
-,**Axiom I2 (Order):** (()) = void
-A mark containing only another mark cancels to void (nothing).
+Distinction is perfect continence. 
+
+That is to say, a distinction is drawn by arranging a boundary with separate sides so that a point on one side cannot reach the other side without crossing the boundary. For example, in a plane space a circle draws a distinction.
+Once a distinction is drawn, the spaces, states, or contents on each side of the boundary, being distinct, can be indicated.
+There can be no distinction without motive, and there can be no motive unless contents are seen to differ in value.
+If a content is of value, a name can be taken to indicate this value.
+Thus the calling of the name can be identified with the value of the content.
+
+[In other words: the fundamental unit is a boundary that separates inside from outside.]
+
+#### Axiom 1. The law of calling
+The value of a call made again is the value of the call.
+That is to say, if a name is called and then is called again, the value indicated by the two calls taken together is the value indicated by one of them.
+That is to say, for any name, to recall is to call.
+Equally, if the content is of value, a motive or an intention or instruction to cross the boundary into the content can be taken to indicate this value.
+Thus, also, the crossing of the boundary can be identified with the value of the content.
+
+[In other words: multiple adjacent boundaries with nothing else inside them condense into one.]
+[Example: OO = O]
+
+
+#### Axiom 2. The law of crossing
+The value of a crossing made again is not the value of the crossing.
+That is to say, if it is intended to cross a boundary and then it is intended to cross it
+again, the value indicated by the two intentions taken together is the value indicated by
+none of them.
+That is to say, for any boundary, to recross is not to cross.
+
+[In other words: two nested boundaries with nothing else between them annihilate to void.]
+[Example: (()) = void]
+
 
 ## Your Approach
 
@@ -419,8 +716,9 @@ Work through your evaluation in <reduction_process> tags inside your thinking bl
 - Before starting reductions, scan the entire expression and identify all locations where axioms could potentially be applied
 - For each reduction step:
   ,* State which axiom you're applying (I1 or I2)
-  ,* Identify the specific part of the expression being reduced
-  ,* Show the complete expression after the transformation
+  ,* Identify the specific substring/indices of the expression being reduced
+  ,* **Do not reprint the entire expression if it is longer than 50 chars**
+  ,* Only reprint the relevant segment or a placeholder. Use any techniques you need to keep track of your changes.
 - After each transformation, explicitly check whether further reductions are possible
 - Continue until you confirm no more axioms can be applied
 
@@ -439,27 +737,47 @@ Your final output should consist only of the <answer> tags with the result, and 
 
 
 def extract_answer(response: str) -> str:
-    """Extract the final answer from LLM response."""
-    # Look for <answer> tag first
-    match = re.search(r'<answer>\s*(\(\)|void)\s*</answer>', response, re.IGNORECASE)
+    """Extract the final answer from LLM response. Returns '()' or 'void'."""
+    if response is None:
+        return "unknown"
+
+    # Look for <answer> tag with marked/unmarked or ()/void
+    match = re.search(r'<answer>\s*(marked|unmarked|\(\)|void)\s*</answer>', response, re.IGNORECASE)
     if match:
         ans = match.group(1).lower()
-        return "()" if ans == "()" else "void"
+        # Normalize: marked/() -> "()", unmarked/void -> "void"
+        return "()" if ans in ("marked", "()") else "void"
 
     # Fallback: FINAL: pattern
-    match = re.search(r'FINAL:\s*(\(\)|void)', response, re.IGNORECASE)
+    match = re.search(r'FINAL:\s*(marked|unmarked|\(\)|void)', response, re.IGNORECASE)
     if match:
         ans = match.group(1).lower()
-        return "()" if ans == "()" else "void"
+        return "()" if ans in ("marked", "()") else "void"
 
-    # Last resort: look for last occurrence of () or void
+    # Last resort: look for last occurrence of key terms
     response_lower = response.lower()
-    last_mark = response_lower.rfind("()")
-    last_void = max(response_lower.rfind("void"), response_lower.rfind("empty"))
+    # Find last position of each term
+    positions = {
+        "()": response_lower.rfind("()"),
+        "marked": -1,  # Will search for standalone "marked"
+        "void": response_lower.rfind("void"),
+        "unmarked": response_lower.rfind("unmarked"),
+        "empty": response_lower.rfind("empty")
+    }
+    # Find "marked" not preceded by "un"
+    idx = response_lower.rfind("marked")
+    if idx > 0 and response_lower[idx-2:idx] != "un":
+        positions["marked"] = idx
+    elif idx == 0:
+        positions["marked"] = idx
 
-    if last_mark > last_void:
+    # Group by meaning
+    mark_pos = max(positions["()"], positions["marked"])
+    void_pos = max(positions["void"], positions["unmarked"], positions["empty"])
+
+    if mark_pos > void_pos:
         return "()"
-    elif last_void > last_mark:
+    elif void_pos > mark_pos:
         return "void"
 
     return "unknown"
@@ -472,16 +790,45 @@ COMPOSITE_PROMPT_TEMPLATE = """You are an expert in evaluating Laws of Form expr
 Here are the expressions you need to evaluate:
 
 <expressions>
-{{expressions}}
+{expressions}
 </expressions>
 
 Each expression may be presented in various formats both text and image: nested parens, ASCII diagrams, emoji grids, JSON, s-exprs, nested rings, buckets, contours, or something unlisted, including arbitrary combinations. Your first step for each is to interpret what structure is being represented into a tree structure that you are comfortable manipulating.
 
-## The Two Axioms
+## The form and axioms
+We take as given the idea of distinction and the idea of indication, and that we cannot make an indication without drawing a distinction. We take, therefore, the form of distinction for the form.
 
-**Axiom I1 (Number):** Multiple adjacent empty marks condense into a single mark. 
+### Definition
 
-**Axiom I2 (Order):** A mark containing only another mark cancels to void (nothing).
+Distinction is perfect continence. 
+
+That is to say, a distinction is drawn by arranging a boundary with separate sides so that a point on one side cannot reach the other side without crossing the boundary. For example, in a plane space a circle draws a distinction.
+Once a distinction is drawn, the spaces, states, or contents on each side of the boundary, being distinct, can be indicated.
+There can be no distinction without motive, and there can be no motive unless contents are seen to differ in value.
+If a content is of value, a name can be taken to indicate this value.
+Thus the calling of the name can be identified with the value of the content.
+
+[In other words: the fundamental unit is a boundary that separates inside from outside.]
+
+#### Axiom 1. The law of calling
+The value of a call made again is the value of the call.
+That is to say, if a name is called and then is called again, the value indicated by the two calls taken together is the value indicated by one of them.
+That is to say, for any name, to recall is to call.
+Equally, if the content is of value, a motive or an intention or instruction to cross the boundary into the content can be taken to indicate this value.
+Thus, also, the crossing of the boundary can be identified with the value of the content.
+
+[In other words: multiple adjacent boundaries with nothing else inside them condense into one.]
+[Example: OO = O]
+
+#### Axiom 2. The law of crossing
+The value of a crossing made again is not the value of the crossing.
+That is to say, if it is intended to cross a boundary and then it is intended to cross it
+again, the value indicated by the two intentions taken together is the value indicated by
+none of them.
+That is to say, for any boundary, to recross is not to cross.
+
+[In other words: two nested boundaries with nothing else between them annihilate to void.]
+[Example: (()) = void]
 
 ## Your Approach
 
@@ -498,16 +845,17 @@ Work through your evaluations in <reduction_process> tags inside your thinking b
 
 - Label each expression (E1, E2, ... E8)
 - For each expression:
-  * Write out the raw structure exactly as it appears in the input
-  * If the format is not your preferred tree notation, explicitly show your conversion step by step
-  * Before starting reductions, scan the entire expression and identify all locations where axioms could potentially be applied
-  * For each reduction step:
+  ,* Write out the raw structure exactly as it appears in the input
+  ,* If the format is not your preferred tree notation, explicitly show your conversion step by step
+  ,* Before starting reductions, scan the entire expression and identify all locations where axioms could potentially be applied
+  ,* For each reduction step:
     - State which axiom you're applying (I1 or I2)
-    - Identify the specific part of the expression being reduced
-    - Show the complete expression after the transformation
-  * After each transformation, explicitly check whether further reductions are possible
-  * Continue until you confirm no more axioms can be applied
-  * State whether this expression evaluates to marked or unmarked
+    - Identify the specific substring/indices of the expression being reduced
+    - **Do not reprint the entire expression if it is longer than 50 chars**
+    - Only reprint the relevant segment or a placeholder. Use any techniques you need to keep track of your changes.
+  ,* After each transformation, explicitly check whether further reductions are possible
+  ,* Continue until you confirm no more axioms can be applied
+  ,* State whether this expression evaluates to marked or unmarked
 
 It's OK for this section to be quite long if the expressions require many reduction steps.
 
@@ -531,16 +879,28 @@ Your final output should consist only of the <answer> tags with the results, and
 
 def extract_composite_answer(response: str, n: int) -> int:
     """Extract the count from LLM response. Returns -1 if unparseable."""
+    if response is None:
+        return -1
+
+    # Look for total_marked: N in <answer> block
+    match = re.search(r'<answer>.*?total_marked:\s*(\d+).*?</answer>', response, re.IGNORECASE | re.DOTALL)
+    if match:
+        val = int(match.group(1))
+        return val if 0 <= val <= n else -1
+
+    # Fallback: look for just <answer>N</answer>
     match = re.search(r'<answer>\s*(\d+)\s*</answer>', response, re.IGNORECASE)
     if match:
         val = int(match.group(1))
         return val if 0 <= val <= n else -1
 
-    match = re.search(r'(?:count|total)[:\s]+(\d+)', response, re.IGNORECASE)
+    # Fallback: count/total pattern
+    match = re.search(r'(?:count|total)[_:\s]+(\d+)', response, re.IGNORECASE)
     if match:
         val = int(match.group(1))
         return val if 0 <= val <= n else -1
 
+    # Last resort: any number in valid range
     matches = re.findall(r'\b(\d+)\b', response)
     for m in reversed(matches):
         val = int(m)
@@ -552,18 +912,44 @@ def extract_composite_answer(response: str, n: int) -> int:
 
 # Test answer extraction
 print("Testing extract_answer:")
-for resp in ["<answer>()</answer>", "<answer>void</answer>", "Result: ().", "Void."]:
-    print(f"  {repr(resp[:25]):28} → {extract_answer(resp)}")
+test_responses = [
+    "<answer>()</answer>",
+    "<answer>void</answer>",
+    "<answer>marked</answer>",
+    "<answer>unmarked</answer>",
+    "Result: ().",
+    "Void.",
+    "The answer is marked.",
+    "This is unmarked."
+]
+for resp in test_responses:
+    print(f"  {repr(resp[:30]):32} → {extract_answer(resp)}")
 print("Testing extract_composite_answer:")
-for resp, n in [("<answer>5</answer>", 8), ("Count: 7", 8)]:
-    print(f"  {repr(resp):28} → {extract_composite_answer(resp, n)}")
+for resp, n in [("<answer>\nE1: marked\ntotal_marked: 5\n</answer>", 8), ("Count: 7", 8)]:
+    print(f"  {repr(resp[:40]):42} → {extract_composite_answer(resp, n)}")
 #+end_src
+
+#+RESULTS:
+#+begin_example
+Testing extract_answer:
+  '<answer>()</answer>'            → ()
+  '<answer>void</answer>'          → void
+  '<answer>marked</answer>'        → ()
+  '<answer>unmarked</answer>'      → void
+  'Result: ().'                    → ()
+  'Void.'                          → void
+  'The answer is marked.'          → ()
+  'This is unmarked.'              → void
+Testing extract_composite_answer:
+  '<answer>\nE1: marked\ntotal_marked: 5\n</an' → 5
+  'Count: 7'                                 → 7
+#+end_example
 
 * Unified Eval Framework
 
 Generic evaluation that works for both single and composite tests.
 
-#+begin_src python
+#+begin_src python :async
 from openai import AsyncOpenAI
 from anthropic import AsyncAnthropic
 from google import genai
@@ -746,7 +1132,7 @@ def quick_test(cases: List[dict], task_type: type = SingleTask, n: int = None) -
     print(f"Results: {correct}/{len(results)} ({100*correct/len(results):.1f}%)")
 
     for r in results:
-        status = "✅" if r["correct"] else "❌"
+        status = "🥰" if r["correct"] else "💀"
         if task_type == SingleTask:
             print(f"  {status} {r['id']} ({r['provider']}): {r['input'][:25]}... → {r['extracted_answer']}")
         else:
@@ -813,16 +1199,20 @@ print("Unified eval framework loaded.")
 print(f"Available: quick_test(cases), run_eval(cases), analyze(results)")
 #+end_src
 
+#+RESULTS:
+: Unified eval framework loaded.
+: Available: quick_test(cases), run_eval(cases), analyze(results)
+
 * Quick Start
 
 Run evaluations with minimal code using the unified framework.
 
 #+begin_src python :async
 # === SINGLE EXPRESSION TESTS ===
-quick_test(test_cases, SingleTask, n=5)
+# quick_test(test_cases, SingleTask, n=5)
 
 # === COMPOSITE TESTS (8 problems, count-based) ===
-# quick_test(composite_cases, CompositeTask, n=5)
+quick_test(composite_cases, CompositeTask, n=5)
 
 # === FULL RUN (async) ===
 # results = asyncio.run(run_eval(test_cases, SingleTask))
@@ -838,7 +1228,7 @@ quick_test(test_cases, SingleTask, n=5)
 
 #+RESULTS:
 #+begin_example
-Running SingleTask on 5 cases...
+Running CompositeTask on 5 cases...
 Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GOOGLE_API_KEY.
 Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GOOGLE_API_KEY.
 Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GOOGLE_API_KEY.
@@ -846,23 +1236,93 @@ Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GOOGLE_API_KEY.
 Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GOOGLE_API_KEY.
 
 ========================================
-Results: 11/15 (73.3%)
-  ✓ lof_001 (openai): (((()(()(()(())(())(())((... → void
-  ✗ lof_001 (anthropic): (((()(()(()(())(())(())((... → ()
-  ✓ lof_001 (google): (((()(()(()(())(())(())((... → void
-  ✗ lof_002 (openai): (()(())(((((()(((()()()((... → ()
-  ✗ lof_002 (anthropic): (()(())(((((()(((()()()((... → ()
-  ✓ lof_002 (google): (()(())(((((()(((()()()((... → void
-  ✓ lof_003 (openai): ((()))(((((()(())(()(()()... → ()
-  ✗ lof_003 (anthropic): ((()))(((((()(())(()(()()... → void
-  ✓ lof_003 (google): ((()))(((((()(())(()(()()... → ()
-  ✓ lof_004 (openai): ((((())())))()((((()))(((... → ()
-  ✓ lof_004 (anthropic): ((((())())))()((((()))(((... → ()
-  ✓ lof_004 (google): ((((())())))()((((()))(((... → ()
-  ✓ lof_005 (openai): ((()((())()(())(())))((()... → ()
-  ✓ lof_005 (anthropic): ((()((())()(())(())))((()... → ()
-  ✓ lof_005 (google): ((()((())()(())(())))((()... → ()
-Quick start ready. Uncomment lines above to run.
+Results: 1/15 (6.7%)
+  ❌ comp_001 (openai): count=0 (target: 2)
+  ✅ comp_001 (anthropic): count=2 (target: 2)
+  ❌ comp_001 (google): count=4 (target: 2)
+  ❌ comp_002 (openai): count=0 (target: 7)
+  ❌ comp_002 (anthropic): count=4 (target: 7)
+  ❌ comp_002 (google): count=3 (target: 7)
+  ❌ comp_003 (openai): count=0 (target: 5)
+  ❌ comp_003 (anthropic): count=8 (target: 5)
+  ❌ comp_003 (google): count=4 (target: 5)
+  ❌ comp_004 (openai): count=0 (target: 5)
+  ❌ comp_004 (anthropic): count=4 (target: 5)
+  ❌ comp_004 (google): count=3 (target: 5)
+  ❌ comp_005 (openai): count=0 (target: 3)
+  ❌ comp_005 (anthropic): count=4 (target: 3)
+  ❌ comp_005 (google): count=4 (target: 3)
+#+end_example
+
+* Run and Analyze Composite Tests
+
+#+begin_src python :async
+# Quick test with unified framework
+composite_results = quick_test(composite_cases, CompositeTask, n=5)
+
+# Save results
+with open("composite_sample_results.json", "w") as f:
+    json.dump(composite_results, f, indent=2)
+
+# Full analysis
+print_analysis(composite_results)
+
+# Random baseline comparison
+n_problems = CFG.composite_group_size
+print(f"\nRandom baseline for {n_problems} problems: {100 * 1/(2**n_problems+1):.1f}%")
+#+end_src
+
+#+RESULTS:
+#+begin_example
+Running CompositeTask on 5 cases...
+
+========================================
+Results: 3/15 (20.0%)
+  💀 comp_001 (openai): count=5 (target: 2)
+  🥰 comp_001 (anthropic): count=2 (target: 2)
+  🥰 comp_001 (google): count=2 (target: 2)
+  💀 comp_002 (openai): count=8 (target: 7)
+  💀 comp_002 (anthropic): count=5 (target: 7)
+  💀 comp_002 (google): count=5 (target: 7)
+  💀 comp_003 (openai): count=4 (target: 5)
+  💀 comp_003 (anthropic): count=-1 (target: 5)
+  💀 comp_003 (google): count=6 (target: 5)
+  💀 comp_004 (openai): count=8 (target: 5)
+  💀 comp_004 (anthropic): count=-1 (target: 5)
+  🥰 comp_004 (google): count=5 (target: 5)
+  💀 comp_005 (openai): count=6 (target: 3)
+  💀 comp_005 (anthropic): count=-1 (target: 3)
+  💀 comp_005 (google): count=2 (target: 3)
+
+=== Accuracy by Model ===
+gpt-5.1: 0.0% (0/5), avg off: 2.2
+claude-opus-4-5-20251101: 20.0% (1/5), avg off: 2.0
+gemini-3-pro-preview: 40.0% (2/5), avg off: 1.3
+
+=== Accuracy by Difficulty ===
+
+gpt-5.1:
+  1. easy: 0.0% (0/1)
+  2. medium: 0.0% (0/1)
+  3. hard: 0.0% (0/1)
+  4. lunatic: 0.0% (0/1)
+  5. extra: 0.0% (0/1)
+
+claude-opus-4-5-20251101:
+  1. easy: 100.0% (1/1)
+  2. medium: 0.0% (0/1)
+  3. hard: 0.0% (0/1)
+  4. lunatic: 0.0% (0/1)
+  5. extra: 0.0% (0/1)
+
+gemini-3-pro-preview:
+  1. easy: 100.0% (1/1)
+  2. medium: 0.0% (0/1)
+  3. hard: 0.0% (0/1)
+  4. lunatic: 100.0% (1/1)
+  5. extra: 0.0% (0/1)
+
+Random baseline for 8 problems: 0.4%
 #+end_example
 
 * Set up Analysis 
@@ -1297,131 +1757,3 @@ if analysis["failures"]:
         print(f"  Expected: {f['target']}, Got: {f['extracted_answer']}")
 #+end_src
 
-* Composite Tests
-
-Instead of individual 50/50 questions, composite tests present N problems and ask
-for the count of =()= results. Random guessing drops from 50% to 1/(N+1).
-
-For N=8: random guess accuracy = 1/9 ≈ 11%
-
-Use with the unified framework: =quick_test(composite_cases, CompositeTask)=
-
-** Generate Composite Test Cases
-
-#+begin_src python
-def generate_composite_test_cases(
-    n_groups: int = 100,
-    group_size: int = 8,
-    seed: int = 2024
-) -> List[dict]:
-    """
-    Generate composite test cases (groups of problems).
-
-    Args:
-        n_groups: Number of composite test cases
-        group_size: Problems per group
-        seed: Random seed for reproducibility
-
-    Returns:
-        List of composite test case dicts with 'expressions', 'targets', 'count'
-    """
-    random.seed(seed)
-    cases = []
-
-    # Difficulty configs: (name, min_depth, max_depth, max_width, max_marks)
-    difficulties = [
-        ("1. easy", 1, 2, 3, 15),
-        ("2. medium", 2, 3, 3, 20),
-        ("3. hard", 3, 4, 4, 30),
-        ("4. lunatic", 5, 6, 4, 40),
-    ]
-
-    for i in range(n_groups):
-        # Rotate through difficulties
-        diff_name, min_d, max_d, max_w, max_m = difficulties[i % len(difficulties)]
-
-        expressions = []
-        targets = []
-
-        for _ in range(group_size):
-            expr = generate_form_string(min_depth=min_d, max_depth=max_d,
-                                         max_width=max_w, max_marks=max_m)
-            if not expr:
-                expr = "()"  # Ensure non-empty
-            target = canonical_string(expr)
-            expressions.append(expr)
-            targets.append(target)
-
-        # Count how many simplify to ()
-        mark_count = sum(1 for t in targets if t == "()")
-
-        cases.append({
-            "id": f"comp_{i+1:03d}",
-            "expressions": expressions,
-            "targets": targets,
-            "count": mark_count,
-            "difficulty": diff_name,
-            "group_size": group_size
-        })
-
-    return cases
-
-
-# Generate and preview composite test cases
-composite_cases = generate_composite_test_cases(100, group_size=8)
-print(f"Generated {len(composite_cases)} composite test cases\n")
-
-# Distribution analysis
-from collections import Counter
-count_dist = Counter(c["count"] for c in composite_cases)
-diff_dist = Counter(c["difficulty"] for c in composite_cases)
-
-print("By target count (how many () in each group):")
-for count in range(9):
-    print(f"  {count}: {count_dist[count]} cases")
-
-print("\nBy difficulty:")
-for diff, cnt in sorted(diff_dist.items()):
-    print(f"  {diff}: {cnt} cases")
-
-print("\nSample cases:")
-for case in composite_cases[:3]:
-    print(f"\n{case['id']} ({case['difficulty']}):")
-    print(f"  Count: {case['count']} marks out of {case['group_size']}")
-    for j, (expr, target) in enumerate(zip(case['expressions'], case['targets']), 1):
-        print(f"    {j}. {expr[:40]:40} -> {target}")
-#+end_src
-
-** Save/Load Composite Test Cases
-
-#+begin_src python
-# Save composite test cases
-with open("composite_test_cases.json", "w") as f:
-    json.dump(composite_cases, f, indent=2)
-print(f"Saved {len(composite_cases)} composite test cases to composite_test_cases.json")
-#+end_src
-
-#+begin_src python
-# Load composite test cases
-with open("composite_test_cases.json", "r") as f:
-    composite_cases = json.load(f)
-print(f"Loaded {len(composite_cases)} composite test cases")
-#+end_src
-
-** Run Composite Tests
-
-#+begin_src python :async
-# Quick test with unified framework
-composite_results = quick_test(composite_cases, CompositeTask, n=5)
-
-# Save results
-with open("composite_sample_results.json", "w") as f:
-    json.dump(composite_results, f, indent=2)
-
-# Full analysis
-print_analysis(composite_results)
-
-# Random baseline comparison
-n_problems = CFG.composite_group_size
-print(f"\nRandom baseline for {n_problems} problems: {100/(n_problems+1):.1f}%")
-#+end_src
