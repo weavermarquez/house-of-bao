@@ -463,34 +463,43 @@ Initialize API clients for each provider.
 #+begin_src python
 PROMPT_TEMPLATE = """Simplify this Laws of Form expression using the two axioms:
 
-I1 (Number): ()() = ()
-   Multiple adjacent marks condense to a single mark.
+**Axiom I1 (Number):** ()() = ()
+Multiple marks (parenthesis pairs) adjacent at the same nesting level condense into a single mark.
 
-I2 (Order): (()) = void
-   A mark containing only a mark cancels to void (nothing).
+**Axiom I2 (Order):** (()) = void
+A mark containing only another mark (and nothing else) cancels out completely to void (nothing).
 
 Expression: {expression}
 
 Apply axioms until you reach () or void.
 
-Structure your response EXACTLY as follows:
+## Output Format
 
-<scratchpad>
-Think through the problem here. Work out the simplification in whatever way helps you.
-</scratchpad>
+Structure your response in exactly three sections:
 
-<trace>
-STEP 1: full_expression => simplified_expression [I1 or I2]
-STEP 2: ...
-...continue until done...
-</trace>
+### 1. Scratchpad
 
-<answer>() or void</answer>
+In <scratchpad> tags, work through the problem. You may:
+- Map out nesting depths
+- Identify where axioms apply
+- Plan your sequence of transformations
 
-Rules for the trace:
-- Each STEP must show the COMPLETE expression before and after
-- Use exactly [I1] or [I2] to indicate which axiom
-- No explanations inside <trace>, only STEP lines
+### 2. Trace
+
+In <trace> tags, record each step. Rules:
+- Each line: STEP n: before_expression => after_expression
+- Place [I1] or [I2] immediately after the sub-expression being transformed in the BEFORE expression
+- Show the COMPLETE expression before and after (not just the changed part)
+- No explanatory text, only STEP lines
+
+Examples of correct marker placement:
+- I1 (condense adjacent): STEP 1: (()()[I1]) => (())
+- I2 (cancel nested): STEP 2: (())[I2] => void
+- Nested example: STEP 3: ((())[I2]()) => (())
+
+### 3. Answer
+
+In <answer> tags, state exactly "()" or "void".
 """
 
 
@@ -535,26 +544,51 @@ def parse_trace_steps(response: str) -> List[Tuple[str, str, str]]:
     """
     Parse STEP lines from LLM response.
 
+    Handles two formats:
+    - Inline marker: STEP n: (()()[I1]) => (())
+    - Trailing marker: STEP n: ()() => () [I1]
+
     Returns:
-        List of (before, after, axiom) tuples
+        List of (before, after, axiom) tuples where before has marker stripped
     """
     # Extract trace block if present
     trace_text = extract_trace_block(response)
 
-    # Pattern: STEP k: expr => expr' [I1] or [I2]
-    # Handle variations in whitespace and formatting
-    pattern = r'STEP\s*\d+\s*:\s*([^\s].*?)\s*=>\s*([^\s].*?)\s*\[(I[12])\]'
-    matches = re.findall(pattern, trace_text, re.IGNORECASE)
+    # Pattern: STEP k: before_expr => after_expr
+    # The axiom marker [I1]/[I2] may be inline in before_expr or trailing after after_expr
+    pattern = r'STEP\s*\d+\s*:\s*(.+?)\s*=>\s*(.+?)(?:\s*$|\s*(?=STEP))'
+    matches = re.findall(pattern, trace_text, re.IGNORECASE | re.MULTILINE)
 
     steps = []
-    for before, after, axiom in matches:
-        # Clean up expressions (remove backticks, extra whitespace)
-        before = before.strip().strip('`').strip()
-        after = after.strip().strip('`').strip()
+    for before_raw, after_raw in matches:
+        before_raw = before_raw.strip().strip('`').strip()
+        after_raw = after_raw.strip().strip('`').strip()
+
+        # Look for axiom marker [I1] or [I2]
+        axiom = None
+        before = before_raw
+        after = after_raw
+
+        # Check for inline marker in before expression
+        inline_match = re.search(r'\[(I[12])\]', before_raw, re.IGNORECASE)
+        if inline_match:
+            axiom = inline_match.group(1).upper()
+            before = re.sub(r'\[I[12]\]', '', before_raw, flags=re.IGNORECASE).strip()
+
+        # Check for trailing marker after the after expression (old format)
+        if not axiom:
+            trailing_match = re.search(r'\[(I[12])\]\s*$', after_raw, re.IGNORECASE)
+            if trailing_match:
+                axiom = trailing_match.group(1).upper()
+                after = re.sub(r'\s*\[I[12]\]\s*$', '', after_raw, flags=re.IGNORECASE).strip()
+
+        if not axiom:
+            continue  # Skip malformed steps
+
         # Normalize void
         if after.lower() == 'void' or after == '':
             after = ''
-        axiom = axiom.upper()
+
         steps.append((before, after, axiom))
 
     return steps
@@ -767,8 +801,8 @@ print(f"  (()()) -> (()) [I1]: valid={valid}, err='{err}'")
 valid, err = validate_step("(()())", "()", "I1")
 print(f"  (()()) -> () [I1]: valid={valid}, err='{err}'")  # Scope collapse!
 
-# Test parsing from realistic response (old format - fallback)
-print("\nParsing test (old format):")
+# Test parsing from realistic response (old format - trailing marker)
+print("\nParsing test (old format - trailing marker):")
 sample_response_old = """
 STEP 1: (())(()) => (()) [I1]
 STEP 2: (()) => void [I2]
@@ -777,27 +811,27 @@ FINAL: void
 steps = parse_trace_steps(sample_response_old)
 print(f"  Parsed {len(steps)} steps: {steps}")
 
-# Test new structured format
-print("\nParsing test (new structured format):")
-sample_response_new = """
+# Test new inline marker format
+print("\nParsing test (new format - inline marker):")
+sample_response_inline = """
 <scratchpad>
 Let me work through this. I see (())(()) which has two (()) marks.
 They're identical so I1 applies. Then (()) cancels by I2.
 </scratchpad>
 
 <trace>
-STEP 1: (())(()) => (()) [I1]
-STEP 2: (()) => void [I2]
+STEP 1: (())[I1](()) => (())
+STEP 2: (())[I2] => void
 </trace>
 
 <answer>void</answer>
 """
-steps = parse_trace_steps(sample_response_new)
+steps = parse_trace_steps(sample_response_inline)
 print(f"  Parsed {len(steps)} steps: {steps}")
-answer = extract_answer(sample_response_new)
+answer = extract_answer(sample_response_inline)
 print(f"  Extracted answer: {answer}")
 
-validation = validate_trace(sample_response_new, "(())(())")
+validation = validate_trace(sample_response_inline, "(())(())")
 print(f"  Validation: {validation['steps_valid']}/{validation['steps_parsed']} valid")
 print(f"  Trace score: {validation['trace_score']:.1%}")
 #+end_src
@@ -817,10 +851,10 @@ I1 (Number) tests:
   (()()) -> (()) [I1]: valid=True, err=''
   (()()) -> () [I1]: valid=False, err='scope_collapse'
 
-Parsing test (old format):
+Parsing test (old format - trailing marker):
   Parsed 2 steps: [('(())(())', '(())', 'I1'), ('(())', '', 'I2')]
 
-Parsing test (new structured format):
+Parsing test (new format - inline marker):
   Parsed 2 steps: [('(())(())', '(())', 'I1'), ('(())', '', 'I2')]
   Extracted answer: void
   Validation: 2/2 valid
@@ -897,8 +931,8 @@ Run a small subset with async for quick iteration. Saves full outputs.
 #+begin_src python :async
 PROVIDERS = [
     ("openai", OPENAI_API_KEY, eval_openai_async),
-    # ("anthropic", ANTHROPIC_API_KEY, eval_anthropic_async),
-    # ("google", GEMINI_API_KEY, eval_google_async),
+    ("anthropic", ANTHROPIC_API_KEY, eval_anthropic_async),
+    ("google", GEMINI_API_KEY, eval_google_async),
 ]
 
 
@@ -970,11 +1004,66 @@ if failures:
 #+end_src
 
 #+RESULTS:
-: Running async sample evaluation...
-: Saved 1 results to sample_results.json
-: 
-: === Sample Results ===
-: ✅ lof_001 (openai): (((()(()(()(())(())(())(()))(( -> void (target: void)
+#+begin_example
+Running async sample evaluation...
+Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GOOGLE_API_KEY.
+Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GOOGLE_API_KEY.
+Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GOOGLE_API_KEY.
+Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GOOGLE_API_KEY.
+Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GOOGLE_API_KEY.
+Saved 15 results to sample_results.json
+
+=== Sample Results ===
+✅ lof_001 (openai): (((()(()(()(())(())(())(()))(( -> void (target: void)
+✅ lof_001 (anthropic): (((()(()(()(())(())(())(()))(( -> void (target: void)
+✅ lof_001 (google): (((()(()(()(())(())(())(()))(( -> void (target: void)
+✅ lof_002 (openai): (()(())(((((()(((()()()(())(() -> void (target: void)
+❌ lof_002 (anthropic): (()(())(((((()(((()()()(())(() -> () (target: void)
+✅ lof_002 (google): (()(())(((((()(((()()()(())(() -> void (target: void)
+✅ lof_003 (openai): ((()))(((((()(())(()(()()()(() -> () (target: ())
+❌ lof_003 (anthropic): ((()))(((((()(())(()(()()()(() -> void (target: ())
+✅ lof_003 (google): ((()))(((((()(())(()(()()()(() -> () (target: ())
+✅ lof_004 (openai): ((((())())))()((((()))((())()( -> () (target: ())
+✅ lof_004 (anthropic): ((((())())))()((((()))((())()( -> () (target: ())
+✅ lof_004 (google): ((((())())))()((((()))((())()( -> () (target: ())
+✅ lof_005 (openai): ((()((())()(())(())))((()(())( -> () (target: ())
+✅ lof_005 (anthropic): ((()((())()(())(())))((()(())( -> () (target: ())
+✅ lof_005 (google): ((()((())()(())(())))((()(())( -> () (target: ())
+
+=== 2 Failures - Full Reasoning ===
+
+--- lof_002 (claude-opus-4-5-20251101) ---
+Input: (()(())(((((()(((()()()(())(())))()(((())()(())(())(())())((())()(())(())(()))))(((()(())(()))((())()(())(())()())((())()(())(())()(())))(((())(())(())(()))((())(()))((())()()))(((())(())(()))))))))))
+Expected: void, Got: ()
+Response:
+<scratchpad>
+Let me work through this complex expression step by step.
+
+Expression: (()(())(((((()(((()()()(())(())))()(((())()(())(())(())())((())()(())(())(()))))(((()(())(()))((())()(())(())()())((())()(())(())()(())))(((())(())(())(()))((())(()))((())()()))(((())(())(()))))))))))
+
+Let me first try to understand the structure by identifying matching parentheses.
+
+Starting from innermost parts and applying axioms:
+
+Let me look for patterns:
+- ()()() can become () by I1
+- (()) can become void b...
+
+--- lof_003 (claude-opus-4-5-20251101) ---
+Input: ((()))(((((()(())(()(()()()(()))((())(())()(())))()(((()))(()())(())()(())))())(()(()(()(())()((()))((())))((())))(((()(())(())(()))()))))))
+Expected: (), Got: void
+Response:
+<scratchpad>
+Let me work through this expression step by step.
+
+Expression: ((()))(((((()(())(()(()()()(()))((())(())()(())))()(((()))(()())(())()(())))())(()(()(()(())()((()))((())))((())))(((()(())(())(()))()))))))
+
+First, let me identify the structure. The outer level has:
+- ((())) which is a mark containing (()) which by I2 = (), so ((())) = (())
+- Then another large expression starting with (((((...
+
+Let me work from the inside out, looking for I2 patterns ((())) and I1 patterns (adjacent m...
+#+end_example
 
 * Set up Analysis 
 
@@ -1070,9 +1159,9 @@ if 'sample_results' in dir() and sample_results:
 #+RESULTS:
 #+begin_example
 === Accuracy by Model ===
-gpt-5.1: 100.0% final answer, 28.7% trace accuracy
-claude-opus-4-5-20251101: 60.0% final answer, 7.1% trace accuracy
-gemini-3-pro-preview: 80.0% final answer, 29.2% trace accuracy
+gpt-5.1: 100.0% final answer, 25.0% trace accuracy
+claude-opus-4-5-20251101: 60.0% final answer, 12.6% trace accuracy
+gemini-3-pro-preview: 100.0% final answer, 58.9% trace accuracy
 
 === Accuracy by Difficulty ===
 
@@ -1084,48 +1173,44 @@ gpt-5.1:
 
 claude-opus-4-5-20251101:
   2. medium: 100.0% (2/2)
-  3. hard: 0.0% (0/1)
-  4. lunatic: 100.0% (1/1)
+  3. hard: 100.0% (1/1)
+  4. lunatic: 0.0% (0/1)
   5. extra: 0.0% (0/1)
 
 gemini-3-pro-preview:
   2. medium: 100.0% (2/2)
-  3. hard: 0.0% (0/1)
+  3. hard: 100.0% (1/1)
   4. lunatic: 100.0% (1/1)
   5. extra: 100.0% (1/1)
 
 === Trace Error Types ===
 
 gpt-5.1:
-  wrong_result: 13
-  wrong_axiom: 5
-  scope_collapse: 1
+  wrong_result: 2
 
 claude-opus-4-5-20251101:
-  malformed: 13
-  wrong_result: 1
+  malformed: 129
+  wrong_result: 2
+  scope_collapse: 1
+  wrong_axiom: 1
 
 gemini-3-pro-preview:
-  wrong_result: 13
-  malformed: 7
-  wrong_axiom: 7
+  malformed: 33
+  wrong_result: 17
+  wrong_axiom: 3
+  scope_collapse: 1
 
 === Sample Failures ===
 
-claude-opus-4-5-20251101: (((()(()(()(())(())(())(()))((())()(())()())()(()(...
-  Expected: void, Got: ()
-  Trace: 0/5 steps valid
-  First error (step 1): malformed - (((()(()(()(())(())(())(()))((... [I2]
-
-gemini-3-pro-preview: (((()(()(()(())(())(())(()))((())()(())()())()(()(...
-  Expected: void, Got: ()
-  Trace: 0/10 steps valid
-  First error (step 1): malformed - (((()(()(()(())(())(())(()))((... [I2]
-
 claude-opus-4-5-20251101: (()(())(((((()(((()()()(())(())))()(((())()(())(()...
   Expected: void, Got: ()
-  Trace: 0/2 steps valid
-  First error (step 1): malformed - (()(())(((((()(((()()()(())(()... [I1]
+  Trace: 3/50 steps valid
+  First error (step 1): malformed - (()(())(((((()(((()()(()(())((... [I1]
+
+claude-opus-4-5-20251101: ((()))(((((()(())(()(()()()(()))((())(())()(())))(...
+  Expected: (), Got: void
+  Trace: 0/30 steps valid
+  First error (step 1): malformed - (())(((((()(())(()(()()()(()))... [I2]
 #+end_example
 
 * Batch API: Prepare Jobs
