@@ -383,7 +383,17 @@ print(f"Loaded {len(test_cases)} test cases from test_cases.json")
 Initialize API clients for each provider.
 
 #+begin_src python
-PROMPT_TEMPLATE = """Looking at this expression that represents a form of distinctions, identify how the structure is encoded as a Laws of Form expression, and then evaluate its value using the two axioms:
+PROMPT_TEMPLATE = """You are an expert in evaluating Laws of Form expressions. Your task is to analyze an expression that represents a structure of distinctions and reduce it to its simplest form using two fundamental axioms.
+
+Here is the expression you need to evaluate:
+
+<expression>
+{{expression}}
+</expression>
+
+The expression may be presented in various formats both text and image: nested parens, ASCII diagrams, emoji grids, JSON, s-exprs, nested rings, buckets, contours, or something unlisted, including arbitrary combinations. Your first step is to interpret what structure is being represented into a tree structure that you are comfortable manipulating.
+
+## The Two Axioms
 
 ,**Axiom I1 (Number):** ()() = ()
 Multiple adjacent marks condense into a single mark.
@@ -391,9 +401,40 @@ Multiple adjacent marks condense into a single mark.
 ,**Axiom I2 (Order):** (()) = void
 A mark containing only another mark cancels to void (nothing).
 
-Expression: {expression}
+## Your Approach
 
-State your final answer in <answer>X</answer> tags where X is the evaluated value of the expression "()" or "void".
+Think through this step by step:
+
+1. First, identify how the structure is encoded in the given format
+2. If needed, convert or interpret it into a form you can work with
+3. Look for opportunities to apply the axioms (I1 or I2)
+4. Apply the axioms iteratively, showing each transformation
+5. Continue until no more reductions are possible
+6. State the final evaluated form
+
+Work through your evaluation in <reduction_process> tags inside your thinking block. Be systematic:
+
+- First, write out the raw structure exactly as it appears in the input
+- If the format is not your preferred tree notation, explicitly show your conversion to your preferred tree notation step by step
+- Before starting reductions, scan the entire expression and identify all locations where axioms could potentially be applied
+- For each reduction step:
+  ,* State which axiom you're applying (I1 or I2)
+  ,* Identify the specific part of the expression being reduced
+  ,* Show the complete expression after the transformation
+- After each transformation, explicitly check whether further reductions are possible
+- Continue until you confirm no more axioms can be applied
+
+It's OK for this section to be quite long if the expression requires many reduction steps.
+
+After completing your reduction process, provide your final answer in this format:
+
+<answer>X</answer>
+
+where X is either:
+- unmarked (if the expression reduces to void / nothing), or
+- marked (if structure remains and can not be reduced to void)
+
+Your final output should consist only of the <answer> tags with the result, and should not duplicate or rehash any of the reduction work you did in the thinking block.
 """
 
 
@@ -426,22 +467,65 @@ def extract_answer(response: str) -> str:
 
 # --- Composite prompt (for multi-problem tests) ---
 
-COMPOSITE_PROMPT_TEMPLATE = """Looking at each expression that represents a form of distinctions, identify how the structure is encoded as a Laws of Form expression, and then evaluate its value using the two axioms:
+COMPOSITE_PROMPT_TEMPLATE = """You are an expert in evaluating Laws of Form expressions. Your task is to analyze expressions that represent structures of distinctions and reduce each to its simplest form using two fundamental axioms.
 
-,**Axiom I1 (Number):** ()() = ()
-Multiple adjacent marks condense into a single mark.
+Here are the expressions you need to evaluate:
 
-,**Axiom I2 (Order):** (()) = void
-A mark containing only another mark cancels to void (nothing).
+<expressions>
+{{expressions}}
+</expressions>
 
-Each expression simplifies to either () or void.
+Each expression may be presented in various formats both text and image: nested parens, ASCII diagrams, emoji grids, JSON, s-exprs, nested rings, buckets, contours, or something unlisted, including arbitrary combinations. Your first step for each is to interpret what structure is being represented into a tree structure that you are comfortable manipulating.
 
-Expressions:
-{expressions}
+## The Two Axioms
 
-Simplify each expression, then count how many simplify to ().
+**Axiom I1 (Number):** Multiple adjacent empty marks condense into a single mark. 
 
-State your final count in <answer>X</answer> tags where X is a single number (0-{n}), counting the number of expressions that evaluate to ().
+**Axiom I2 (Order):** A mark containing only another mark cancels to void (nothing).
+
+## Your Approach
+
+For each expression, think through it step by step:
+
+1. First, identify how the structure is encoded in the given format
+2. If needed, convert or interpret it into a form you can work with
+3. Look for opportunities to apply the axioms (I1 or I2)
+4. Apply the axioms iteratively, showing each transformation
+5. Continue until no more reductions are possible
+6. State the final evaluated form
+
+Work through your evaluations in <reduction_process> tags inside your thinking block. Be systematic:
+
+- Label each expression (E1, E2, ... E8)
+- For each expression:
+  * Write out the raw structure exactly as it appears in the input
+  * If the format is not your preferred tree notation, explicitly show your conversion step by step
+  * Before starting reductions, scan the entire expression and identify all locations where axioms could potentially be applied
+  * For each reduction step:
+    - State which axiom you're applying (I1 or I2)
+    - Identify the specific part of the expression being reduced
+    - Show the complete expression after the transformation
+  * After each transformation, explicitly check whether further reductions are possible
+  * Continue until you confirm no more axioms can be applied
+  * State whether this expression evaluates to marked or unmarked
+
+It's OK for this section to be quite long if the expressions require many reduction steps.
+
+After completing all reduction processes, provide your final answer in this format:
+
+<answer>
+E1: marked/unmarked
+E2: marked/unmarked
+E3: marked/unmarked
+E4: marked/unmarked
+E5: marked/unmarked
+E6: marked/unmarked
+E7: marked/unmarked
+E8: marked/unmarked
+total_marked: N
+</answer>
+
+Your final output should consist only of the <answer> tags with the results, and should not duplicate or rehash any of the reduction work you did in the thinking block.
 """
 
 
