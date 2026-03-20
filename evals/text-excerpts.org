@@ -223,3 +223,99 @@ PROCESS
 — implementation is a necessary ground
 — counting isn’t relevant.
 
+* An excerpt from Bricken, Iconic Arithmetic
+
+** Chapter 13. Dialects
+#+begin_quote
+Is it unnatural or deviant to suggest that
+immersion in a virtually realized mathematical
+structure...be the basis for mathematical proofs? 1
+—Brian Rotman (2000)
+#+end_quote
+One great advantage of boundary languages is that one-, two-, and three-dimensional forms are available as equivalent dialects. This chapter is primarily a sensory exploration of postsymbolic forms of James algebra.2 Some postsymbolic representations for depth-value were considered in Chapter 4. The main idea is that the foundations of arithmetic and algebra are not necessarily abstract, rather they can be anchored to our physical experience not by interpretation but by structure. The *Principle of Participation* dominates this chapter: the representation of formal concepts interacts strongly with how we think.3
+
+#+begin_quote
+Participation
+How we look at a form determines what it is.
+#+end_quote
+
+An algebra is defined by its transformations, not by the notation that expresses these transformations. However, since the boundary dialects range over symbols, icons, images, manipulatives and experiences, each dialect has nuances that lead to different ways of thinking about both arithmetic and algebra. Each dialect supports a different physical concept, converting the inside/outside contains relation into surrounding, holding, relational, territorial,
+
+gravitational, stackable, inhabitable and traversable environments. All dialects hold in common that the containment relations between the visual elements are invariant. Spatial dialects are not analogous to different spoken languages, such as English, Latin or Farsi.4 Forms are more reminiscent of recalling different but similar experiences. When we think of a house, for example, there are many quite different exemplars that engender the same generic idea of dwelling. Since formal mathematics has been dominated by string representations for over a century, there are no analogous mathematical languages that resemble the expressive variety of spatial dialects. Perhaps the closest is the diversity of visual layout for graphs and networks. This chapter moves symbolic strings into new perceptual and cognitive territory, enhancing their intended meaning while maintaining their formal rigor and, most importantly, while returning simple mathematical concepts to mundane experience.
+
+*** 13.1 Postsymbolic Form
+The early twentieth century founders of modern formality in mathematics began rightfully with the most degenerate form, one dimensional strings of symbols. They were after all attempting to put a sound foundation underneath the mess they found themselves with after the loss of certainty in the nineteenth century. Symbolic formalism, however, was conceived in an era before telephones that are cameras, before MTV, before TV, even before radio, before airplanes and automobiles, before public education, before World Wars. Before computers, before digital communication, before electronic calculators, before pervasive electricity, before you and I were born.
+
+Symbolic strings were the obvious tool for expressing the formal structure of mathematics, basically because other tools did not yet exist. A century later we can be brave enough to move to (at least) two dimensions, without fear of confusion and without loss of mathematical perspective. Mathematician John Littlewood:
+
+#+begin_quote
+A heavy warning used to be given that pictures are not rigorous; this has never had its bluff called and has permanently frightened its victims into playing for safety.... But pictorial /arguments/, while not so purely conventional, can be quite legitimate.5
+#+end_quote
+
+Our agenda has been to lift natural numbers, what many would consider the foundation of mathematics, out of their presumed symbolic confinement. Mathematics is the study of pattern, but if it is to be a human endeavor, those patterns must be broader than strings of characters. Keith Devlin expresses the common doubts:
+
+#+begin_quote
+Because these patterns are, for the most part, highly
+abstract, their description and study require an
+abstract notation....The complexity and abstraction of
+most mathematical patterns make anything other than
+symbolic notation prohibitively cumbersome to use.6
+#+end_quote
+
+What is now needed in our shared exploration are some examples of higher dimensional calculations and demonstrations that are not clumsy or cumbersome. Spatial dialects are not necessarily an explanation of how physical reality works but instead an exploration of how common arithmetic works.
+
+
+*** Dimensionality
+
+The fundamental shift into postsymbolic thinking is to engage higher dimensions. To expand from making a point, to drawing a line, to laying out on a surface, to molding into a shape, to experiencing a world.
+
+Here is the dimensionality of the dialects in this chapter.
+- 1D textual linear: delimiting brackets
+- 2D diagrammatic: closed curves, maps
+- 3D environmental: buckets, blocks, walls
+- 4D experiential: paths, rooms
+- 2D and 3D and 4D: networks
+  
+This list identifies the primary dimension of each representation, not every dimensional perspective that is available. This is not to ignore, for example, that bounding curves can also be converted into bounding surfaces.
+
+One-dimensional forms fracture containment into left and right brackets. Two-dimensional forms maintain planar containment but require replication of objects. They do not fully support structure sharing, in which different objects with matching parts merge their parts. Three-dimensional forms can accommodate the entire diversity of types of connectivity. Forms of any spatial dimension can accommodate the addition of time, which leads to animation and dynamics.
+
+From any dimension, all lower dimensions can be reached by degrading some features of the representation. The process of *dimensional reduction* both introduces notational accidents that distort interpretation, and removes experiential richness that could potentially enhance comprehension and embodiment. As our standard example, commutativity is a property of linear forms of expression, an awareness of which is certainly necessary for non-commutative spoken words, musical notes and temporal experiences. The group theoretic rule of commutativity gives us permission to consider forms of expression that are not bound in space, in time or in sequence. In contrast diagrams do not need a concept of commutativity, they have instead the space of the page they are recorded upon. A diagram by its very nature gives us permission to consider forms of expression that are not limited to a line or a sequence.
+
+Independent of dimensionality, boundary forms must include a direction or orientation to indicate the deepest and the shallowest nested form. Depth-value includes ordinal numbering that corresponds to depth of nesting. In some applications, for example those that incorporate semipermeable boundaries, being able to count how deep is unnecessary. In the James form, the polarity of depth (odd or even) is important. It is, however, the perspective of the reader that defines the fundamental orientation of forms, including the location of the origin, which in typography is declared by the curvature of the pair of brackets.
+
+*** Varieties
+
+There are three major classes of structure that distinguish boundary forms. *String* varieties enlist encoded characters or sequences of characters, while embedding structure in their ordering. *Geometric* varieties enlist different metric structures that share relationships across their measures. Changing a metric is analogous to changing a symbol in a string language. *Relational* varieties enlist different spatial structures that embody different tangles of relations. Geometric varieties are topological forms with rubber-sheet geometries, while relational varieties are not limited by the rubber-sheet. Relational varieties can be generated by extruding and rotating into a higher dimensional space, by converting links to borders, by exchanging objects for processes and by structure sharing. Some varieties of form highlight the neutral background space to delineate structure. For example, the space between typographic words is used to identify grouping but is not taken as a grouping operator.
+
+: Figure 13.1: Roadmap for generating spatial dialects
+
+A dominant characteristic of boundary forms is the *point-of-view* of the reader/participant. Forms can be read from the outside, objectively, or from the inside, subjectively. Subjective reading includes participation within the form itself. Linear form, in contrast, lacks an inside, forcing the perspective that the reader is outside, in some higher dimension. In its desire to remove human bias, mathematics has embraced the outside, objective view-point, creating a notation that lacks both participation and dynamics. Process must then be exhibited as steps. A refinement that appears to have been overlooked is that objectivity, seeing things as objects, viewing reality from the outside, does not achieve neutrality. Objectivity limits our perspective so severely that we believe we are not only super-human but that we have access to locations outside of our universe!
+
+: Objectivity makes us the outermost boundary.
+
+: Figure 13.2: Structural transformations for generating spatial dialects
+
+
+
+
+** Postsymbolic Form
+Varieties
+There are three major classes of structure that distinguish
+boundary forms. String varieties enlist encoded characters
+or sequences of characters, while embedding structure in
+their ordering. Geometric varieties enlist different metric
+structures that share relationships across their measures.
+Changing a metric is analogous to changing a symbol in a
+string language. Relational varieties enlist different spa-
+tial structures that embody different tangles of relations.
+Geometric varieties are topological forms with rubber-sheet
+geometries, while relational varieties are not limited by
+the rubber-sheet. Relational varieties can be generated by
+extruding and rotating into a higher dimensional space,
+by converting links to borders, by exchanging objects for
+processes and by structure sharing. Some varieties of form
+highlight the neutral background space to delineate structure.
+For example, the space between typographic words is used
+to identify grouping but is not taken as a grouping operator.
+

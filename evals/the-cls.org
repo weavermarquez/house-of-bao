@@ -1,0 +1,361 @@
+https://markability.net/predcalc/intro.htm
+
+* Chapter 0
+** INTRODUCTION
+A 'Laws of Form' approach to the Predicate Calculus
+These pages address the question, What happens when the Markable Mark is let loose on the system known variously as First-Order Logic, First-Order Predicate Logic, Predicate Logic, or 'The Predicate Calculus'?
+
+The answer, it seems to me, is that there is a pretty lively symbiosis between the two. And the markable mark (or Laws of Form) approach sheds an especially bright light on one particular aspect of the Predicate Calculus, namely the fact that underlying it is an autonomous mathematical system, whose properties can be investigated quite independently of its interpretation as a system of Logic.
+
+Approaching the topic from the direction of Logic, the Predicate Calculus is a product of the great ferment in logic that took place in the period (roughly) 1875-1935. Before this period Aristotle's logic held sway - and was widely regarded as the last word in logic. Consider for example the following extracts from Kant's Introduction to Logic:
+
+Since Aristotle's time Logic has not gained much in extent, as indeed its nature forbids that it should. But it may gain in respect of accuracy, definiteness, and distinctness. There are but few sciences that can come into a permanent state, which admits of no further alteration. To these belong Logic and Metaphysics. Aristotle has omitted no essential point of the understanding; we have only become more accurate, methodical, and orderly.
+
+... In our own times there has been no famous logician, and indeed we do not require any new discoveries in Logic, since it contains merely the form of thought.
+
+Eventually, however, some more famous logicians did appear. As the 20th century logician Willard Quine remarked: 'Logic is an old subject, and since 1879 it has been a great one'. What happened in 1879? Quine was referring to the publication of Gottlob Frege's booklet Begriffsschritt ('Concept-Notation')[1]. Readers of that work, however, may very well question whether logic instantly became great at the moment of its publication. For one thing, other people such as the American C.S.Peirce had been working away at the enlargement of logic on somewhat similar or at least comparable lines to Frege. Indeed, the Begriffsschritt was just one moment or incident in a great (and complex) movement. It was to be a great many years before Predicate Logic, in its modern form, precipitated out of the ferment. It had not fully done so by the time of Gödel's landmark theorem (proved in his doctoral thesis) 'On the Completeness of the Logic-Calculus' (1929).
+
+In order to be able to say something about the transition from Aristotelian to modern logic we first need to sketch - in roughest outline - what the old logic was all about.
+
+Aristotle's Logic [2]
+Aristotle focused attention on the sort of statements (logoi) that can be described as predications - where one thing is said of another. The thing said is the predicate; the thing of which it is said, the subject. The subject may be particular, as in
+
+Socrates is a man
+
+or general, as in
+
+all men are mortal
+
+or
+
+some swan is black.
+
+In the above example, the second and third of the predicates are adjectival ('mortal', 'black'); the first, 'is a man' could be described as general, in the sense 'pertaining to a genus', the genus in this case being man. In the most general sort of predication, both the subject and the predicate are general. In fact we can easily recast the 2nd and 3rd assertions above as general or so-called categorical predications, as follows:
+
+all men are mortal beings
+some swan is a black fowl.
+
+Categorical predications have the important feature that they can be 'converted' or turned around. Thus
+
+all men are mortal beings
+
+can be converted into
+
+some mortal being is a man;
+
+and from
+
+some swan is a black fowl
+
+we get
+
+some black fowl is a swan.
+
+Note that the first sort of conversion only goes one way; also that when Aristotle says 'all men are mortal beings', part of his meaning is that there are men. (In modern parlance, the set of men is non-empty.)
+
+Predications can be denied as well as asserted. In fact the predication
+
+all men are mortal beings
+
+has two logical opposites; firstly, its 'contrary':
+
+all men are immortal beings
+
+and secondly its 'contradiction':
+
+not all men are mortal beings,
+
+in other words,
+
+some man is an immortal being.
+
+Clearly this last predication can be converted to
+
+some immortal being is a man.
+
+Aristotle's greatest fame (as a logician) rests on his exposition of the forms of deduction (sullogismoi). These are the ways of linking together two predications in such a way that a third may be deduced from them. Importantly, Aristotle saw that the validity of the deduction depends on the form as opposed to the particular content of the predications involved. He made this point in a supremely cogent way by writing letters in place of the subjects and predicates in the linked predications. For example, the two fundamental deductions went like this (the names are the medieval mnemonics for the forms of deduction):
+
+1) 'Barbara':
+
+every M is P
+every S is M
+-------------
+∴ every S is P
+
+2) 'Celarent':
+
+no M is P
+every S is M
+-------------
+∴ no S is P
+
+Aristotle listed another 12 forms of syllogism, and, remarkably, offered proofs of their validity based on the two 'axiomatic' forms just given. The proofs made use of conversion, as described above, and also of the technique that he called 'through the impossible' - which is roughly speaking what would call reductio ad absurdum. Here are a couple of examples, using the two techniques of proof in turn:
+
+3) 'Camestres':
+
+every P is M
+no S is M
+-------------
+∴ no S is P
+
+Proof:
+
+the second premise converts to no M is S
+together with the first premise we have the form of Celarent (with S and P interchanged)
+therefore no P is S
+which converts to no S is P ◊
+4) 'Baroco':
+
+every P is M
+some S is not M
+-------------
+∴ some S is not P
+
+Proof:
+
+Suppose the conclusion is denied, so every S is P
+Putting this together with the first premise, we have the form of Barbara (with M and P interchanged)
+therefore every S is M
+which contradicts the second premise
+therefore the conclusion is valid ◊
+We have gone into Aristotle's system of categorical syllogisms in some detail partly in order to emphasize that the categories (such as P, S and M) can take on either role in a predication (subject or predicate) when they are called upon to do so. Even in the most basic form, Barbara, the middle term M plays the part of subject in the first premise, predicate in the second. Whenever conversion is called into play, the categories exchange their rôles.
+
+Modern Predicate Logic
+Notwithstanding the brilliance of Aristotle's achievement (assuming, that is, that he was not reporting the system of another person!) it is somewhat astonishing that as late as the mid-19th century almost everyone who thought about logic thought that all legitimate deductions belonged to one of the types listed by Aristotle. It becomes a little less astonishing when one remembers that for centuries it had been fields of study such as Theology, the Law, and Philosophy of various kinds that were regarded as the main provinces of applied logic.
+
+In the end, as we know, it turned out to be the practitioners of Mathematics who required the most precise, intricate and subtle forms of deduction in order to practice their craft. It would sooner or later become obvious that the forms of deduction used in mathematical proofs could not always be fitted into the containers provided by Aristotle - some sort of expansion of logic was called for. However, all this was far from clear at the time, and it required the inspiration of pioneers like C.S.Peirce and Frege to make a start on clearing a path through the thicket.
+
+Moving forward to the currently accepted form of the (First-Order) Predicate Calculus, we find that its main departures from the old logic are as follows:
+
+It makes a much firmer distinction between subject and predicate. Subjects are now 'things', belonging to a 'universe of discourse'; whereas predicates are a special sort of 'function' (in the mathematical sense), taking one or more 'things' as arguments (or 'input'), and producing one of two values, 'true' or 'false', as 'output'. So Aristotle's notion of 'conversion' must be abandoned, and his syllogisms reformulated.
+Simple predicates can be combined together to make complex predicates, using the logical operation 'not' and the connectives 'and', 'or', 'implies', etc.
+Predicates can have more than one subject or argument. Predicates can now assert relations such as 'is greater than' and 'is the geometric mean of' - as in the statements 'a is greater than b' or 'a is the geometric mean of b and c'.
+General statements such as 'every P is Q' are retained but are expressed in a different way, using 'unknowns' or 'variables' that are given names like x, y, etc. For example,
+   ∀x P(x) → Q(x) .
+'Some man is blind' becomes
+   ∃y M(y) & B(y)
+(there exists a subject y such that y is a man and y is blind).
+Along with the new concepts and notations came a new system of deduction. At first this looked like a rather arbitrary list of rules. But when Godel proved his 'Completeness Theorem' it became evident that there was something 'perfect' about the list of rules. The theorem says that any valid deduction in the Predicate Calculus (that is, any deduction that is not contradicted by any model) can be proved using the rules of deduction. (So the rules are sufficiently comprehensive to always provide a proof - but not so generous that they lead to unsound conclusions.)
+
+Is this a result of mathematics, or of logic? It seems to me that it is essentially mathematical, and the interpretation of the result in logic is just that, an interpretation. This is generally accepted, no doubt; nevertheless, the adaptation of Laws of Form which I call the 'Calculus of Letters, Circles and Subscripts' helps the fact to stand out with matchless clarity.
+
+There will always be those who insist that Laws of Form is no more than a re-notation of Logic. This is not quite correct. For it ignores that fact that the calculi of Laws of Form (C, CL and CLS) are autonomous systems in their own right, independent of Logic, innocent of True and False, prelapsarian; & each entitled to say, Before Logic was, I am.
+
+The plan of the work is as follows. First the Calculus of Letters, Circles and Subscripts (or CLS-calculus for short) is presented, as a purely mathematical system, and various theorems proved. The CLS-calculus is the third level of a hierarchy, the first two levels being the C-calculus and the CL-calculus. Here is a picture of the hierarchy:
+
+
+Secondly, Predicate Logic is presented - although we don't at this point say much about the rules of deduction.
+
+Thirdly we supply the connection between the CLS-calculus and Predicate Logic. To ask whether a predicate formula is universally valid (valid in all models) - which is the same as asking whether its contradiction or negation is 'unsatisfiable' (valid in no model) - is shown to be the same as asking whether a certain CLS-expression is 'mark-equivalent' (i.e. equivalent to an empty circle), using the rules of equivalence of the CLS-calculus. Thus the latter rules are essentially the 'rules of deduction'.
+
+Fourthly we give plenty of examples showing how logical deductions can be validated (proved sound) using the CLS-calculus.
+
+Right at the end of the examples we stray into the field of theorem-proving by machine (in practice, by electronic computer). It was to further this endeavour that John Alan Robinson developed his Resolution Method for theorem-proving. The Resolution Method has its counterpart in the CLS-calculus, and this is presented in Chapters 3 and 4. In fact, Robinson's paper and related book [3,4] have been seminal in the composition of this whole document. Of these, the paper is almost entirely mathematical in content, hardly logical at all - suggesting that the essence of the Resolution Method, like that of the predicate calculus itself, is mathematical not logical. Indeed, with its frequent mention of 'the empty clause' Robinson's paper, and the earlier one by Davis and Putnam[5], often seem to be separated by only a thin wall, as of paper, from the methods of Laws of Form.
+
+Although the order of exposition is important, logically (!), I realize that it may not be the easiest order for a reader. The exposition of the CLS-calculus (Chapters One to Four) is rather on the abstract side and may prove to be intimidating. A better place to start is probably the end, in the examples chapter, Chapter Ten. I would hope that after the reader has gone through a few examples, he or she will say to themselves "YES!!! This is definitely the way to calculate with predicates!"; they can then go back to the earlier chapters to have a look 'under the bonnet'. (That is pretty well how the author approached the subject.) The middle, Chapter Five (exposition of the predicate calculus) is also elementary and could be a good place to start.
+
+An absolute prerequisite for understanding anything at all of what follows is a good grasp of the C-calculus and the CL-calculus. For this go to www.markability.net and start at the beginning. Bon appétit!
+
+up to contents | on to Chapter 1
+
+References
+[1] Gottlob Frege, Begriffsschritt (1879). English translation available online here
+
+[2] Throughout this section I am indebted to the following article:
+Smith, Robin, "Aristotle's Logic", The Stanford Encyclopedia of Philosophy (Summer 2015 Edition), Edward N. Zalta (ed.), plato.stanford.edu/archives/sum2015/entries/aristotle-logic.
+
+[3] J.A.Robinson (1965) 'A Machine-Oriented Logic Based on the Resolution Principle', Journal of the Association for Computing Machinery, Volume 12 Issue 1, Jan. 1965 Pages 23-41.
+Online version available here.
+
+[4] J.A.Robinson, Logic: Form and Function: the Mechanization of deductive Reasoning, North-Holland, New York 1979, vi+312 pp.
+
+[5] Martin Davis and Hilary Putnam, 'A Computing Procedure for Quantification Theory', Journal of the Association for Computing Machinery, Volume 7 Issue 3, July 1960, Pages 201-215.
+DeepDyve has it here
+
+General References
+George Spencer Brown, Laws of Form, London, George Allen and Unwin, 1969
+
+I mention the following text-book for students of computer science because it got me going on the Predicate Calculus and introduced me to Robinson's Resolution Method:
+James L. Hein, Discrete Structures, Logic and Computability, Jones and Bartlett, Sudbury, Mass., 1995, chapters 6-9
+
+For more on the Resolution Method (in addition to Robinson's book above):
+Chin-Liang Chang and Richard Char-Tung Lee, Symbolic Logic and Mechanical Theorem-Proving, Academic Press, NY and London, 1973
+
+The following book is an easily available, in-depth account of Predicate Logic; not easy going - it requires careful study:
+Raymond M. Smullyan, First-order Logic, DoverPublications Inc, New York, 1995
+
+For a pointer to the complicated history of modern logic, and to why Predicate Logic tends to be called First-order Logic, see the following paper:
+Gregory H. Moore, The Emergence of First-order Logic, available online here.
+Note that part of the reason the history of the development of Logic is so complicated is that that development was inextricably entangled with the (ultimately unsuccessful) project of logicizing Mathematics; that is, of reducing all mathematical truths to the logical consequences of a carefully chosen set of axioms.
+
+© George Burnett-Stuart 2016
+
+
+up to contents | on to Chapter 1
+* Chapter 1
+** CHAPTER ONE The Calculus of Circles, Letters and Subscripts
+(The CLS Calculus)
+CLS-expressions
+CLS-expressions are similar to CL-expressions (Circle and Letter expressions), except that the letters become upper-case and acquire subscripted 'indices'. So instead of simple lower-case letters such as a, b, c we have symbols such as the following:
+
+Apq, Bv, Cxyz.
+
+Forms such as these we call 'atoms'. Each atom consists of an upper-case letter together with a 'subscriptum'. The subscriptum is an ordered set of indices, which are lower-case letters.('Ordered' just means that the order of the indices, if there are several of them matters.) Each index belongs to one of two types: i) mutable, printed in light type ii) immutable, printed in bold type. To make the distinction even clearer, on this page mutables are also printed in blue; but this is optional. When writing CLS-expressions by hand one may distinguish immutable indices by underlining them. A subscriptum may contain no indices, in which case nothing is written.
+
+Now for a major complicating factor: any immutable may itself have a subscriptum - i.e. an ordered set (possibly empty) of indices. And if any of those indices happen to be immutable, they too may have subscripta - and so on ad infinitum.
+
+If the same upper-case letter appears several times in an expression, it is expected that it will have a subscriptum of the same cardinality (i.e. containing the same number of indices) each time it appears. (If not, we must assume that the same letter is being used to denote an essentially different entity - which is confusing and best avoided.) The number of indices in the subscriptum is sometimes called the 'arity' of the upper-case letter.
+
+Each immutable also has an arity, which is the same for each occurrence of the immutable. If the arity is zero, nothing is written.
+
+In the example-atoms given above, the immutables all had arity zero, while the upper-case letters all had arity greater than zero. But forms such as the following are also permissible:
+
+D, Eabcdefgghi.
+
+It is not always convenient, typographically, to use nested subscripts. In such a case one may use curly brackets to indicate the level of subscripting. Thus the forms just given could be written
+
+D, E{a{bcd{ef{g}}}ghi}.
+
+Indeed, the top level of curly brackets may often be omitted without causing ambiguity, giving us forms such as
+
+D, Ea{bcd{ef{g}}}ghi, Fxyz.
+
+By a 'term' we mean any form that is suitable to be used as an index, that is, a mutable, or an immutable together with its subscriptum (if any).
+
+A CLS expression consists, then, of a set of possibly nested circles, with a set of atoms, each one placed in one of the spaces within or without the circles. (One or other or both of the sets may be empty.)
+
+Our concern will be with the transformation of CLS expressions into equivalent expressions. To this end, we need to delineate the allowed, equivalence-preserving transformations. But first we need to familiarize ourselves with a type of transformation (not in itself necessarily equivalence-preserving) called a 'substitution'.
+
+Substitutions
+Let a, b, c, .. g be a set of mutables, and let s, t, u, ..z be an equinumerous collection of terms, mutable or immutable, and not necessarily distinct (thus repeats are allowed). Suppose E is a CLS-expression; then let
+
+E[s/a,t/b,u/c, ... z/g]
+
+denote the expression that results from replacing every occurrence of a in E by s, every occurrence of b by t, and so on. In case any of s, t, u... is an immutable with a subscriptum, its indices may be mutables, or unsubscripted immutables, or subscripted immutables. There is indeed a vast range of possibilities - this is Liberty Hall! There is just one restriction: none of the mutables (a, b, c, ...) may appear anywhere in the terms s, t, u, ... (including their subscripta, if any). Thus the substitution has the effect of removing all trace of the mutables a, b, c, ... from the expression on which it acts. It is often convenient to let a letter, typically θ (or φ, ψ, etc.) stand for the operation of substitution, and to let Eθ stand for the result of operating upon E with that substitution:
+
+Eθ = E[s/a,t/b,u/c, ... z/g].
+
+Clearly substitutions may be compounded and we write
+
+θ = φ•ψ
+
+to signify that θ is the substitution that is the result of performing first φ and then ψ.
+
+Equivalence of CLS-expressions
+We are now in a position to define the equivalence-preserving transformations of CLS-expressions.
+
+1. Expressions, or sub-expressions may be subjected to the transformations permitted in the CL-calculus. These are the transformations generated by combining the (bi-directional) 'Bricken initials':
+
+wrap, unwrap e ↔ ((e))
+delete, undelete e( ) ↔ ( )
+copy, uncopy e(f) ↔ e(ef) ,
+
+where e, f stand for any sub-expressions of an expression E. We will refer to any such combination of steps as a CL-operation. Note that in 'copy' or 'uncopy', the copy of e must be identical in all respects (including subscripta, to all depths) to the original. (If any of this is unfamiliar to the reader, he or she should return to the page Clara's World: the Calculus of Circles and Letters.)
+
+2. Expressions, or top-level factors of expressions, (but not sub-expressions in general) may be transformed as follows:
+
+E → E Eθ.
+
+That is to say, E (which is either a whole expression or a factor of an expression) may be replaced by E together with a substituted version of E. As θ is our symbol for a generic substitution, as described above (where a set of mutables is taken out of an expression and replaced by a set of terms) we will call the new kind of allowed transformation 'theta-copy'. First E is copied (a valid CL step), then the copy is transformed by substitution.
+
+We emphasize that theta-copy may not be applied to a sub-expression of an expression, other than to a top-level factor.
+
+To define what is allowed in another way, we may say that an expression of the form FG may be transformed as follows:
+
+F G → F G Gθ .
+
+Note that any expression whatsoever may be put in the form FG by taking F to be the void expression.
+
+3. Reverse theta-copy, or theta-absorption, is another allowed transformation. If one factor of an expression can be construed as a substituted version of another factor, then the substituted version may be removed:
+
+F G Gθ → F G .
+
+4. We will find it convenient not to use the usual equals sign = between expressions that have been transformed by theta-copy or reverse theta-copy, but the modified sign ≅. (We will keep the usual equals sign for CL-equivalence.) Any expression H that is the result of acting on an expression E by a combination of theta-copies, theta-absorptions and CL-operations is said to be CLS-equivalent to E; and we indicate this by writing
+
+E ≅ H.
+
+The relation symbolized by ≅ is easily shown to be an equivalence relation (exercise for the reader: it is required to show A≅A; A≅B implies B≅A; if A≅B and B≅C then A≅C).
+
+Lemma 1.1
+If A, B, C are expressions such that B ≅ C then
+
+A B ≅ A C .
+
+Proof
+The equivalence of B and C says that there is a sequence of CL-operations and theta-copies and reverse theta-copies which transforms B into C. The same operations will transform AB into AC, because the additional presence of A makes no difference to the operations ◊
+
+Example 1.2
+Pa(Pb)
+≅ Pa (Pb) (Pb)[a/b] [instance of theta-copy]
+= Pa (Pb) (Pa) [by definition of [a/b]]
+= Pa (Pb) O [by uncopy]
+= O [by delete].
+
+Thus
+
+Pa(Pb) ≅ O .
+
+But nota bene: this must not be taken to imply that
+
+(Pa(Pb)) ≅ _ ,
+
+which is what one would get if one were allowed to apply theta-copy to a sub-expression (that is, to 'Pa(Pb)', in this particular example). What we are allowed to do is to apply theta-copy to the whole, circled expression, giving us
+
+(Pa(Pb)) ≅ (Pa(Pb)) (Pa(Pa)) = (Pa(Pb)) .
+
+Unfortunately, that gets us nowhere!
+
+Example 1.3
+Pab (Pxy(Pyx))
+≅ Pab (Pxy(Pyx)) (Pxy(Pyx))[a/x,b/y]
+= Pab (Pxy(Pyx)) (Pab(Pba))
+= Pab (Pxy(Pyx)) ((Pba))
+= Pab (Pxy(Pyx)) Pba
+
+Definition 1.4: CLS-dominance and derivability
+A is said to 'dominate' B, and B is said to be 'derivable' from A, if and only if
+
+A ≅ AB.
+
+In such a case we may write for brevity
+
+A » B .
+
+Exercise for the reader: show (i) if A≥B, that is, if A dominates B in the CL sense, then A»B (ii) A»A (iii) if A»B and B»C, then A»C (iv) if A»B and B»A than A≅B.
+
+Lemma 1.5
+If A, B, C are expressions such that B » C, then
+
+A B » A C .
+
+Proof
+The premise tells us
+
+B ≅ B C .
+
+Therefore, by Lemma 1.1,
+
+A B ≅ A B C = A B A C
+
+(by copy). Therefore AB dominates AC ◊
+
+Example 1.2 (revisited)
+We may rewrite the steps of Example 1.2 as follows:
+
+Pab (Pxy(Pyx))
+» Pab (Pxy(Pyx))[a/x,b/y]
+= Pab (Pab(Pba))
+= Pab ((Pba))
+= Pab Pba
+» Pba,
+
+therefore,
+
+Pab (Pxy(Pyx)) » Pba .
+
+Thus Pba is derivable from the initial expression Pab (Pxy(Pyx)). With a little practice, such derivations may be written down immediately, without having to go through the intervening steps.
+
+These, then, are the somewhat peculiar rules of the CLS Calculus. It is hard to believe that any good could come of them. All the more surprising, then, that they turn out to be the very key to logical thought - the distilled essence of Predicate Logic.
+
+
+back to Chapter 0 | up to contents | on to part 1 of Chapter 2

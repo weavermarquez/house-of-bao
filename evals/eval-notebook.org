@@ -659,7 +659,7 @@ Here is the expression you need to evaluate:
 {expression}
 </expression>
 
-The expression may be presented in various formats both text and image: nested parens, ASCII diagrams, emoji grids, JSON, s-exprs, nested rings, buckets, contours, or something unlisted, including arbitrary combinations. Your first step is to interpret what structure is being represented into a tree structure that you are comfortable manipulating.
+The expression may be presented in various formats both text and image: nested parens, ASCII diagrams, emoji grids, JSON, s-exprs, nested rings, buckets, contours, or something unlisted, including arbitrary combinations. Your first step is to interpret what structure is being represented into a tree structure that you are comfortable manipulating. You must decide on a format and show your canonicalized tree structure within <structure> tags.
 
 ## The form and axioms
 We take as given the idea of distinction and the idea of indication, and that we cannot make an indication without drawing a distinction. We take, therefore, the form of distinction for the form.
@@ -793,7 +793,7 @@ Here are the expressions you need to evaluate:
 {expressions}
 </expressions>
 
-Each expression may be presented in various formats both text and image: nested parens, ASCII diagrams, emoji grids, JSON, s-exprs, nested rings, buckets, contours, or something unlisted, including arbitrary combinations. Your first step for each is to interpret what structure is being represented into a tree structure that you are comfortable manipulating.
+Each expression may be presented in various formats both text and image: nested parens, ASCII diagrams, emoji grids, JSON, s-exprs, nested rings, buckets, contours, or something unlisted, including arbitrary combinations. Your first step for each is to interpret what structure is being represented into a tree structure that you are comfortable manipulating. You must decide on a format and show your canonicalized tree structure within <structure> tags.
 
 ## The form and axioms
 We take as given the idea of distinction and the idea of indication, and that we cannot make an indication without drawing a distinction. We take, therefore, the form of distinction for the form.
@@ -1212,47 +1212,19 @@ Run evaluations with minimal code using the unified framework.
 # quick_test(test_cases, SingleTask, n=5)
 
 # === COMPOSITE TESTS (8 problems, count-based) ===
-quick_test(composite_cases, CompositeTask, n=5)
+# quick_test(composite_cases, CompositeTask, n=5)
 
 # === FULL RUN (async) ===
 # results = asyncio.run(run_eval(test_cases, SingleTask))
-# results = asyncio.run(run_eval(composite_cases, CompositeTask))
+results = asyncio.run(run_eval(composite_cases, CompositeTask))
 
 # === ANALYSIS ===
-# print_analysis(results)
+print_analysis(results)
 
 # === SAVE/LOAD ===
-# with open("results.json", "w") as f: json.dump(results, f, indent=2)
+with open("results.json", "w") as f: json.dump(results, f, indent=2)
 # with open("results.json", "r") as f: results = json.load(f)
 #+end_src
-
-#+RESULTS:
-#+begin_example
-Running CompositeTask on 5 cases...
-Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GOOGLE_API_KEY.
-Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GOOGLE_API_KEY.
-Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GOOGLE_API_KEY.
-Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GOOGLE_API_KEY.
-Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GOOGLE_API_KEY.
-
-========================================
-Results: 1/15 (6.7%)
-  ❌ comp_001 (openai): count=0 (target: 2)
-  ✅ comp_001 (anthropic): count=2 (target: 2)
-  ❌ comp_001 (google): count=4 (target: 2)
-  ❌ comp_002 (openai): count=0 (target: 7)
-  ❌ comp_002 (anthropic): count=4 (target: 7)
-  ❌ comp_002 (google): count=3 (target: 7)
-  ❌ comp_003 (openai): count=0 (target: 5)
-  ❌ comp_003 (anthropic): count=8 (target: 5)
-  ❌ comp_003 (google): count=4 (target: 5)
-  ❌ comp_004 (openai): count=0 (target: 5)
-  ❌ comp_004 (anthropic): count=4 (target: 5)
-  ❌ comp_004 (google): count=3 (target: 5)
-  ❌ comp_005 (openai): count=0 (target: 3)
-  ❌ comp_005 (anthropic): count=4 (target: 3)
-  ❌ comp_005 (google): count=4 (target: 3)
-#+end_example
 
 * Run and Analyze Composite Tests
 
@@ -1275,29 +1247,34 @@ print(f"\nRandom baseline for {n_problems} problems: {100 * 1/(2**n_problems+1):
 #+RESULTS:
 #+begin_example
 Running CompositeTask on 5 cases...
+Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GOOGLE_API_KEY.
+Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GOOGLE_API_KEY.
+Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GOOGLE_API_KEY.
+Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GOOGLE_API_KEY.
+Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GOOGLE_API_KEY.
 
 ========================================
-Results: 3/15 (20.0%)
-  💀 comp_001 (openai): count=5 (target: 2)
+Results: 2/15 (13.3%)
+  💀 comp_001 (openai): count=4 (target: 2)
   🥰 comp_001 (anthropic): count=2 (target: 2)
   🥰 comp_001 (google): count=2 (target: 2)
-  💀 comp_002 (openai): count=8 (target: 7)
-  💀 comp_002 (anthropic): count=5 (target: 7)
-  💀 comp_002 (google): count=5 (target: 7)
+  💀 comp_002 (openai): count=6 (target: 7)
+  💀 comp_002 (anthropic): count=8 (target: 7)
+  💀 comp_002 (google): count=4 (target: 7)
   💀 comp_003 (openai): count=4 (target: 5)
-  💀 comp_003 (anthropic): count=-1 (target: 5)
-  💀 comp_003 (google): count=6 (target: 5)
-  💀 comp_004 (openai): count=8 (target: 5)
+  💀 comp_003 (anthropic): count=4 (target: 5)
+  💀 comp_003 (google): count=1 (target: 5)
+  💀 comp_004 (openai): count=4 (target: 5)
   💀 comp_004 (anthropic): count=-1 (target: 5)
-  🥰 comp_004 (google): count=5 (target: 5)
+  💀 comp_004 (google): count=6 (target: 5)
   💀 comp_005 (openai): count=6 (target: 3)
   💀 comp_005 (anthropic): count=-1 (target: 3)
   💀 comp_005 (google): count=2 (target: 3)
 
 === Accuracy by Model ===
-gpt-5.1: 0.0% (0/5), avg off: 2.2
-claude-opus-4-5-20251101: 20.0% (1/5), avg off: 2.0
-gemini-3-pro-preview: 40.0% (2/5), avg off: 1.3
+gpt-5.1: 0.0% (0/5), avg off: 1.6
+claude-opus-4-5-20251101: 20.0% (1/5), avg off: 1.0
+gemini-3-pro-preview: 20.0% (1/5), avg off: 2.2
 
 === Accuracy by Difficulty ===
 
@@ -1319,7 +1296,7 @@ gemini-3-pro-preview:
   1. easy: 100.0% (1/1)
   2. medium: 0.0% (0/1)
   3. hard: 0.0% (0/1)
-  4. lunatic: 100.0% (1/1)
+  4. lunatic: 0.0% (0/1)
   5. extra: 0.0% (0/1)
 
 Random baseline for 8 problems: 0.4%
