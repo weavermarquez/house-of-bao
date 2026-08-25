@@ -1,0 +1,2 @@
+# Use the committed JSONL directly so fresh clones do not need a local database.
+no-db: true
