@@ -179,6 +179,8 @@ container that is already running, and there is no refresh — the key only show
 up in the next session. If you need it mid-session, the options are to start a
 new session or to schedule a wake-up that lands on a fresh container.
 
+See [HANDOFF.md](HANDOFF.md) for the step-by-step build instructions to hand to an agent.
+
 ## Verified on this box
 
 Linux x86_64, Lean 4.33.1, Mathlib pinned to `v4.33.1`:
