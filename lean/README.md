@@ -130,11 +130,21 @@ claude mcp add aristotle -e ARISTOTLE_API_KEY=$ARISTOTLE_API_KEY -- \
   uvx --from git+https://github.com/septract/lean-aristotle-mcp aristotle-mcp
 ```
 
+Measured on a 3-`sorry` test file: **all three filled in ~8 minutes**, single
+submission, no retries, and the returned proofs re-checked clean locally (no
+`sorry`, standard axioms only). It ships an `ARISTOTLE_SUMMARY.md` describing
+what it proved and how it verified. Worth doing that re-check yourself rather
+than trusting the summary.
+
 Caveats, because they shape how you use it:
 
-- **Latency is minutes to hours.** Simple goals land in 1–5 minutes; hard ones
-  run for hours. Submit async (`wait=False`) and poll; do not block a session
-  on it.
+- **Latency is minutes to hours.** Our easy goals took 8 minutes; hard ones run
+  for hours. Submit async (`wait=False`) and poll with `aristotle list` —
+  `aristotle show` streams and will hang a scripted call.
+- **It pins its own toolchain.** It asked for `leanprover/lean4:v4.28.0` against
+  our `v4.33.1` project. Pin to its version if you plan to rely on it.
+- **Mind what `--project-dir` uploads.** Point it at a minimal directory, not one
+  carrying a 7.5 GB `.lake/`.
 - **You need an account.** Sign-up and key generation are at
   aristotle.harmonic.fun; pricing is not published, and there is a separate
   research grant program.

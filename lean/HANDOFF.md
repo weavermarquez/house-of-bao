@@ -179,6 +179,14 @@ Lean's own. **Anything else means the proof assumed what it was meant to prove.*
 
 ## 6. Aristotle (optional, paid, remote)
 
+> **Observed run:** 3 `sorry`s in `lean/examples/Sorries.lean` (a propositional
+> warm-up, a monotone-involution argument needing trichotomy, and a modal
+> distribution lemma) → **all three filled in ~8 minutes**, one submission, no
+> retries. Proofs were re-checked in our own project: clean build, zero
+> `sorry`, standard axioms only. It also returns an `ARISTOTLE_SUMMARY.md`
+> stating what it did and how it verified. Its trichotomy proof was
+> structurally identical to the hand-written one.
+
 [Harmonic's Aristotle](https://aristotle.harmonic.fun/) is a *different kind of
 tool*: hosted heavyweight proof search you hand goals to. Not a local assistant.
 
@@ -187,7 +195,8 @@ uv tool install aristotlelib
 export ARISTOTLE_API_KEY=...    # from aristotle.harmonic.fun
 aristotle submit "Fill in all sorries. Do not modify theorem statements." \
   --project-dir .               # omit --wait; poll instead
-aristotle list                  # fast; poll this for STATUS
+aristotle list                  # fast; poll for STATUS (RUNNING -> IDLE)
+aristotle download <id> --destination ./result   # gzip archive of the project
 ```
 
 MCP wrapper, if you want it inline:
@@ -205,7 +214,8 @@ Gotchas, all observed:
   minimal dir (lakefile + toolchain + the `.lean` files), *not* a project with a
   7.5 GB `.lake/` in it. It will warn that a missing `.lake` degrades results —
   that is a real tradeoff, not a bug.
-- **Latency is minutes to hours.** Submit async and poll. Never block a session.
+- **Latency is minutes to hours** (8 min for our 3 easy goals). Submit async
+  and poll. Never block a session on it.
 - **Poll with `aristotle list`, not `aristotle show`.** `list` returns a status
   table immediately; `show` streams events and will hang a scripted call (it
   blew past a 120 s timeout for us). Use `show` only interactively.
